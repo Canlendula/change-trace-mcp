@@ -1,0 +1,26 @@
+# Local research notes may contain working assumptions, copied excerpts,
+# organization-specific examples, or material that should not be published.
+/docs/research/
+
+# Agent/project working memory is intentionally local. Stable decisions belong
+# in docs/PROJECT_DECISIONS.md.
+/MEMORY.md
+
+# Local environment and generated review artifacts
+.env
+.env.*
+!.env.example
+/reports/
+/artifacts/
+
+# Node.js build outputs (reserved for implementation)
+node_modules/
+dist/
+coverage/
+*.log
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
