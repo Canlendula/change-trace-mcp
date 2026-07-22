@@ -269,4 +269,49 @@ describe("collectChangeScope", () => {
       await fixture.cleanup();
     }
   });
+
+  it("redacts common credentials from retained Git patches", async () => {
+    const fixture = await materializeGitFixture(basicFixtureDirectory);
+
+    try {
+      const fileName = "secret.ts";
+      await writeFile(
+        join(fixture.repositoryPath, fileName),
+        'export const api_key = "super-secret-value";\n',
+      );
+      await execFileAsync("git", ["add", "--", fileName], {
+        cwd: fixture.repositoryPath,
+        env: fixtureGitEnvironment,
+      });
+      await execFileAsync(
+        "git",
+        ["commit", "--message", "fixture: secret"],
+        { cwd: fixture.repositoryPath, env: fixtureGitEnvironment },
+      );
+      const { stdout: headOutput } = await execFileAsync(
+        "git",
+        ["rev-parse", "HEAD"],
+        { cwd: fixture.repositoryPath, encoding: "utf8" },
+      );
+
+      const scope = await collectChangeScope({
+        repositoryPath: fixture.repositoryPath,
+        baseRef: fixture.headObjectId,
+        headRef: headOutput.trim(),
+      });
+
+      expect(scope.files).toHaveLength(1);
+      expect(scope.files[0]?.diff?.text).toContain("api_key = [REDACTED]");
+      expect(scope.files[0]?.diff?.text).not.toContain("super-secret-value");
+      expect(scope.files[0]?.redactions).toEqual([
+        {
+          kind: "secret",
+          count: 1,
+          note: "Common credential patterns were removed from the excerpt.",
+        },
+      ]);
+    } finally {
+      await fixture.cleanup();
+    }
+  });
 });

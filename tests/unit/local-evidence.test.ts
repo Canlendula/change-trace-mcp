@@ -1,4 +1,5 @@
-import { writeFile } from "node:fs/promises";
+import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -203,6 +204,48 @@ describe("collectLocalEvidence", () => {
       });
     } finally {
       await fixture.cleanup();
+    }
+  });
+
+  it("does not follow symbolic links beneath document roots", async () => {
+    const { fixture, scope } = await prepareFixture();
+    const outsideDirectory = await mkdtemp(
+      join(tmpdir(), "change-trace-outside-docs-"),
+    );
+
+    try {
+      await writeFile(
+        join(outsideDirectory, "outside.md"),
+        "This content must not be collected.\n",
+      );
+      await symlink(
+        outsideDirectory,
+        join(fixture.repositoryPath, "docs", "outside-link"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+
+      const collection = await collectLocalEvidence(
+        {
+          scope,
+          documentRoots: ["docs"],
+          filePatterns: ["**/*.md"],
+        },
+        { now: fixedNow },
+      );
+
+      expect(
+        collection.evidenceItems.some(({ excerpt }) =>
+          excerpt.includes("must not be collected"),
+        ),
+      ).toBe(false);
+      expect(collection.errors).toContainEqual({
+        code: "symlink_skipped",
+        message: "Symbolic links are not followed",
+        path: "docs/outside-link",
+      });
+    } finally {
+      await fixture.cleanup();
+      await rm(outsideDirectory, { recursive: true, force: true });
     }
   });
 

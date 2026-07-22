@@ -3,6 +3,10 @@ import { z } from "zod";
 
 import { SERVER_NAME, SERVER_VERSION } from "./constants.js";
 import {
+  buildReviewBundle,
+  buildReviewBundleInputSchema,
+} from "./evidence/bundle/build-review-bundle.js";
+import {
   collectLocalEvidence,
   collectLocalEvidenceInputSchema,
 } from "./evidence/local/collect-local-evidence.js";
@@ -16,6 +20,7 @@ import {
 } from "./git/change-scope.js";
 import { changeScopeSchema } from "./schemas/change-scope.js";
 import { localEvidenceCollectionSchema } from "./schemas/local-evidence.js";
+import { reviewBundleSchema } from "./schemas/review-bundle.js";
 
 const serverInfoSchema = z.object({
   name: z.string(),
@@ -169,6 +174,44 @@ export function createServer(): McpServer {
       } catch (error) {
         const result = {
           error: "collect_local_evidence_failed",
+          message: (error instanceof Error ? error.message : String(error)).slice(
+            0,
+            2_000,
+          ),
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_review_bundle",
+    {
+      title: "Build a deterministic review bundle",
+      description:
+        "Combine a ChangeScope, local document evidence, and optional normalized evidence into a bounded ReviewBundle with a stable evidence index, deterministic Git facts, and explicit missing-evidence records.",
+      inputSchema: buildReviewBundleInputSchema,
+      outputSchema: reviewBundleSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) => {
+      try {
+        const result = buildReviewBundle(input);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          structuredContent: result,
+        };
+      } catch (error) {
+        const result = {
+          error: "get_review_bundle_failed",
           message: (error instanceof Error ? error.message : String(error)).slice(
             0,
             2_000,

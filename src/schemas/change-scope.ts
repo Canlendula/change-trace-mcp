@@ -8,6 +8,7 @@ import {
   stableIdSchema,
   timestampSchema,
 } from "./common.js";
+import { redactionSchema } from "./evidence.js";
 
 export const changedFileStatusSchema = z.enum([
   "added",
@@ -26,6 +27,7 @@ export const commitSummarySchema = z.strictObject({
   parentObjectIds: z.array(gitObjectIdSchema).max(64),
   summary: z.string().max(1_000),
   committedAt: timestampSchema,
+  redactions: z.array(redactionSchema).max(100),
 });
 
 export const diffExcerptSchema = z.strictObject({
@@ -44,6 +46,7 @@ export const changedFileSchema = z.strictObject({
   additions: z.number().int().nonnegative().nullable(),
   deletions: z.number().int().nonnegative().nullable(),
   diff: diffExcerptSchema.nullable(),
+  redactions: z.array(redactionSchema).max(100),
 });
 
 export const changeScopeErrorSchema = z.strictObject({

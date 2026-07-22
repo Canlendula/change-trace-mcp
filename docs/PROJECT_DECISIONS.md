@@ -368,3 +368,22 @@ an empty relationship list. Complete files receive a raw SHA-256 content hash.
 Byte-truncated files use a `null` hash and expose truncation. Common private-key,
 credential-assignment, GitHub token, and `sk-` token shapes are redacted before
 excerpts leave the collector.
+
+The same secret redactor now applies to retained Git patches and commit
+summaries. Each changed file and commit records its redactions, and any
+post-redaction growth is bounded again before returning MCP output.
+
+`get_review_bundle` promotes normalized local documents, Git diffs, and commits
+into one indexed evidence set. Local document evidence keeps selection priority
+so large patches cannot consume the entire bundle context budget. Git-derived
+status and commit-summary facts reference generated evidence IDs; collection
+errors, binary content, and upstream truncation become explicit
+`missingEvidence` records. Bundle-level evidence count and excerpt-character
+limits are enforced independently, including omitted counts. Bundle IDs are
+stable hashes of the resolved change and retained evidence content, while
+`createdAt` remains observation metadata.
+
+M2 exit tests use an injected fixed clock for deterministic replay. Production
+MCP calls use the actual collection time. With the required Git edge fixtures,
+confinement tests, UTF-8-safe bounds, provenance, and stdio integration passing,
+the M2 deterministic evidence core is complete.

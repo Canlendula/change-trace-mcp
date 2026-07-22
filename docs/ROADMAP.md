@@ -112,16 +112,13 @@ The technical spike may revise this choice if Host compatibility or package star
   no compatibility claim will be made without a real tool-call session log.
 - Detailed, dated compatibility evidence is maintained in
   [`docs/smoke-tests/RESULTS.md`](smoke-tests/RESULTS.md).
-- The revised M1 hard gate is satisfied. M2 implementation may begin.
-- M2 has started with strict versioned schemas, Draft 2020-12 JSON Schema
-  exports, and a real two-commit `basic-change` Git fixture. The first bounded,
-  read-only `get_change_scope` implementation now passes direct and MCP stdio
-  tests. Rename, deletion, binary, submodule, and oversized edge fixtures now
-  pass. The first collector hardening pass adds streaming patch bounds,
-  deterministic ordering, commit limits, and protection from configured diff
-  helpers. The first confined, bounded `collect_local_evidence` implementation
-  and MCP contract now pass unit and stdio integration tests; review-bundle
-  construction remains next.
+- The revised M1 hard gate is satisfied.
+- M2 is complete. Strict schemas and deterministic JSON Schema exports cover
+  change scope, local evidence, review bundles, and findings. The read-only
+  `get_change_scope`, `collect_local_evidence`, and `get_review_bundle` tools
+  pass unit and MCP stdio integration tests. Required rename, deletion, binary,
+  submodule, oversized, confinement, symlink, UTF-8 truncation, and secret
+  redaction cases pass. M3 review-contract work may begin.
 
 ## 6. M0 — Project foundation
 
@@ -665,6 +662,10 @@ Progress as of 2026-07-22:
 | Git fixtures | Required basic, rename, deletion, binary, submodule, and oversized fixtures pass |
 | Git change scope | Initial bounded implementation, edge coverage, and first hardening pass complete |
 | Local evidence | Initial confined scanner, provenance, hashing, truncation, and secret redaction complete |
+| Review bundle | Deterministic indexing, Git facts, missing evidence, and context limits complete |
+| M2 exit gate | Complete; 39 tests plus stdio and package dry-run pass |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
-No external document credentials or staging access are needed before M2 is complete.
+M2 completed without external document credentials or staging access. Source is
+prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
+`0.0.0-dev.0` until the next preview release is explicitly published.

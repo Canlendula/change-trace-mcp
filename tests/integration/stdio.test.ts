@@ -31,6 +31,7 @@ describe("stdio MCP server", () => {
         "collect_local_evidence",
         "get_change_scope",
         "get_compatibility_fixture",
+        "get_review_bundle",
         "get_server_info",
       ]);
       expect(
@@ -119,6 +120,25 @@ describe("stdio MCP server", () => {
               source: { locator: "docs/requirements.md#L1-L3" },
             },
           ],
+        },
+      });
+
+      const reviewBundleResult = await client.callTool({
+        name: "get_review_bundle",
+        arguments: {
+          changeScope: result.structuredContent,
+          localEvidence: localEvidenceResult.structuredContent,
+        },
+      });
+      expect(reviewBundleResult.isError).not.toBe(true);
+      expect(reviewBundleResult).toMatchObject({
+        structuredContent: {
+          schemaVersion: "1.0.0",
+          changeScope: {
+            resolvedBase: fixture.baseObjectId,
+            resolvedHead: fixture.headObjectId,
+          },
+          truncation: { isTruncated: false },
         },
       });
     } finally {

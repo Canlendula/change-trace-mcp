@@ -27,6 +27,7 @@ const changeScope: ChangeScope = {
       parentObjectIds: ["a".repeat(40)],
       summary: "Add documented behavior",
       committedAt: "2026-07-22T12:00:00Z",
+      redactions: [],
     },
   ],
   files: [
@@ -44,6 +45,7 @@ const changeScope: ChangeScope = {
         originalBytes: 29,
         retainedBytes: 29,
       },
+      redactions: [],
     },
   ],
   detectedLanguages: ["TypeScript"],
@@ -128,6 +130,7 @@ describe("core schemas", () => {
         isTruncated: false,
         omittedEvidenceItems: 0,
         omittedExcerptCharacters: 0,
+        omittedMissingEvidence: 0,
       },
     };
 

@@ -11,7 +11,8 @@
         "get_server_info",
         "get_compatibility_fixture",
         "get_change_scope",
-        "collect_local_evidence"
+        "collect_local_evidence",
+        "get_review_bundle"
       ]
     }
   }

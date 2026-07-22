@@ -5,15 +5,18 @@ and normalizing change-scoped release evidence. The user's existing Agent makes
 semantic judgments; this package keeps evidence preparation deterministic and
 reviewable.
 
-M1 Host and cloud-runner compatibility is complete. M2 deterministic evidence
-work is in progress. The currently exposed MCP tools are:
+M1 Host and cloud-runner compatibility and the M2 deterministic evidence core
+are complete. M3 Agent review-contract work is next. The currently exposed MCP
+tools are:
 
 - `get_server_info` reports process and runtime metadata;
 - `get_compatibility_fixture` returns a byte-stable fixture for Host smoke tests;
 - `get_change_scope` returns a deterministic, bounded Git change summary for an
   explicit repository root and two refs;
 - `collect_local_evidence` returns bounded, provenance-rich excerpts from
-  configured repository document roots.
+  configured repository document roots;
+- `get_review_bundle` combines change and document evidence into a bounded,
+  indexed bundle with deterministic facts and missing-evidence records.
 
 ## Requirements
 

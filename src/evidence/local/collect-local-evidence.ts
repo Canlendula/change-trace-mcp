@@ -21,6 +21,7 @@ import {
   type EvidenceItem,
   type LocalEvidenceCollection,
 } from "../../schemas/index.js";
+import { redactCommonSecrets } from "../../security/redact.js";
 
 export const DEFAULT_LOCAL_EVIDENCE_LIMITS = {
   maxScannedEntries: 10_000,
@@ -315,49 +316,6 @@ async function readBoundedTextFile(
   }
 }
 
-function redactSecrets(content: string): {
-  content: string;
-  redactions: EvidenceItem["redactions"];
-} {
-  let count = 0;
-  let redacted = content.replace(
-    /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/gu,
-    (match) => {
-      count += 1;
-      const newlineCount = match.split("\n").length - 1;
-      return `[REDACTED PRIVATE KEY]${"\n".repeat(newlineCount)}`;
-    },
-  );
-  redacted = redacted.replace(
-    /(\b(?:api[_-]?key|access[_-]?token|password|secret)\b\s*[:=]\s*)(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s"'`]+)/giu,
-    (_match, prefix: string) => {
-      count += 1;
-      return `${prefix}[REDACTED]`;
-    },
-  );
-  redacted = redacted.replace(
-    /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{16,})\b/gu,
-    () => {
-      count += 1;
-      return "[REDACTED TOKEN]";
-    },
-  );
-
-  return {
-    content: redacted,
-    redactions:
-      count === 0
-        ? []
-        : [
-            {
-              kind: "secret",
-              count,
-              note: "Common credential patterns were removed from the excerpt.",
-            },
-          ],
-  };
-}
-
 function changedFileNeedles(scope: ChangeScope): RelatedChange[] {
   return scope.files.map((file) => {
     const paths = [file.path, file.previousPath].filter(
@@ -619,7 +577,7 @@ export async function collectLocalEvidence(
         input.scope,
         candidate.isExplicit,
       );
-      const redacted = redactSecrets(file.content);
+      const redacted = redactCommonSecrets(file.content);
       const maximumCharacters = Math.min(
         input.maxExcerptCharactersPerFile,
         remainingExcerptCharacters,

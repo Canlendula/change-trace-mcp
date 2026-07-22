@@ -12,6 +12,7 @@ import {
   type ChangedFile,
   type ChangedFileStatus,
 } from "../schemas/index.js";
+import { redactCommonSecrets } from "../security/redact.js";
 
 const execFileAsync = promisify(execFile);
 const GIT_TIMEOUT_MILLISECONDS = 30_000;
@@ -191,6 +192,28 @@ function utf8BoundaryLength(buffer: Buffer): number {
   return buffer.byteLength - sequenceStart < expectedBytes
     ? sequenceStart
     : buffer.byteLength;
+}
+
+function boundUtf8String(
+  value: string,
+  maximumBytes: number,
+): { text: string; retainedBytes: number; isTruncated: boolean } {
+  const buffer = Buffer.from(value, "utf8");
+  if (buffer.byteLength <= maximumBytes) {
+    return {
+      text: value,
+      retainedBytes: buffer.byteLength,
+      isTruncated: false,
+    };
+  }
+
+  const boundedBuffer = buffer.subarray(0, maximumBytes);
+  const retainedBytes = utf8BoundaryLength(boundedBuffer);
+  return {
+    text: boundedBuffer.subarray(0, retainedBytes).toString("utf8"),
+    retainedBytes,
+    isTruncated: true,
+  };
 }
 
 async function runGitBounded(
@@ -488,6 +511,7 @@ async function collectChangedFile(
       additions: null,
       deletions: null,
       diff: null,
+      redactions: [],
     };
   }
 
@@ -508,6 +532,11 @@ async function collectChangedFile(
     ],
     maximumPatchBytes,
   );
+  const redactedPatch = redactCommonSecrets(patch.text);
+  const boundedRedactedPatch = boundUtf8String(
+    redactedPatch.content,
+    maximumPatchBytes,
+  );
 
   return {
     id: createFileId(changedPath.path),
@@ -518,11 +547,12 @@ async function collectChangedFile(
     additions: numstat.additions,
     deletions: numstat.deletions,
     diff: {
-      text: patch.text,
-      isTruncated: patch.isTruncated,
+      text: boundedRedactedPatch.text,
+      isTruncated: patch.isTruncated || boundedRedactedPatch.isTruncated,
       originalBytes: patch.originalBytes,
-      retainedBytes: patch.retainedBytes,
+      retainedBytes: boundedRedactedPatch.retainedBytes,
     },
+    redactions: redactedPatch.redactions,
   };
 }
 
@@ -588,13 +618,15 @@ async function collectCommits(
       ) {
         throw new Error("Git returned an incomplete commit record");
       }
+      const redactedSummary = redactCommonSecrets(summary.slice(0, 1_000));
 
       return {
         id: `commit:${objectId}`,
         objectId,
         parentObjectIds: parentObjectIds ? parentObjectIds.split(" ") : [],
-        summary: summary.slice(0, 1_000),
+        summary: redactedSummary.content.slice(0, 1_000),
         committedAt,
+        redactions: redactedSummary.redactions,
       };
     })
     .reverse();

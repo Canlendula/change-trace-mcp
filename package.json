@@ -1,6 +1,6 @@
 {
   "name": "change-trace-mcp",
-  "version": "0.0.0-dev.0",
+  "version": "0.0.0-dev.1",
   "description": "Local-first MCP server for collecting release-consistency evidence.",
   "type": "module",
   "bin": {

@@ -46,6 +46,7 @@ export const reviewBundleSchema = z
       isTruncated: z.boolean(),
       omittedEvidenceItems: z.number().int().nonnegative(),
       omittedExcerptCharacters: z.number().int().nonnegative(),
+      omittedMissingEvidence: z.number().int().nonnegative(),
     }),
   })
   .meta({
