@@ -180,5 +180,8 @@ describe("core schemas", () => {
     expect(exportCoreJsonSchemas().localEvidenceCollection.$id).toBe(
       `urn:change-trace-mcp:schema:local-evidence-collection:${CORE_SCHEMA_VERSION}`,
     );
+    expect(exportCoreJsonSchemas().findingValidationResult.$id).toBe(
+      `urn:change-trace-mcp:schema:finding-validation-result:${CORE_SCHEMA_VERSION}`,
+    );
   });
 });

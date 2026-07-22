@@ -6,8 +6,8 @@ semantic judgments; this package keeps evidence preparation deterministic and
 reviewable.
 
 M1 Host and cloud-runner compatibility and the M2 deterministic evidence core
-are complete. M3 Agent review-contract work is next. The currently exposed MCP
-tools are:
+are complete. M3 Agent review-contract work is in progress. The currently
+exposed MCP tools are:
 
 - `get_server_info` reports process and runtime metadata;
 - `get_compatibility_fixture` returns a byte-stable fixture for Host smoke tests;
@@ -16,7 +16,9 @@ tools are:
 - `collect_local_evidence` returns bounded, provenance-rich excerpts from
   configured repository document roots;
 - `get_review_bundle` combines change and document evidence into a bounded,
-  indexed bundle with deterministic facts and missing-evidence records.
+  indexed bundle with deterministic facts and missing-evidence records;
+- `validate_findings` validates Agent output against the shared schema and the
+  bundle's evidence/source indexes.
 
 ## Requirements
 

@@ -34,6 +34,14 @@ export {
   type FindingStatus,
 } from "./finding.js";
 export {
+  findingValidationIssueSchema,
+  findingValidationResultSchema,
+  findingValidationWarningSchema,
+  type FindingValidationIssue,
+  type FindingValidationResult,
+  type FindingValidationWarning,
+} from "./finding-validation.js";
+export {
   localEvidenceCollectionErrorSchema,
   localEvidenceCollectionSchema,
   type LocalEvidenceCollection,

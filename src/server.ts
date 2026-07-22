@@ -15,11 +15,16 @@ import {
   serializeCompatibilityFixture,
 } from "./fixtures/compatibility.js";
 import {
+  validateFindings,
+  validateFindingsInputSchema,
+} from "./findings/validate-findings.js";
+import {
   collectChangeScope,
   getChangeScopeInputSchema,
 } from "./git/change-scope.js";
 import { changeScopeSchema } from "./schemas/change-scope.js";
 import { localEvidenceCollectionSchema } from "./schemas/local-evidence.js";
+import { findingValidationResultSchema } from "./schemas/finding-validation.js";
 import { reviewBundleSchema } from "./schemas/review-bundle.js";
 
 const serverInfoSchema = z.object({
@@ -212,6 +217,44 @@ export function createServer(): McpServer {
       } catch (error) {
         const result = {
           error: "get_review_bundle_failed",
+          message: (error instanceof Error ? error.message : String(error)).slice(
+            0,
+            2_000,
+          ),
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    "validate_findings",
+    {
+      title: "Validate Agent findings",
+      description:
+        "Validate Agent-produced findings against the shared schema and a ReviewBundle. Known enum formatting aliases are normalized; unknown evidence IDs, unsupported sources, duplicate IDs, and unsupported substantive findings are rejected without inventing content.",
+      inputSchema: validateFindingsInputSchema,
+      outputSchema: findingValidationResultSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) => {
+      try {
+        const result = validateFindings(input);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          structuredContent: result,
+        };
+      } catch (error) {
+        const result = {
+          error: "validate_findings_failed",
           message: (error instanceof Error ? error.message : String(error)).slice(
             0,
             2_000,

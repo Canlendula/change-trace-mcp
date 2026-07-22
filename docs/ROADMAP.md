@@ -118,7 +118,11 @@ The technical spike may revise this choice if Host compatibility or package star
   `get_change_scope`, `collect_local_evidence`, and `get_review_bundle` tools
   pass unit and MCP stdio integration tests. Required rename, deletion, binary,
   submodule, oversized, confinement, symlink, UTF-8 truncation, and secret
-  redaction cases pass. M3 review-contract work may begin.
+  redaction cases pass.
+- M3 has started. `validate_findings` now performs per-finding schema checks,
+  safe enum normalization, evidence/source cross-reference validation, and
+  duplicate-ID rejection. Unit tests and the full stdio scope → evidence →
+  bundle → validation chain pass. Bounded Markdown/JSON report writing is next.
 
 ## 6. M0 — Project foundation
 
@@ -664,6 +668,7 @@ Progress as of 2026-07-22:
 | Local evidence | Initial confined scanner, provenance, hashing, truncation, and secret redaction complete |
 | Review bundle | Deterministic indexing, Git facts, missing evidence, and context limits complete |
 | M2 exit gate | Complete; 39 tests plus stdio and package dry-run pass |
+| Finding validation | Initial schema normalization and bundle-reference enforcement complete |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is

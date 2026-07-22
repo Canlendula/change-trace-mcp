@@ -33,6 +33,7 @@ describe("stdio MCP server", () => {
         "get_compatibility_fixture",
         "get_review_bundle",
         "get_server_info",
+        "validate_findings",
       ]);
       expect(
         tools.every(
@@ -139,6 +140,57 @@ describe("stdio MCP server", () => {
             resolvedHead: fixture.headObjectId,
           },
           truncation: { isTruncated: false },
+        },
+      });
+
+      const reviewBundle = reviewBundleResult.structuredContent as {
+        evidenceItems: Array<{
+          id: string;
+          source: { system: string; locator: string; uri: string | null };
+        }>;
+      };
+      const evidence = reviewBundle.evidenceItems[0]!;
+      const validationResult = await client.callTool({
+        name: "validate_findings",
+        arguments: {
+          bundle: reviewBundleResult.structuredContent,
+          findings: [
+            {
+              schemaVersion: "1.0.0",
+              id: "finding:stdio-example",
+              category: "Requirement-Missing",
+              severity: "MEDIUM",
+              confidence: 0.7,
+              title: "Example finding",
+              expectedBehavior: "The requirement is followed.",
+              observedBehavior: "The implementation requires Agent review.",
+              deterministicFacts: [
+                {
+                  statement: "A local requirement document was collected.",
+                  evidenceIds: [evidence.id],
+                },
+              ],
+              inference: "The implementation may differ from the requirement.",
+              evidenceIds: [evidence.id],
+              affectedSources: [evidence.source],
+              recommendation: "investigate",
+              status: "Suspected",
+            },
+          ],
+        },
+      });
+      expect(validationResult.isError).not.toBe(true);
+      expect(validationResult).toMatchObject({
+        structuredContent: {
+          ok: true,
+          summary: { submitted: 1, valid: 1, rejected: 0 },
+          validFindings: [
+            {
+              category: "requirement_missing",
+              severity: "medium",
+              status: "suspected",
+            },
+          ],
         },
       });
     } finally {

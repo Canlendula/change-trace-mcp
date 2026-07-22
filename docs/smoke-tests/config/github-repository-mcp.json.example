@@ -12,7 +12,8 @@
         "get_compatibility_fixture",
         "get_change_scope",
         "collect_local_evidence",
-        "get_review_bundle"
+        "get_review_bundle",
+        "validate_findings"
       ]
     }
   }

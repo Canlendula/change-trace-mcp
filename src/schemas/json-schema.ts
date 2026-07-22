@@ -4,6 +4,7 @@ import { changeScopeSchema } from "./change-scope.js";
 import { CORE_SCHEMA_VERSION } from "./common.js";
 import { evidenceItemSchema } from "./evidence.js";
 import { findingSchema } from "./finding.js";
+import { findingValidationResultSchema } from "./finding-validation.js";
 import { localEvidenceCollectionSchema } from "./local-evidence.js";
 import { reviewBundleSchema } from "./review-bundle.js";
 
@@ -17,6 +18,7 @@ export type CoreJsonSchemas = {
   readonly changeScope: JsonSchemaDocument;
   readonly reviewBundle: JsonSchemaDocument;
   readonly finding: JsonSchemaDocument;
+  readonly findingValidationResult: JsonSchemaDocument;
   readonly localEvidenceCollection: JsonSchemaDocument;
 };
 
@@ -43,6 +45,10 @@ export function exportCoreJsonSchemas(): CoreJsonSchemas {
     finding: {
       $id: `urn:change-trace-mcp:schema:finding:${CORE_SCHEMA_VERSION}`,
       ...z.toJSONSchema(findingSchema, options),
+    },
+    findingValidationResult: {
+      $id: `urn:change-trace-mcp:schema:finding-validation-result:${CORE_SCHEMA_VERSION}`,
+      ...z.toJSONSchema(findingValidationResultSchema, options),
     },
     localEvidenceCollection: {
       $id: `urn:change-trace-mcp:schema:local-evidence-collection:${CORE_SCHEMA_VERSION}`,

@@ -387,3 +387,22 @@ M2 exit tests use an injected fixed clock for deterministic replay. Production
 MCP calls use the actual collection time. With the required Git edge fixtures,
 confinement tests, UTF-8-safe bounds, provenance, and stdio integration passing,
 the M2 deterministic evidence core is complete.
+
+## 18. M3 finding validation baseline
+
+`validate_findings` accepts untrusted Agent-produced JSON and returns a
+structured validation result rather than failing the entire call for an invalid
+individual finding. It never fills missing semantic content. Safe formatting
+differences in category, severity, recommendation, and status tokens are
+normalized with warnings. Unknown enum values remain schema errors; the only
+semantic aliases accepted initially are `informational` for `info` and common
+spellings of `add_or_adjust_tests`.
+
+Confirmed and suspected findings must reference at least one evidence item in
+the supplied `ReviewBundle`. All evidence IDs used by findings and their
+deterministic facts must exist, fact references must also appear in the
+finding's top-level evidence list, affected sources must exist in the bundle's
+evidence or missing-evidence indexes, and finding IDs must be unique. Duplicate
+or unsupported items are rejected with path-specific issues. Inconclusive
+findings may omit evidence; when the bundle has no missing-evidence record this
+produces a warning so the Host can reassess the claim.
