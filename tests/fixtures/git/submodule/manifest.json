@@ -1,0 +1,28 @@
+{
+  "fixtureId": "submodule",
+  "description": "A gitlink advances from one submodule commit to another.",
+  "expectedChanges": [
+    {
+      "status": "M",
+      "path": "vendor/example"
+    }
+  ],
+  "snapshots": {
+    "base": {
+      "gitlinks": [
+        {
+          "path": "vendor/example",
+          "objectId": "1111111111111111111111111111111111111111"
+        }
+      ]
+    },
+    "head": {
+      "gitlinks": [
+        {
+          "path": "vendor/example",
+          "objectId": "2222222222222222222222222222222222222222"
+        }
+      ]
+    }
+  }
+}

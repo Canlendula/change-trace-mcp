@@ -1,0 +1,10 @@
+{
+  "fixtureId": "deletion",
+  "description": "A tracked obsolete document is deleted.",
+  "expectedChanges": [
+    {
+      "status": "D",
+      "path": "docs/obsolete.md"
+    }
+  ]
+}

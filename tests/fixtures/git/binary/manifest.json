@@ -1,0 +1,30 @@
+{
+  "fixtureId": "binary",
+  "description": "A binary artifact changes between revisions.",
+  "expectedChanges": [
+    {
+      "status": "M",
+      "path": "assets/fixture.bin"
+    }
+  ],
+  "snapshots": {
+    "base": {
+      "generatedFiles": [
+        {
+          "kind": "base64",
+          "path": "assets/fixture.bin",
+          "contentBase64": "AAECAwQFBgcICQ=="
+        }
+      ]
+    },
+    "head": {
+      "generatedFiles": [
+        {
+          "kind": "base64",
+          "path": "assets/fixture.bin",
+          "contentBase64": "CQgHBgUEAwIBAA=="
+        }
+      ]
+    }
+  }
+}

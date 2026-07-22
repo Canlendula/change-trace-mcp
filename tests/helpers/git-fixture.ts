@@ -1,18 +1,65 @@
 import { execFile } from "node:child_process";
 import {
   cp,
+  mkdir,
   mkdtemp,
   readFile,
   readdir,
   rm,
+  writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, dirname, join, resolve } from "node:path";
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+} from "node:path";
 import { promisify } from "node:util";
 
 import { z } from "zod";
 
 const execFileAsync = promisify(execFile);
+
+const fixturePathSchema = z
+  .string()
+  .min(1)
+  .max(1_000)
+  .refine((value) => !value.includes("\\"), {
+    message: "Fixture paths must use forward slashes",
+  })
+  .refine(
+    (value) =>
+      !value.startsWith("/") &&
+      !value.split("/").some((segment) => segment === ".."),
+    { message: "Fixture paths must stay within the repository" },
+  );
+
+const generatedFileSchema = z.discriminatedUnion("kind", [
+  z.strictObject({
+    kind: z.literal("base64"),
+    path: fixturePathSchema,
+    contentBase64: z.string().max(1_000_000),
+  }),
+  z.strictObject({
+    kind: z.literal("repeat"),
+    path: fixturePathSchema,
+    content: z.string().min(1).max(1_000),
+    repeat: z.number().int().positive().max(100_000),
+  }),
+]);
+
+const gitlinkSchema = z.strictObject({
+  path: fixturePathSchema,
+  objectId: z.string().regex(/^[0-9a-f]{40}$/u),
+});
+
+const fixtureSnapshotSchema = z.strictObject({
+  generatedFiles: z.array(generatedFileSchema).max(100).optional(),
+  gitlinks: z.array(gitlinkSchema).max(100).optional(),
+});
 
 const gitFixtureManifestSchema = z.strictObject({
   fixtureId: z.string().min(1),
@@ -21,8 +68,15 @@ const gitFixtureManifestSchema = z.strictObject({
     z.strictObject({
       status: z.enum(["A", "M", "D", "R", "C", "T", "U"]),
       path: z.string().min(1),
+      previousPath: z.string().min(1).optional(),
     }),
   ),
+  snapshots: z
+    .strictObject({
+      base: fixtureSnapshotSchema.optional(),
+      head: fixtureSnapshotSchema.optional(),
+    })
+    .optional(),
 });
 
 export type GitFixtureManifest = z.infer<typeof gitFixtureManifestSchema>;
@@ -69,6 +123,56 @@ async function copyTreeContents(
   }
 }
 
+function resolveGeneratedPath(
+  repositoryPath: string,
+  fixturePath: string,
+): string {
+  const target = resolve(repositoryPath, ...fixturePath.split("/"));
+  const relativeTarget = relative(repositoryPath, target);
+
+  if (
+    relativeTarget === "" ||
+    isAbsolute(relativeTarget) ||
+    relativeTarget.split(/[\\/]/u).some((segment) => segment === "..")
+  ) {
+    throw new Error(`Refusing to generate unsafe fixture path: ${fixturePath}`);
+  }
+
+  return target;
+}
+
+async function applySnapshotSetup(
+  repositoryPath: string,
+  snapshot: z.infer<typeof fixtureSnapshotSchema> | undefined,
+): Promise<void> {
+  for (const generatedFile of snapshot?.generatedFiles ?? []) {
+    const target = resolveGeneratedPath(repositoryPath, generatedFile.path);
+    await mkdir(dirname(target), { recursive: true });
+    const content =
+      generatedFile.kind === "base64"
+        ? Buffer.from(generatedFile.contentBase64, "base64")
+        : generatedFile.content.repeat(generatedFile.repeat);
+    await writeFile(target, content);
+  }
+}
+
+async function applyGitlinks(
+  repositoryPath: string,
+  snapshot: z.infer<typeof fixtureSnapshotSchema> | undefined,
+): Promise<void> {
+  for (const gitlink of snapshot?.gitlinks ?? []) {
+    resolveGeneratedPath(repositoryPath, gitlink.path);
+    await runGit(repositoryPath, [
+      "update-index",
+      "--add",
+      "--cacheinfo",
+      "160000",
+      gitlink.objectId,
+      gitlink.path,
+    ]);
+  }
+}
+
 async function clearWorkingTree(repositoryPath: string): Promise<void> {
   const resolvedRepositoryPath = resolve(repositoryPath);
 
@@ -111,7 +215,9 @@ export async function materializeGitFixture(
       join(resolvedFixtureDirectory, "base"),
       repositoryPath,
     );
+    await applySnapshotSetup(repositoryPath, manifest.snapshots?.base);
     await runGit(repositoryPath, ["add", "--all"]);
+    await applyGitlinks(repositoryPath, manifest.snapshots?.base);
     await runGit(repositoryPath, ["commit", "--message", "fixture: base"]);
     const baseObjectId = await runGit(repositoryPath, ["rev-parse", "HEAD"]);
 
@@ -120,7 +226,9 @@ export async function materializeGitFixture(
       join(resolvedFixtureDirectory, "head"),
       repositoryPath,
     );
+    await applySnapshotSetup(repositoryPath, manifest.snapshots?.head);
     await runGit(repositoryPath, ["add", "--all"]);
+    await applyGitlinks(repositoryPath, manifest.snapshots?.head);
     await runGit(repositoryPath, ["commit", "--message", "fixture: head"]);
     const headObjectId = await runGit(repositoryPath, ["rev-parse", "HEAD"]);
 

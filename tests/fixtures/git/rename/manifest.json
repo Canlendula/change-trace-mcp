@@ -1,0 +1,11 @@
+{
+  "fixtureId": "rename",
+  "description": "A tracked source file is renamed without content changes.",
+  "expectedChanges": [
+    {
+      "status": "R",
+      "path": "src/new-name.ts",
+      "previousPath": "src/old-name.ts"
+    }
+  ]
+}

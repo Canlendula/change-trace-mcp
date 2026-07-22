@@ -1,0 +1,32 @@
+{
+  "fixtureId": "oversized",
+  "description": "A generated text diff exceeds the default per-file excerpt limit.",
+  "expectedChanges": [
+    {
+      "status": "M",
+      "path": "generated/large.txt"
+    }
+  ],
+  "snapshots": {
+    "base": {
+      "generatedFiles": [
+        {
+          "kind": "repeat",
+          "path": "generated/large.txt",
+          "content": "base fixture line\n",
+          "repeat": 10
+        }
+      ]
+    },
+    "head": {
+      "generatedFiles": [
+        {
+          "kind": "repeat",
+          "path": "generated/large.txt",
+          "content": "head fixture line with deterministic content\n",
+          "repeat": 5000
+        }
+      ]
+    }
+  }
+}

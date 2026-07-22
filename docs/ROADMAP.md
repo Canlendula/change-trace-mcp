@@ -116,7 +116,8 @@ The technical spike may revise this choice if Host compatibility or package star
 - M2 has started with strict versioned schemas, Draft 2020-12 JSON Schema
   exports, and a real two-commit `basic-change` Git fixture. The first bounded,
   read-only `get_change_scope` implementation now passes direct and MCP stdio
-  tests; edge-case fixtures remain next.
+  tests. Rename, deletion, binary, submodule, and oversized edge fixtures now
+  pass; collector hardening and local evidence collection remain next.
 
 ## 6. M0 — Project foundation
 
@@ -657,8 +658,8 @@ Progress as of 2026-07-22:
 | deterministic fixture tool | Complete |
 | Host smoke scripts/configuration | Complete; local Hosts and GitHub Actions cloud runner pass |
 | Core evidence/finding schemas | Initial strict Zod and Draft 2020-12 contracts implemented |
-| Git fixtures | First `basic-change` two-commit fixture implemented; edge cases remain |
-| Git change scope | Initial bounded implementation and MCP tool complete; edge cases remain |
+| Git fixtures | Required basic, rename, deletion, binary, submodule, and oversized fixtures pass |
+| Git change scope | Initial bounded implementation and MCP tool complete; hardening remains |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 No external document credentials or staging access are needed before M2 is complete.
