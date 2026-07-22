@@ -313,3 +313,26 @@ logs prove the tool call.
 This policy keeps a real cloud-runtime gate without making core open-source
 development depend on a proprietary paid Host. M4 retains GitHub Actions with a
 headless Agent as the primary GitHub pull-request path.
+
+## 17. M2 core schema baseline
+
+M2 begins with strict, versioned Zod contracts for `EvidenceItem`,
+`ChangeScope`, `ReviewBundle`, and `Finding`. Their initial schema version is
+`1.0.0`, independent of the npm package version.
+
+All contract objects reject unknown keys. Optional source facts are represented
+with explicit `null` values where absence is meaningful, while required arrays
+remain present even when empty. Evidence items always carry provenance, trust,
+truncation, and redaction fields. Findings keep evidence-backed deterministic
+facts separate from Agent inference.
+
+Zod is the runtime source of truth. The public package also exports
+deterministic JSON Schema Draft 2020-12 representations with stable URN IDs.
+Cross-record rules, such as requiring substantive findings to reference IDs
+present in a review bundle, remain the responsibility of the M3
+`validate_findings` tool rather than the shape-only base schema.
+
+Git collection begins only after fixture repositories exist. The first fixture
+materializes a real two-commit repository with fixed author metadata and line
+ending policy, then verifies its expected name-status diff. Rename, deletion,
+binary, submodule, and oversized cases remain required before the M2 exit gate.

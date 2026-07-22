@@ -5,8 +5,8 @@ and normalizing change-scoped release evidence. The user's existing Agent makes
 semantic judgments; this package keeps evidence preparation deterministic and
 reviewable.
 
-The project is currently in the M1 protocol compatibility spike. The available
-tools are diagnostic only:
+M1 Host and cloud-runner compatibility is complete. M2 deterministic evidence
+work is in progress. The currently exposed MCP tools remain diagnostic:
 
 - `get_server_info` reports process and runtime metadata;
 - `get_compatibility_fixture` returns a byte-stable fixture for Host smoke tests.
@@ -32,6 +32,22 @@ node dist/cli.js
 
 The server reserves stdout for MCP JSON-RPC messages. Structured operational
 logs are emitted to stderr.
+
+## Versioned schemas
+
+The package exports strict Zod schemas and deterministic Draft 2020-12 JSON
+Schema documents for `EvidenceItem`, `ChangeScope`, `ReviewBundle`, and
+`Finding`:
+
+```ts
+import {
+  evidenceItemSchema,
+  exportCoreJsonSchemas,
+} from "change-trace-mcp";
+
+const evidence = evidenceItemSchema.parse(input);
+const jsonSchemas = exportCoreJsonSchemas();
+```
 
 Host-specific setup and the current compatibility matrix live in
 [`docs/smoke-tests/`](docs/smoke-tests/README.md).

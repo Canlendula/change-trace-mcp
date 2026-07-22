@@ -1,0 +1,14 @@
+{
+  "fixtureId": "basic-change",
+  "description": "A documented behavior gains an implementation and a focused test.",
+  "expectedChanges": [
+    {
+      "status": "M",
+      "path": "src/greeting.ts"
+    },
+    {
+      "status": "A",
+      "path": "tests/greeting.test.ts"
+    }
+  ]
+}
