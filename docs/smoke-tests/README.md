@@ -81,10 +81,10 @@ working directories and discovery timeouts. See the
 
 After a package version is published, paste the adapted contents of
 [`config/github-repository-mcp.json.example`](config/github-repository-mcp.json.example)
-into **Repository settings → Copilot → Coding agent → MCP configuration**, then
-enable MCP tools for code review. Ask for a review that explicitly requests the
-compatibility fixture and inspect the linked session logs for the server/tool
-call.
+into **Repository settings → Copilot → Cloud agent → Model Context Protocol
+(MCP)**, then leave MCP tools enabled for code review. Ask for a review that
+explicitly requests the compatibility fixture and inspect the linked session
+logs for the server/tool call.
 
 GitHub's repository MCP environment supports tools only, runs local servers in
 an ephemeral cloud environment, and currently exposes MCP-backed code review as
