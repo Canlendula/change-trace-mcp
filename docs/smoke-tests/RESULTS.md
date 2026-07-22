@@ -8,7 +8,8 @@
 | Claude Code | 2.1.216; Windows; third-party API selected through CC Switch | Pass | Pass, byte-identical | One-shot call completed with only `mcp__change-trace__get_compatibility_fixture` allowed |
 | OpenCode | 1.18.4; Windows; `deepseek-v4-pro` Host model | Pass | Pass, byte-identical | Revalidated after the rename with all unrelated tools denied |
 | Codex | Desktop 26.707.3748.0; Windows | Pass | Pass, byte-identical | Fresh project task loaded the ignored local `.codex/config.toml` and returned the expected fixture |
-| GitHub Copilot code review | Ephemeral GitHub environment | Pending | Pending | Requires a published package version and repository administrator configuration |
+| GitHub Actions cloud runner | `ubuntu-latest`; Node 22; public `0.0.0-dev.0` package | Pending | Pending | Required M1 cloud gate; manually dispatched workflow |
+| GitHub Copilot code review | Ephemeral GitHub environment | Deferred | Deferred | Repository MCP configuration saved; paid Host entitlement unavailable; optional M4 validation |
 
 ## Local protocol observations
 
@@ -27,6 +28,7 @@
   `npx --package=change-trace-mcp@0.0.0-dev.0 -- change-trace-mcp`, discovered
   both tools, and received the byte-identical fixture.
 
-M1 remains in progress until the GitHub repository MCP environment completes
-the fixture call. All three target local Hosts and the protocol reference client
-currently pass.
+M1 remains in progress until the GitHub Actions cloud runner completes the
+published-package fixture call. All three target local Agent Hosts and the
+protocol reference client currently pass. Copilot Code Review is not included
+in compatibility claims until a future linked session log proves its tool call.

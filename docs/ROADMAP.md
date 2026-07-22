@@ -86,7 +86,7 @@ The technical spike may revise this choice if Host compatibility or package star
 | Milestone | Target result | Exit gate |
 |---|---|---|
 | M0 — Project foundation | Repository and durable project decisions | Clean structure and tracked roadmap |
-| M1 — Protocol spike | `npx` stdio MCP works across target Hosts | Four Host smoke tests pass |
+| M1 — Protocol spike | `npx` stdio MCP works across target Hosts and a clean cloud runner | Three Agent Hosts, the reference client, and GitHub Actions pass |
 | M2 — Deterministic evidence core | Git + local docs produce a bounded review bundle | Fixture results are stable and reproducible |
 | M3 — Agent review loop | Agents return schema-valid findings and reports | Cross-Host replay suite passes |
 | M4 — Advisory CI | Reports run after PR/push checks without blocking | GitHub and one generic CI path demonstrated |
@@ -104,12 +104,16 @@ The technical spike may revise this choice if Host compatibility or package star
   logger, diagnostic tool, deterministic fixture tool, reference-client tests,
   package smoke test, and Host configuration examples are implemented.
 - The official SDK reference client, Codex, Claude Code, and OpenCode pass
-  initialization, tool discovery, and byte-identical fixture calls. GitHub cloud
-  validation is the remaining M1 Host gate.
+  initialization, tool discovery, and byte-identical fixture calls. A clean
+  GitHub Actions runner launching the published package is the remaining M1
+  cloud gate.
+- GitHub Copilot Code Review execution is deferred to M4 because its paid Host
+  entitlement is unavailable. Its repository MCP configuration is saved, but
+  no compatibility claim will be made without a real tool-call session log.
 - Detailed, dated compatibility evidence is maintained in
   [`docs/smoke-tests/RESULTS.md`](smoke-tests/RESULTS.md).
-- M1 is a hard gate. M2 implementation must wait until every M1 Host fixture
-  check passes or the project owner explicitly revises the gate.
+- M1 remains a hard gate. M2 implementation must wait until the revised Host
+  and cloud-runner fixture matrix passes.
 
 ## 6. M0 — Project foundation
 
@@ -152,7 +156,8 @@ Prove the package can remain a lightweight stdio MCP and can be called by all pr
   - Codex;
   - Claude Code;
   - OpenCode;
-  - GitHub repository MCP/Copilot Code Review environment.
+  - GitHub Actions ephemeral runner;
+  - optional GitHub repository MCP/Copilot Code Review environment.
 
 ### Questions to answer
 
@@ -165,8 +170,10 @@ Prove the package can remain a lightweight stdio MCP and can be called by all pr
 
 ### Exit criteria
 
-- all four Hosts can initialize the same MCP package;
-- all four can call the fixture tool and receive identical JSON;
+- Codex, Claude Code, OpenCode, and the official SDK reference client can
+  initialize the same MCP package and receive identical fixture JSON;
+- a standard GitHub Actions runner can launch the published package and receive
+  the same fixture JSON;
 - stdout contains protocol output only;
 - package startup does not require a network service;
 - installation steps fit in a short, reproducible guide.
@@ -371,7 +378,8 @@ Run the review after or alongside existing CI without changing the release path 
 ### Integration targets
 
 1. GitHub Actions with a headless Agent Host;
-2. GitHub Copilot Code Review with repository MCP configuration;
+2. optional GitHub Copilot Code Review with repository MCP configuration when
+   a licensed contributor or pilot is available;
 3. one generic template suitable for GitLab CI or another runner.
 
 ### Required behavior
@@ -644,7 +652,7 @@ Progress as of 2026-07-22:
 | TypeScript package and test runner | Complete |
 | stdio entry point and protocol-safe logging | Complete |
 | deterministic fixture tool | Complete |
-| Host smoke scripts/configuration | Complete; published-package smoke passes, GitHub Host validation remains |
+| Host smoke scripts/configuration | Complete; GitHub Actions published-package run is the remaining M1 gate |
 | Core evidence/finding schemas | Blocked by the remaining M1 Host fixture checks |
 | Git fixtures | Blocked by the remaining M1 Host fixture checks |
 | M1 compatibility record | In progress in `docs/smoke-tests/RESULTS.md` |

@@ -77,18 +77,33 @@ OpenCode local MCP configuration uses a command array and supports per-server
 working directories and discovery timeouts. See the
 [official OpenCode MCP documentation](https://opencode.ai/docs/mcp-servers/).
 
-## GitHub Copilot code review
+## GitHub Actions published-package smoke
+
+The required M1 cloud check runs
+[`m1-published-package-smoke.yml`](../../.github/workflows/m1-published-package-smoke.yml)
+on a standard `ubuntu-latest` runner. It starts the public package from a clean
+temporary directory and uses the same reference smoke client to verify MCP
+initialization, tool discovery, and the exact fixture value.
+
+Run it from the Actions page with **Run workflow**, or with GitHub CLI:
+
+```text
+gh workflow run "M1 published package smoke"
+```
+
+## Optional GitHub Copilot code review
 
 After a package version is published, paste the adapted contents of
 [`config/github-repository-mcp.json.example`](config/github-repository-mcp.json.example)
-into **Repository settings → Copilot → Coding agent → MCP configuration**, then
-enable MCP tools for code review. Ask for a review that explicitly requests the
-compatibility fixture and inspect the linked session logs for the server/tool
-call.
+into **Repository settings → Copilot → Cloud agent → Model Context Protocol
+(MCP)**, then leave MCP tools enabled for code review. Ask for a review that
+explicitly requests the compatibility fixture and inspect the linked session
+logs for the server/tool call.
 
 GitHub's repository MCP environment supports tools only, runs local servers in
 an ephemeral cloud environment, and currently exposes MCP-backed code review as
-public preview. See GitHub's official guides for
+public preview. This paid-Host check is deferred to M4 and does not count as an
+M1 pass until a linked session log proves the tool call. See GitHub's official guides for
 [repository MCP configuration](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers)
 and [Copilot code review](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/request-a-code-review/use-code-review).
 

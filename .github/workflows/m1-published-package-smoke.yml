@@ -1,0 +1,29 @@
+name: M1 published package smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  published-package-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out smoke client
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Call the published MCP fixture
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir -p change-trace-public-npm-smoke
+          cd change-trace-public-npm-smoke
+          node "$GITHUB_WORKSPACE/scripts/smoke-stdio.mjs" \
+            npx --yes --package=change-trace-mcp@0.0.0-dev.0 -- change-trace-mcp

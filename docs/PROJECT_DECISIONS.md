@@ -58,7 +58,7 @@ The user's Agent Host supplies the model and performs semantic comparison.
 | Context | Agent Host | MCP execution |
 |---|---|---|
 | Local development | Codex, Claude Code, OpenCode, Cursor, or another compatible Host | Local `npx`/stdio process |
-| GitHub pull request | GitHub Copilot Code Review where repository MCP is available | Ephemeral cloud environment |
+| GitHub pull request | GitHub Actions with a headless Host; optionally GitHub Copilot Code Review when entitlement is available | Ephemeral cloud environment |
 | Generic CI | A headless Host such as Codex, Claude Code, or OpenCode CLI | MCP process started inside the CI job |
 
 MCP does not trigger itself. CI events, scheduling, and Agent invocation remain the responsibility of the Host and CI platform.
@@ -290,3 +290,26 @@ override when the SDK updates its own dependency range.
 
 Both tools are read-only. Evidence collection tools remain deferred to M2 so
 the M1 spike stays focused on launch and Host compatibility.
+
+## 16. M1 cloud gate and paid Host policy
+
+The project owner revised the M1 cloud gate on 2026-07-22 while retaining M1 as
+a hard gate.
+
+M1 requires byte-identical fixture calls from Codex, Claude Code, OpenCode, the
+official SDK reference client, and a clean standard GitHub Actions runner that
+launches the published npm package. The Actions run verifies Linux startup,
+package retrieval, stdio negotiation, tool discovery, and fixture output in an
+ephemeral cloud environment.
+
+GitHub Copilot Code Review execution is deferred to M4 as an optional Host
+compatibility item because the repository owner does not have and does not plan
+to purchase the required paid Copilot entitlement. The repository-level MCP
+configuration remains saved for a future licensed contributor or pilot. A
+saved configuration alone does not count as a compatibility pass, and the
+project must not claim Copilot Code Review compatibility until linked session
+logs prove the tool call.
+
+This policy keeps a real cloud-runtime gate without making core open-source
+development depend on a proprietary paid Host. M4 retains GitHub Actions with a
+headless Agent as the primary GitHub pull-request path.
