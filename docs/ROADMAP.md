@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M1 in progress
+> Status: M1 complete; M2 ready
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -100,20 +100,19 @@ The technical spike may revise this choice if Host compatibility or package star
 - M0 was verified complete on 2026-07-22: the default branch is `main`, the
   intended public foundation files are tracked, and local research/memory files
   are ignored.
-- M1 is in progress. The TypeScript package, stdio entry point, protocol-safe
+- M1 completed on 2026-07-22. The TypeScript package, stdio entry point, protocol-safe
   logger, diagnostic tool, deterministic fixture tool, reference-client tests,
   package smoke test, and Host configuration examples are implemented.
 - The official SDK reference client, Codex, Claude Code, and OpenCode pass
   initialization, tool discovery, and byte-identical fixture calls. A clean
-  GitHub Actions runner launching the published package is the remaining M1
-  cloud gate.
+  GitHub Actions Ubuntu runner also passed while launching the published
+  package from npm.
 - GitHub Copilot Code Review execution is deferred to M4 because its paid Host
   entitlement is unavailable. Its repository MCP configuration is saved, but
   no compatibility claim will be made without a real tool-call session log.
 - Detailed, dated compatibility evidence is maintained in
   [`docs/smoke-tests/RESULTS.md`](smoke-tests/RESULTS.md).
-- M1 remains a hard gate. M2 implementation must wait until the revised Host
-  and cloud-runner fixture matrix passes.
+- The revised M1 hard gate is satisfied. M2 implementation may begin.
 
 ## 6. M0 — Project foundation
 
@@ -652,9 +651,9 @@ Progress as of 2026-07-22:
 | TypeScript package and test runner | Complete |
 | stdio entry point and protocol-safe logging | Complete |
 | deterministic fixture tool | Complete |
-| Host smoke scripts/configuration | Complete; GitHub Actions published-package run is the remaining M1 gate |
-| Core evidence/finding schemas | Blocked by the remaining M1 Host fixture checks |
-| Git fixtures | Blocked by the remaining M1 Host fixture checks |
-| M1 compatibility record | In progress in `docs/smoke-tests/RESULTS.md` |
+| Host smoke scripts/configuration | Complete; local Hosts and GitHub Actions cloud runner pass |
+| Core evidence/finding schemas | Ready; M1 gate complete |
+| Git fixtures | Ready; M1 gate complete |
+| M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 No external document credentials or staging access are needed before M2 is complete.
