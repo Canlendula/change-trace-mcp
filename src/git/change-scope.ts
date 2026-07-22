@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { realpath, stat } from "node:fs/promises";
 import { extname, resolve } from "node:path";
@@ -14,14 +14,31 @@ import {
 } from "../schemas/index.js";
 
 const execFileAsync = promisify(execFile);
+const GIT_TIMEOUT_MILLISECONDS = 30_000;
+const MAX_GIT_STDERR_BYTES = 64_000;
+
+function gitArguments(args: readonly string[]): string[] {
+  return ["--no-pager", "--no-optional-locks", ...args];
+}
+
+function gitEnvironment(): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    GIT_PAGER: "cat",
+    GIT_TERMINAL_PROMPT: "0",
+    LC_ALL: "C",
+  };
+}
 
 export const DEFAULT_CHANGE_SCOPE_LIMITS = {
+  maxCommits: 500,
   maxFiles: 500,
   maxDiffBytes: 1_000_000,
   maxPatchBytesPerFile: 64_000,
 } as const;
 
 const HARD_LIMITS = {
+  maxCommits: 10_000,
   maxFiles: 10_000,
   maxDiffBytes: 10_000_000,
   maxPatchBytesPerFile: 1_000_000,
@@ -53,6 +70,12 @@ export const getChangeScopeInputSchema = z.strictObject({
   headRef: refSchema,
   include: z.array(pathPatternSchema).max(100).default(["**"]),
   exclude: z.array(pathPatternSchema).max(100).default([]),
+  maxCommits: z
+    .number()
+    .int()
+    .positive()
+    .max(HARD_LIMITS.maxCommits)
+    .default(DEFAULT_CHANGE_SCOPE_LIMITS.maxCommits),
   maxFiles: z
     .number()
     .int()
@@ -118,15 +141,152 @@ async function runGit(
   args: readonly string[],
   maxBuffer = 16 * 1024 * 1024,
 ): Promise<string> {
-  const { stdout } = await execFileAsync("git", [...args], {
+  const { stdout } = await execFileAsync("git", gitArguments(args), {
     cwd: repositoryPath,
     encoding: "utf8",
+    env: gitEnvironment(),
     maxBuffer,
-    timeout: 30_000,
+    timeout: GIT_TIMEOUT_MILLISECONDS,
     windowsHide: true,
   });
 
   return stdout;
+}
+
+type BoundedGitOutput = {
+  text: string;
+  originalBytes: number;
+  retainedBytes: number;
+  isTruncated: boolean;
+};
+
+function utf8BoundaryLength(buffer: Buffer): number {
+  if (buffer.byteLength === 0) {
+    return 0;
+  }
+
+  let sequenceStart = buffer.byteLength - 1;
+  while (
+    sequenceStart >= 0 &&
+    (buffer[sequenceStart]! & 0b1100_0000) === 0b1000_0000
+  ) {
+    sequenceStart -= 1;
+  }
+  if (sequenceStart < 0) {
+    return 0;
+  }
+
+  const leadingByte = buffer[sequenceStart]!;
+  const expectedBytes =
+    leadingByte <= 0x7f
+      ? 1
+      : leadingByte >= 0xc2 && leadingByte <= 0xdf
+        ? 2
+        : leadingByte >= 0xe0 && leadingByte <= 0xef
+          ? 3
+          : leadingByte >= 0xf0 && leadingByte <= 0xf4
+            ? 4
+            : 1;
+
+  return buffer.byteLength - sequenceStart < expectedBytes
+    ? sequenceStart
+    : buffer.byteLength;
+}
+
+async function runGitBounded(
+  repositoryPath: string,
+  args: readonly string[],
+  maximumBytes: number,
+): Promise<BoundedGitOutput> {
+  return await new Promise((resolveOutput, rejectOutput) => {
+    const child = spawn("git", gitArguments(args), {
+      cwd: repositoryPath,
+      env: gitEnvironment(),
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
+    const retainedChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+    let originalBytes = 0;
+    let retainedBytes = 0;
+    let stderrBytes = 0;
+    let didTimeOut = false;
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      didTimeOut = true;
+      child.kill();
+    }, GIT_TIMEOUT_MILLISECONDS);
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      originalBytes += chunk.byteLength;
+      const remainingBytes = maximumBytes - retainedBytes;
+      if (remainingBytes > 0) {
+        const retainedChunk = Buffer.from(chunk.subarray(0, remainingBytes));
+        retainedChunks.push(retainedChunk);
+        retainedBytes += retainedChunk.byteLength;
+      }
+    });
+
+    child.stderr.on("data", (chunk: Buffer) => {
+      const remainingBytes = MAX_GIT_STDERR_BYTES - stderrBytes;
+      if (remainingBytes > 0) {
+        const retainedChunk = Buffer.from(chunk.subarray(0, remainingBytes));
+        stderrChunks.push(retainedChunk);
+        stderrBytes += retainedChunk.byteLength;
+      }
+    });
+
+    child.once("error", (error) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        rejectOutput(error);
+      }
+    });
+
+    child.once("close", (exitCode, signal) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+
+      if (didTimeOut) {
+        rejectOutput(
+          new Error(`Git command timed out after ${GIT_TIMEOUT_MILLISECONDS}ms`),
+        );
+        return;
+      }
+
+      if (exitCode !== 0) {
+        const stderr = Buffer.concat(stderrChunks).toString("utf8").trim();
+        const exitDescription =
+          exitCode === null ? `signal ${signal ?? "unknown"}` : `code ${exitCode}`;
+        rejectOutput(
+          new Error(
+            stderr
+              ? `Git command failed with ${exitDescription}: ${stderr}`
+              : `Git command failed with ${exitDescription}`,
+          ),
+        );
+        return;
+      }
+
+      const retainedBuffer = Buffer.concat(retainedChunks);
+      const safeRetainedBytes =
+        retainedBytes < originalBytes
+          ? utf8BoundaryLength(retainedBuffer)
+          : retainedBytes;
+
+      resolveOutput({
+        text: retainedBuffer.subarray(0, safeRetainedBytes).toString("utf8"),
+        originalBytes,
+        retainedBytes: safeRetainedBytes,
+        isTruncated: safeRetainedBytes < originalBytes,
+      });
+    });
+  });
 }
 
 async function resolveRepositoryRoot(repositoryPath: string): Promise<string> {
@@ -221,7 +381,9 @@ function parseChangedPaths(output: string): GitChangedPath[] {
     });
   }
 
-  return paths.sort((left, right) => left.path.localeCompare(right.path));
+  return paths.sort((left, right) =>
+    left.path < right.path ? -1 : left.path > right.path ? 1 : 0,
+  );
 }
 
 function globToRegExp(pattern: string): RegExp {
@@ -266,34 +428,6 @@ function createFileId(path: string): string {
   return `file:${digest}`;
 }
 
-function truncateUtf8(
-  value: string,
-  maximumBytes: number,
-): { text: string; originalBytes: number; retainedBytes: number } {
-  const encoded = Buffer.from(value, "utf8");
-  if (encoded.byteLength <= maximumBytes) {
-    return {
-      text: value,
-      originalBytes: encoded.byteLength,
-      retainedBytes: encoded.byteLength,
-    };
-  }
-
-  let retainedBytes = maximumBytes;
-  while (retainedBytes > 0) {
-    try {
-      const text = new TextDecoder("utf-8", { fatal: true }).decode(
-        encoded.subarray(0, retainedBytes),
-      );
-      return { text, originalBytes: encoded.byteLength, retainedBytes };
-    } catch {
-      retainedBytes -= 1;
-    }
-  }
-
-  return { text: "", originalBytes: encoded.byteLength, retainedBytes: 0 };
-}
-
 function parseNumstat(output: string): {
   additions: number | null;
   deletions: number | null;
@@ -333,7 +467,9 @@ async function collectChangedFile(
     await runGit(repositoryPath, [
       "diff",
       "--numstat",
-      "--find-renames",
+      "--no-ext-diff",
+      "--no-textconv",
+      "--find-renames=50%",
       baseObjectId,
       headObjectId,
       ...pathArguments,
@@ -353,17 +489,23 @@ async function collectChangedFile(
     };
   }
 
-  const patch = await runGit(repositoryPath, [
-    "diff",
-    "--no-color",
-    "--no-ext-diff",
-    "--unified=3",
-    "--find-renames",
-    baseObjectId,
-    headObjectId,
-    ...pathArguments,
-  ]);
-  const truncatedPatch = truncateUtf8(patch, maximumPatchBytes);
+  const patch = await runGitBounded(
+    repositoryPath,
+    [
+      "diff",
+      "--no-color",
+      "--no-ext-diff",
+      "--no-textconv",
+      "--diff-algorithm=myers",
+      "--no-indent-heuristic",
+      "--unified=3",
+      "--find-renames=50%",
+      baseObjectId,
+      headObjectId,
+      ...pathArguments,
+    ],
+    maximumPatchBytes,
+  );
 
   return {
     id: createFileId(changedPath.path),
@@ -374,11 +516,10 @@ async function collectChangedFile(
     additions: numstat.additions,
     deletions: numstat.deletions,
     diff: {
-      text: truncatedPatch.text,
-      isTruncated:
-        truncatedPatch.retainedBytes < truncatedPatch.originalBytes,
-      originalBytes: truncatedPatch.originalBytes,
-      retainedBytes: truncatedPatch.retainedBytes,
+      text: patch.text,
+      isTruncated: patch.isTruncated,
+      originalBytes: patch.originalBytes,
+      retainedBytes: patch.retainedBytes,
     },
   };
 }
@@ -408,15 +549,29 @@ async function collectCommits(
   repositoryPath: string,
   baseObjectId: string,
   headObjectId: string,
-): Promise<ChangeScope["commits"]> {
+  maximumCommits: number,
+): Promise<{ commits: ChangeScope["commits"]; totalCommits: number }> {
+  const countOutput = (
+    await runGit(repositoryPath, [
+      "rev-list",
+      "--count",
+      `${baseObjectId}..${headObjectId}`,
+    ])
+  ).trim();
+  const totalCommits = Number.parseInt(countOutput, 10);
+  if (!Number.isSafeInteger(totalCommits) || totalCommits < 0) {
+    throw new Error("Git returned an invalid commit count");
+  }
+
   const output = await runGit(repositoryPath, [
     "log",
-    "--reverse",
+    `--max-count=${maximumCommits}`,
+    "--encoding=UTF-8",
     "--format=%H%x00%P%x00%cI%x00%s%x1e",
     `${baseObjectId}..${headObjectId}`,
   ]);
 
-  return output
+  const commits = output
     .split("\x1e")
     .map((record) => record.trim())
     .filter(Boolean)
@@ -439,7 +594,10 @@ async function collectCommits(
         summary: summary.slice(0, 1_000),
         committedAt,
       };
-    });
+    })
+    .reverse();
+
+  return { commits, totalCommits };
 }
 
 export async function collectChangeScope(
@@ -455,8 +613,10 @@ export async function collectChangeScope(
       "diff",
       "--name-status",
       "-z",
-      "--find-renames",
-      "--find-copies",
+      "--no-ext-diff",
+      "--no-textconv",
+      "--find-renames=50%",
+      "--find-copies=50%",
       resolvedBase,
       resolvedHead,
     ]),
@@ -508,10 +668,23 @@ export async function collectChangeScope(
     } catch (error) {
       errors.push({
         code: "git_file_diff_failed",
-        message: error instanceof Error ? error.message : String(error),
+        message: (error instanceof Error ? error.message : String(error)).slice(
+          0,
+          2_000,
+        ),
         path: changedPath.path,
       });
     }
+  }
+
+  const collectedCommits = await collectCommits(
+    repositoryRoot,
+    resolvedBase,
+    resolvedHead,
+    input.maxCommits,
+  );
+  if (collectedCommits.commits.length < collectedCommits.totalCommits) {
+    truncationReasons.add("commit_limit");
   }
 
   return {
@@ -521,11 +694,12 @@ export async function collectChangeScope(
     headRef: input.headRef,
     resolvedBase,
     resolvedHead,
-    commits: await collectCommits(repositoryRoot, resolvedBase, resolvedHead),
+    commits: collectedCommits.commits,
     files,
     detectedLanguages: detectLanguages(selectedPaths),
     detectedComponents: detectComponents(selectedPaths),
     limits: {
+      maxCommits: input.maxCommits,
       maxFiles: input.maxFiles,
       maxDiffBytes: input.maxDiffBytes,
       maxPatchBytesPerFile: input.maxPatchBytesPerFile,
@@ -533,6 +707,8 @@ export async function collectChangeScope(
     truncation: {
       isTruncated: truncationReasons.size > 0,
       reasons: [...truncationReasons].sort(),
+      omittedCommits:
+        collectedCommits.totalCommits - collectedCommits.commits.length,
       omittedFiles: filteredPaths.length - selectedPaths.length,
     },
     errors,

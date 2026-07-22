@@ -49,6 +49,7 @@ const changeScope: ChangeScope = {
   detectedLanguages: ["TypeScript"],
   detectedComponents: ["src"],
   limits: {
+    maxCommits: 500,
     maxFiles: 500,
     maxDiffBytes: 1_000_000,
     maxPatchBytesPerFile: 64_000,
@@ -56,6 +57,7 @@ const changeScope: ChangeScope = {
   truncation: {
     isTruncated: false,
     reasons: [],
+    omittedCommits: 0,
     omittedFiles: 0,
   },
   errors: [],

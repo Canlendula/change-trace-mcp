@@ -65,6 +65,7 @@ export const changeScopeSchema = z
     detectedLanguages: z.array(z.string().min(1).max(100)).max(1_000),
     detectedComponents: z.array(z.string().min(1).max(500)).max(10_000),
     limits: z.strictObject({
+      maxCommits: z.number().int().positive(),
       maxFiles: z.number().int().positive(),
       maxDiffBytes: z.number().int().positive(),
       maxPatchBytesPerFile: z.number().int().positive(),
@@ -75,11 +76,13 @@ export const changeScopeSchema = z
         .array(
           z.enum([
             "file_limit",
+            "commit_limit",
             "total_diff_limit",
             "per_file_diff_limit",
           ]),
         )
-        .max(3),
+        .max(4),
+      omittedCommits: z.number().int().nonnegative(),
       omittedFiles: z.number().int().nonnegative(),
     }),
     errors: z.array(changeScopeErrorSchema).max(1_000),

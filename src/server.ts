@@ -126,7 +126,10 @@ export function createServer(): McpServer {
       } catch (error) {
         const result = {
           error: "get_change_scope_failed",
-          message: error instanceof Error ? error.message : String(error),
+          message: (error instanceof Error ? error.message : String(error)).slice(
+            0,
+            2_000,
+          ),
         };
         return {
           content: [{ type: "text", text: JSON.stringify(result) }],

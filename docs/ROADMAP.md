@@ -117,7 +117,9 @@ The technical spike may revise this choice if Host compatibility or package star
   exports, and a real two-commit `basic-change` Git fixture. The first bounded,
   read-only `get_change_scope` implementation now passes direct and MCP stdio
   tests. Rename, deletion, binary, submodule, and oversized edge fixtures now
-  pass; collector hardening and local evidence collection remain next.
+  pass. The first collector hardening pass adds streaming patch bounds,
+  deterministic ordering, commit limits, and protection from configured diff
+  helpers; local evidence collection remains next.
 
 ## 6. M0 — Project foundation
 
@@ -659,7 +661,7 @@ Progress as of 2026-07-22:
 | Host smoke scripts/configuration | Complete; local Hosts and GitHub Actions cloud runner pass |
 | Core evidence/finding schemas | Initial strict Zod and Draft 2020-12 contracts implemented |
 | Git fixtures | Required basic, rename, deletion, binary, submodule, and oversized fixtures pass |
-| Git change scope | Initial bounded implementation and MCP tool complete; hardening remains |
+| Git change scope | Initial bounded implementation, edge coverage, and first hardening pass complete |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 No external document credentials or staging access are needed before M2 is complete.

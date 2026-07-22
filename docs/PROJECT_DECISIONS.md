@@ -342,7 +342,11 @@ argument arrays without a shell. It requires the caller to name the exact
 repository root, rejects ref values that resemble command options, resolves
 refs to full commit IDs before diffing, and only processes paths reported by
 Git. File count, per-file patch bytes, and total retained diff bytes have
-separate hard limits. Errors and truncation remain visible in the result.
+separate hard limits. Commit summaries have their own limit and omitted count.
+Patch subprocess output is drained as a stream while only the configured byte
+budget is retained. Repository-configured external diff and text conversion
+helpers are disabled, and ordering uses locale-independent comparisons. Errors
+and truncation remain visible in the result.
 
 Edge fixtures remain declarative and materialize into real Git repositories.
 Small text trees are stored directly; fixture manifests may generate bounded
