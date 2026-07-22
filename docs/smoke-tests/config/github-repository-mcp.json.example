@@ -10,7 +10,8 @@
       "tools": [
         "get_server_info",
         "get_compatibility_fixture",
-        "get_change_scope"
+        "get_change_scope",
+        "collect_local_evidence"
       ]
     }
   }

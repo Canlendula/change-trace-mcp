@@ -34,6 +34,12 @@ export {
   type FindingStatus,
 } from "./finding.js";
 export {
+  localEvidenceCollectionErrorSchema,
+  localEvidenceCollectionSchema,
+  type LocalEvidenceCollection,
+  type LocalEvidenceCollectionError,
+} from "./local-evidence.js";
+export {
   exportCoreJsonSchemas,
   type CoreJsonSchemas,
   type JsonSchemaDocument,

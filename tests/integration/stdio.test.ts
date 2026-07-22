@@ -28,6 +28,7 @@ describe("stdio MCP server", () => {
 
       const { tools } = await client.listTools();
       expect(tools.map((tool) => tool.name).sort()).toEqual([
+        "collect_local_evidence",
         "get_change_scope",
         "get_compatibility_fixture",
         "get_server_info",
@@ -96,6 +97,28 @@ describe("stdio MCP server", () => {
           truncation: {
             isTruncated: false,
           },
+        },
+      });
+
+      const localEvidenceResult = await client.callTool({
+        name: "collect_local_evidence",
+        arguments: {
+          scope: result.structuredContent,
+          documentRoots: ["docs"],
+          filePatterns: ["**/*.md"],
+        },
+      });
+      expect(localEvidenceResult.isError).not.toBe(true);
+      expect(localEvidenceResult).toMatchObject({
+        structuredContent: {
+          schemaVersion: "1.0.0",
+          matchedFiles: 1,
+          evidenceItems: [
+            {
+              type: "document",
+              source: { locator: "docs/requirements.md#L1-L3" },
+            },
+          ],
         },
       });
     } finally {

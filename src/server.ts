@@ -3,6 +3,10 @@ import { z } from "zod";
 
 import { SERVER_NAME, SERVER_VERSION } from "./constants.js";
 import {
+  collectLocalEvidence,
+  collectLocalEvidenceInputSchema,
+} from "./evidence/local/collect-local-evidence.js";
+import {
   createCompatibilityFixture,
   serializeCompatibilityFixture,
 } from "./fixtures/compatibility.js";
@@ -11,6 +15,7 @@ import {
   getChangeScopeInputSchema,
 } from "./git/change-scope.js";
 import { changeScopeSchema } from "./schemas/change-scope.js";
+import { localEvidenceCollectionSchema } from "./schemas/local-evidence.js";
 
 const serverInfoSchema = z.object({
   name: z.string(),
@@ -126,6 +131,44 @@ export function createServer(): McpServer {
       } catch (error) {
         const result = {
           error: "get_change_scope_failed",
+          message: (error instanceof Error ? error.message : String(error)).slice(
+            0,
+            2_000,
+          ),
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    "collect_local_evidence",
+    {
+      title: "Collect local document evidence",
+      description:
+        "Collect bounded, provenance-rich excerpts from regular files beneath configured document roots in the exact Git repository named by a ChangeScope. Symbolic links are not followed and common credential patterns are redacted.",
+      inputSchema: collectLocalEvidenceInputSchema,
+      outputSchema: localEvidenceCollectionSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) => {
+      try {
+        const result = await collectLocalEvidence(input);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          structuredContent: result,
+        };
+      } catch (error) {
+        const result = {
+          error: "collect_local_evidence_failed",
           message: (error instanceof Error ? error.message : String(error)).slice(
             0,
             2_000,

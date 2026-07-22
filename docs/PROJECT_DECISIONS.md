@@ -353,3 +353,18 @@ Small text trees are stored directly; fixture manifests may generate bounded
 binary files, repeated text, and gitlinks. This keeps the repository compact
 while testing Git's actual rename, deletion, binary, submodule, and oversized
 diff behavior.
+
+The initial `collect_local_evidence` implementation accepts a validated
+`ChangeScope` and reads regular files only beneath configured repository-local
+document roots. Repository escape paths and Git metadata paths are rejected;
+symbolic links are reported and skipped. Scanned entries, selected files,
+single-file bytes, per-file excerpt characters, and total excerpt characters
+have independent hard limits.
+
+Explicit document references receive selection priority. Other documents are
+linked to changed files only when retained text contains a deterministic path
+or filename-stem identifier; pattern-only matches remain valid evidence with
+an empty relationship list. Complete files receive a raw SHA-256 content hash.
+Byte-truncated files use a `null` hash and expose truncation. Common private-key,
+credential-assignment, GitHub token, and `sk-` token shapes are redacted before
+excerpts leave the collector.

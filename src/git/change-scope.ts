@@ -289,7 +289,9 @@ async function runGitBounded(
   });
 }
 
-async function resolveRepositoryRoot(repositoryPath: string): Promise<string> {
+export async function resolveGitRepositoryRoot(
+  repositoryPath: string,
+): Promise<string> {
   const requestedPath = await realpath(resolve(repositoryPath));
   const requestedStats = await stat(requestedPath);
   if (!requestedStats.isDirectory()) {
@@ -392,12 +394,12 @@ function globToRegExp(pattern: string): RegExp {
   for (let index = 0; index < pattern.length; index += 1) {
     const character = pattern[index];
     if (character === "*") {
-      if (pattern[index + 1] === "*") {
-        source += ".*";
-        index += 1;
-      } else {
-        source += "[^/]*";
+      let runEnd = index + 1;
+      while (pattern[runEnd] === "*") {
+        runEnd += 1;
       }
+      source += runEnd - index >= 2 ? ".*" : "[^/]*";
+      index = runEnd - 1;
     } else if (character === "?") {
       source += "[^/]";
     } else if (character !== undefined) {
@@ -604,7 +606,7 @@ export async function collectChangeScope(
   rawInput: GetChangeScopeInput,
 ): Promise<ChangeScope> {
   const input = getChangeScopeInputSchema.parse(rawInput);
-  const repositoryRoot = await resolveRepositoryRoot(input.repositoryPath);
+  const repositoryRoot = await resolveGitRepositoryRoot(input.repositoryPath);
   const resolvedBase = await resolveCommit(repositoryRoot, input.baseRef);
   const resolvedHead = await resolveCommit(repositoryRoot, input.headRef);
 

@@ -11,7 +11,9 @@ work is in progress. The currently exposed MCP tools are:
 - `get_server_info` reports process and runtime metadata;
 - `get_compatibility_fixture` returns a byte-stable fixture for Host smoke tests;
 - `get_change_scope` returns a deterministic, bounded Git change summary for an
-  explicit repository root and two refs.
+  explicit repository root and two refs;
+- `collect_local_evidence` returns bounded, provenance-rich excerpts from
+  configured repository document roots.
 
 ## Requirements
 
@@ -38,8 +40,8 @@ logs are emitted to stderr.
 ## Versioned schemas
 
 The package exports strict Zod schemas and deterministic Draft 2020-12 JSON
-Schema documents for `EvidenceItem`, `ChangeScope`, `ReviewBundle`, and
-`Finding`:
+Schema documents for `EvidenceItem`, `ChangeScope`, `LocalEvidenceCollection`,
+`ReviewBundle`, and `Finding`:
 
 ```ts
 import {

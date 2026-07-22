@@ -9,5 +9,6 @@ export {
   type CompatibilityFixture,
 } from "./fixtures/compatibility.js";
 export { createServer } from "./server.js";
+export * from "./evidence/index.js";
 export * from "./git/index.js";
 export * from "./schemas/index.js";

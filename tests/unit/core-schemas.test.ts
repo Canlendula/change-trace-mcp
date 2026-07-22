@@ -174,5 +174,8 @@ describe("core schemas", () => {
       title: "EvidenceItem",
       type: "object",
     });
+    expect(exportCoreJsonSchemas().localEvidenceCollection.$id).toBe(
+      `urn:change-trace-mcp:schema:local-evidence-collection:${CORE_SCHEMA_VERSION}`,
+    );
   });
 });

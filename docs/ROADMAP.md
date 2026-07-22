@@ -119,7 +119,9 @@ The technical spike may revise this choice if Host compatibility or package star
   tests. Rename, deletion, binary, submodule, and oversized edge fixtures now
   pass. The first collector hardening pass adds streaming patch bounds,
   deterministic ordering, commit limits, and protection from configured diff
-  helpers; local evidence collection remains next.
+  helpers. The first confined, bounded `collect_local_evidence` implementation
+  and MCP contract now pass unit and stdio integration tests; review-bundle
+  construction remains next.
 
 ## 6. M0 — Project foundation
 
@@ -662,6 +664,7 @@ Progress as of 2026-07-22:
 | Core evidence/finding schemas | Initial strict Zod and Draft 2020-12 contracts implemented |
 | Git fixtures | Required basic, rename, deletion, binary, submodule, and oversized fixtures pass |
 | Git change scope | Initial bounded implementation, edge coverage, and first hardening pass complete |
+| Local evidence | Initial confined scanner, provenance, hashing, truncation, and secret redaction complete |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 No external document credentials or staging access are needed before M2 is complete.
