@@ -1,0 +1,13 @@
+[mcp_servers.change_trace]
+command = "node"
+args = ["dist/cli.js"]
+cwd = "/absolute/path/to/change-trace-mcp"
+required = true
+startup_timeout_sec = 10.0
+tool_timeout_sec = 30.0
+enabled_tools = ["get_server_info", "get_compatibility_fixture"]
+
+# After publishing, the command can be replaced with:
+# command = "npx"
+# args = ["-y", "change-trace-mcp@<VERSION>"]
+# Remove cwd when the package no longer depends on a local checkout.

@@ -1,7 +1,7 @@
-# Release Evidence MCP Development Roadmap
+# Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: planning
+> Status: M1 in progress
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -94,6 +94,22 @@ The technical spike may revise this choice if Host compatibility or package star
 | M6 — Runtime evidence | Existing test/staging evidence joins the bundle | Static and runtime evidence remain distinguishable |
 | M7 — Public beta hardening | Secure, documented, installable beta | Pilot quality and security gates pass |
 | M8 — v1 stabilization | Stable schemas and compatibility policy | Release checklist complete |
+
+### Current implementation status
+
+- M0 was verified complete on 2026-07-22: the default branch is `main`, the
+  intended public foundation files are tracked, and local research/memory files
+  are ignored.
+- M1 is in progress. The TypeScript package, stdio entry point, protocol-safe
+  logger, diagnostic tool, deterministic fixture tool, reference-client tests,
+  package smoke test, and Host configuration examples are implemented.
+- The official SDK reference client, Codex, Claude Code, and OpenCode pass
+  initialization, tool discovery, and byte-identical fixture calls. GitHub cloud
+  validation is the remaining M1 Host gate.
+- Detailed, dated compatibility evidence is maintained in
+  [`docs/smoke-tests/RESULTS.md`](smoke-tests/RESULTS.md).
+- M1 is a hard gate. M2 implementation must wait until every M1 Host fixture
+  check passes or the project owner explicitly revises the gate.
 
 ## 6. M0 — Project foundation
 
@@ -317,7 +333,7 @@ Each finding should include:
 
 - compact review instruction;
 - Host-specific configuration examples;
-- optional Agent Skill that describes the workflow;
+- optional `spec-walk` Agent Skill that describes the review workflow;
 - no model-specific reasoning implementation in the MCP core.
 
 ### Evaluation suite
@@ -619,5 +635,18 @@ The next implementation session should begin with these tasks:
 6. Define `EvidenceItem`, `ChangeScope`, `ReviewBundle`, and `Finding` schemas.
 7. Add the first Git fixtures before implementing Git collection.
 8. Record M1 compatibility results in the roadmap and memory.
+
+Progress as of 2026-07-22:
+
+| Item | Status |
+|---|---|
+| Package name and license | Apache-2.0 confirmed; public package name remains under review |
+| TypeScript package and test runner | Complete |
+| stdio entry point and protocol-safe logging | Complete |
+| deterministic fixture tool | Complete |
+| Host smoke scripts/configuration | Complete; external Host matrix still in progress |
+| Core evidence/finding schemas | Blocked by the remaining M1 Host fixture checks |
+| Git fixtures | Blocked by the remaining M1 Host fixture checks |
+| M1 compatibility record | In progress in `docs/smoke-tests/RESULTS.md` |
 
 No external document credentials or staging access are needed before M2 is complete.

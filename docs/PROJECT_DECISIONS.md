@@ -1,4 +1,4 @@
-# Release Evidence MCP Project Decisions
+# Change Trace MCP Project Decisions
 
 > Status: accepted baseline
 > Last updated: 2026-07-22
@@ -6,7 +6,7 @@
 
 ## 1. Project definition
 
-Release Evidence MCP is a free and open-source, local-first, model-neutral MCP package that helps an existing Agent evaluate whether a software change is consistent with its requirements, documentation, and optional runtime evidence.
+Change Trace MCP is a free and open-source, local-first, model-neutral MCP package that helps an existing Agent evaluate whether a software change is consistent with its requirements, documentation, and optional runtime evidence.
 
 The package collects, filters, and normalizes evidence. The user's Agent performs semantic judgment. The result is an evidence-linked release-consistency report that can be reviewed locally or attached to CI.
 
@@ -247,3 +247,46 @@ External integrations should follow local fixtures and a stable evidence contrac
 - `docs/research/` contains local research notes and is intentionally ignored by Git.
 
 Stable decisions discovered during research or implementation should be promoted into this document. Temporary observations, unfinished thoughts, and local operational notes should remain in `MEMORY.md`.
+
+## 15. M1 implementation baseline
+
+### Package identity and license
+
+The project is licensed under Apache-2.0. This license was confirmed by the
+project owner on 2026-07-22.
+
+The public package and MCP server name is `change-trace-mcp`. The project owner
+accepted this name on 2026-07-22 after npm availability and public-name conflict
+checks. `spec-walk` is reserved as the working name for a future optional Agent
+Skill that guides the semantic review workflow; it is not the core package name.
+
+### Runtime and language baseline
+
+- Require Node.js 22 or newer. Node.js 20 is end-of-life, while Node.js 22 and
+  24 are supported LTS lines as of the M1 spike.
+- Compile TypeScript in strict Node ESM mode.
+- Use Zod 4 for runtime tool schemas and Vitest for unit/integration tests.
+- Keep stdout exclusively for MCP JSON-RPC; write structured operational logs
+  to stderr.
+
+### MCP SDK generation
+
+Pin the official MCP TypeScript SDK v1 series during M1. SDK v2 is still
+pre-alpha and its maintainers recommend v1 for production until v2 stabilizes.
+Revisit this decision at M7 or earlier if v2 becomes stable and provides a
+compatibility benefit that justifies migration.
+
+The M1 implementation currently pins `@modelcontextprotocol/sdk` 1.29.0. Its
+transitive `@hono/node-server` dependency is overridden to a patched 2.x release
+because the latest compatible 1.x release is covered by a moderate Windows
+path-traversal advisory. The project uses only stdio in M1, and integration
+tests verify that the override does not change the stdio behavior. Reassess the
+override when the SDK updates its own dependency range.
+
+### M1 public tool surface
+
+- `get_server_info` returns environment-dependent startup diagnostics.
+- `get_compatibility_fixture` returns a versioned, byte-stable JSON fixture.
+
+Both tools are read-only. Evidence collection tools remain deferred to M2 so
+the M1 spike stays focused on launch and Host compatibility.

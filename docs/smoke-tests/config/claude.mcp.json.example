@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "change-trace": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/absolute/path/to/change-trace-mcp/dist/cli.js"
+      ]
+    }
+  }
+}

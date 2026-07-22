@@ -13,6 +13,9 @@
 /reports/
 /artifacts/
 
+# Local Host smoke configuration. Share templates from docs/smoke-tests instead.
+/.codex/config.toml
+
 # Node.js build outputs (reserved for implementation)
 node_modules/
 dist/
