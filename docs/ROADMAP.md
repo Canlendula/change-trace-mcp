@@ -640,11 +640,11 @@ Progress as of 2026-07-22:
 
 | Item | Status |
 |---|---|
-| Package name and license | Apache-2.0 confirmed; public package name remains under review |
+| Package name and license | Complete; `change-trace-mcp@0.0.0-dev.0` published under Apache-2.0 |
 | TypeScript package and test runner | Complete |
 | stdio entry point and protocol-safe logging | Complete |
 | deterministic fixture tool | Complete |
-| Host smoke scripts/configuration | Complete; external Host matrix still in progress |
+| Host smoke scripts/configuration | Complete; published-package smoke passes, GitHub Host validation remains |
 | Core evidence/finding schemas | Blocked by the remaining M1 Host fixture checks |
 | Git fixtures | Blocked by the remaining M1 Host fixture checks |
 | M1 compatibility record | In progress in `docs/smoke-tests/RESULTS.md` |

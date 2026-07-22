@@ -20,6 +20,12 @@
   the publication allowlist excludes local `docs/research/` notes;
 - the packed tarball itself passed the reference smoke client when launched via
   `npx --package <local-tarball>`.
+- public `change-trace-mcp@0.0.0-dev.0` registry metadata reports Apache-2.0,
+  the expected GitHub repository, and integrity
+  `sha512-ymbF5Ivjp8zcypHNC1IAsjA7hrLwZ4MIX5IzIL95pTsMwgTiANakGmJhsGjPO33JA2vcGIJnbW1wzHMjKwZHqw==`;
+- a clean temporary directory launched the published package with
+  `npx --package=change-trace-mcp@0.0.0-dev.0 -- change-trace-mcp`, discovered
+  both tools, and received the byte-identical fixture.
 
 M1 remains in progress until the GitHub repository MCP environment completes
 the fixture call. All three target local Hosts and the protocol reference client
