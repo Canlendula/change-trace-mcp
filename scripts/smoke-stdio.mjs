@@ -33,9 +33,12 @@ if (command === undefined) {
       "get_compatibility_fixture",
       "get_server_info",
     ];
+    const missingTools = requiredTools.filter(
+      (toolName) => !toolNames.includes(toolName),
+    );
 
-    if (JSON.stringify(toolNames) !== JSON.stringify(requiredTools)) {
-      throw new Error(`Unexpected tool list: ${JSON.stringify(toolNames)}`);
+    if (missingTools.length > 0) {
+      throw new Error(`Missing required tools: ${JSON.stringify(missingTools)}`);
     }
 
     const result = await client.callTool({

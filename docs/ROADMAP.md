@@ -114,8 +114,9 @@ The technical spike may revise this choice if Host compatibility or package star
   [`docs/smoke-tests/RESULTS.md`](smoke-tests/RESULTS.md).
 - The revised M1 hard gate is satisfied. M2 implementation may begin.
 - M2 has started with strict versioned schemas, Draft 2020-12 JSON Schema
-  exports, and a real two-commit `basic-change` Git fixture. Git collection
-  implementation remains next.
+  exports, and a real two-commit `basic-change` Git fixture. The first bounded,
+  read-only `get_change_scope` implementation now passes direct and MCP stdio
+  tests; edge-case fixtures remain next.
 
 ## 6. M0 — Project foundation
 
@@ -657,6 +658,7 @@ Progress as of 2026-07-22:
 | Host smoke scripts/configuration | Complete; local Hosts and GitHub Actions cloud runner pass |
 | Core evidence/finding schemas | Initial strict Zod and Draft 2020-12 contracts implemented |
 | Git fixtures | First `basic-change` two-commit fixture implemented; edge cases remain |
+| Git change scope | Initial bounded implementation and MCP tool complete; edge cases remain |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 No external document credentials or staging access are needed before M2 is complete.

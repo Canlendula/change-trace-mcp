@@ -6,6 +6,11 @@ import {
   createCompatibilityFixture,
   serializeCompatibilityFixture,
 } from "./fixtures/compatibility.js";
+import {
+  collectChangeScope,
+  getChangeScopeInputSchema,
+} from "./git/change-scope.js";
+import { changeScopeSchema } from "./schemas/change-scope.js";
 
 const serverInfoSchema = z.object({
   name: z.string(),
@@ -93,6 +98,41 @@ export function createServer(): McpServer {
         ],
         structuredContent: result,
       };
+    },
+  );
+
+  server.registerTool(
+    "get_change_scope",
+    {
+      title: "Get Git change scope",
+      description:
+        "Resolve two Git refs and return a deterministic, bounded summary of commits, changed files, diff excerpts, detected languages, truncation, and read errors. The repository path must be an explicit Git root.",
+      inputSchema: getChangeScopeInputSchema,
+      outputSchema: changeScopeSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) => {
+      try {
+        const result = await collectChangeScope(input);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          structuredContent: result,
+        };
+      } catch (error) {
+        const result = {
+          error: "get_change_scope_failed",
+          message: error instanceof Error ? error.message : String(error),
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          isError: true,
+        };
+      }
     },
   );
 

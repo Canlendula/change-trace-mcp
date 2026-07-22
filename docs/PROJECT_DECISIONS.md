@@ -336,3 +336,10 @@ Git collection begins only after fixture repositories exist. The first fixture
 materializes a real two-commit repository with fixed author metadata and line
 ending policy, then verifies its expected name-status diff. Rename, deletion,
 binary, submodule, and oversized cases remain required before the M2 exit gate.
+
+The initial `get_change_scope` implementation invokes Git through explicit
+argument arrays without a shell. It requires the caller to name the exact
+repository root, rejects ref values that resemble command options, resolves
+refs to full commit IDs before diffing, and only processes paths reported by
+Git. File count, per-file patch bytes, and total retained diff bytes have
+separate hard limits. Errors and truncation remain visible in the result.

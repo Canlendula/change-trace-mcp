@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const CORE_SCHEMA_VERSION = "1.0.0";
 export const MAX_EVIDENCE_EXCERPT_CHARACTERS = 32_000;
-export const MAX_PATCH_CHARACTERS = 64_000;
+export const MAX_PATCH_CHARACTERS = 1_000_000;
 
 export const stableIdSchema = z
   .string()

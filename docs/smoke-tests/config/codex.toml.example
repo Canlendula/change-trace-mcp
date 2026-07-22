@@ -5,7 +5,7 @@ cwd = "/absolute/path/to/change-trace-mcp"
 required = true
 startup_timeout_sec = 10.0
 tool_timeout_sec = 30.0
-enabled_tools = ["get_server_info", "get_compatibility_fixture"]
+enabled_tools = ["get_server_info", "get_compatibility_fixture", "get_change_scope"]
 
 # After publishing, the command can be replaced with:
 # command = "npx"

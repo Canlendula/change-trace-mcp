@@ -9,7 +9,8 @@
       ],
       "tools": [
         "get_server_info",
-        "get_compatibility_fixture"
+        "get_compatibility_fixture",
+        "get_change_scope"
       ]
     }
   }
