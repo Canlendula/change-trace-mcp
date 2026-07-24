@@ -151,64 +151,63 @@ git status --short
 - Status: `ready_for_review`
 - Handoff branch: `work/M3-001-write-report`
 - Implementation commits:
-  - `9161a04790e3bb8874ea04d05e69c262c3e29378` — feat: initial implementation
-  - `da8e1403943e20e68edff3b7465542f0608c0a80` — fix: first review round
-  - `2cc369ed1725ce61b97f5e281f9c184a07e6812d` — fix: second review round
+  - `9161a04` — feat: initial implementation
+  - `da8e140` — fix: first review round
+  - `2cc369e` — fix: second review round
+  - `289ab44` — fix: third review round
 
 ### Implementation summary
 
-Third commit (second review round fixes):
+Fourth commit (third review round fixes):
 
-- **Transaction-local staging**: Replaced predictable `.json.tmp`/`.md.tmp` paths
-  with `mkdtempSync(join(targetDir, '.report-'))` inside the validated target
-  directory. Staging entries are validated with `validateStagingEntry` (rejects
-  pre-existing symlinks, files, directories). Backups use `.bak` suffix but only
-  after the staging directory holds written content.
-- **Fail-closed paired replacement**: `TxPhase` enum tracks state from `Init` →
-  `Staged` → `JsonLive` → `MdLive` → `Committed`. On any failure after `Staged`,
-  rollback restores `.bak` → originals and cleans staging. Errors collect
-  unresolved artifact paths. `Committed` is asserted before returning success.
-- **CommonMark-safe rendering**: `safeInline` escapes all Markdown structural
-  characters (`#`, `>`, `-`, `*`, `_`, `[`, `]`, `!`, `|`, backticks) plus
-  ordered-list prevention (`1. ` → `1\. `) and thematic-break prevention
-  (`---` → `\---`). `safeLiteral` wraps untrusted strings in dynamic code spans
-  (variable-length backtick delimiters). `dynamicFence` wraps multiline prose
-  with heading suppression (`^#` → `\#`). `safeLine` removed; all inline text
-  uses `safeInline` or `safeLiteral` consistently.
-- **Repository root validation**: Both `repositoryRoot` and
-  `bundle.changeScope.repositoryRoot` are resolved via `realpathSync` before any
-  filesystem mutation. They must identify the same directory or error
-  `repo_root_mismatch`.
-- **Separate limits**: `DEFAULT_MAX_REPORT_SIZE_BYTES = 10 MiB`,
-  `HARD_MAX_REPORT_SIZE_BYTES = 100 MiB`. Input schema enforces `.max(HARD_MAX)`.
-  README documents default/hard caps and required `reviewMeta.createdAt`.
-- **Literal status enforcement**: `reportFindingConfirmedSchema` requires
-  `status: z.literal("confirmed")`, similarly for `suspectedSchema` and
-  `inconclusiveSchema`. `reportSchema.findings` uses the status-specific schemas.
-- **Unicode cleanup**: `\u2014` (em dash) → ` -- `, `\u2192` (arrow) → ` -> `.
-- **Regression tests**: Staging symlink victim untouched test; repo root realpath
-  mismatch test; CommonMark injection suite (newline-heading, thematic-break,
-  link, ordered-list, blockquote, table, code-span injection in reviewer, notes,
-  titles, warning messages, source locators, issue paths/messages); fail-closed
-  no-artifact-left-behind test.
+- **Transaction lifecycle rework**: `mkdtemp` creates transaction directory
+  inside targetDir. Both staging files (`new.json`, `new.md`) and backups
+  (`bak.json`, `bak.md`) live inside the txDir. No predictable `.bak` paths
+  in the output directory. Staging files created with `flag: "wx"` (exclusive
+  creation, rejects existing entries). TxDir realpath verified within
+  targetDir before any writes. Both backup `renameSync` calls must succeed
+  before either promotion. JSON and Markdown promotion tracked independently
+  via `TxPhase` enum.
+- **Correct rollback**: Phase-gated cleanup. If JSON was promoted, `unlinkSync`
+  before restoring its backup. If Markdown was promoted, `unlinkSync` before
+  restoring its backup. No swallowed failures in backup, promotion, restore,
+  unlink, or rmdir operations. All unresolved paths collected and reported in
+  a bounded rollback error. If rollback is clean, original error re-thrown.
+- **Post-promotion cleanup**: After both files are live (phase >= MdLive),
+  cleanup runs in a separate block. Transaction directory removal failure
+  throws `tx_cleanup_failed` with the unresolved txDir path. No unsafe partial
+  rollback — the new files remain live.
+- **Failure-injection tests**: `WriteReportFs` interface with overridable
+  `mkdtempSync`, `writeFileSync`, `renameSync`, `unlinkSync`, `rmdirSync`.
+  Four real failure tests: backup rename failure leaves old pair untouched;
+  markdown promotion failure after JSON promotion restores both old files;
+  txDir removal failure after both live reports unresolved directory; staging
+  wx semantics reject pre-existing entry. No test named "failure" executes
+  only successful write.
+- **Complete Markdown containment**: `safeInline` handles leading spaces
+  (0-3) + `#`, `>`, `-`, `*`, `+`, ordered lists, `===`/`---` thematic breaks,
+  table pipe. Four-space/tab indentation escaped to prevent indented code
+  blocks. `dynamicFence` wraps unrestricted multiline prose with heading
+  suppression. `inlineNoNewlines` converts `\n` to ` / ` for values in
+  headings/inline prose. Regression strings tested: `"safe\n   # heading"`,
+  `"safe\n   - list"`, `"safe\n   1. ordered"`, `"safe\n    indented code"`,
+  `"safe\n\tindented code"`.
 
 ### Changed areas
 
-- `src/schemas/report.ts` — added status-specific schemas, DEFAULT/HARD constants
-- `src/schemas/index.ts` — updated exports
-- `src/reports/write-report.ts` — mkdtemp staging, TxPhase state machine,
-  CommonMark rendering, repo root realpath validation
-- `tests/unit/report-schema.test.ts` — literal status tests, limit constant tests
-- `tests/unit/report-write.test.ts` — staging symlink, repo root mismatch,
-  injection suite, fail-closed tests
-- `README.md` — documented default/hard limits and required createdAt
+- `src/reports/write-report.ts` — mkdtemp transaction staging, wx semantics,
+  phase-gated rollback, separate cleanup block, WriteReportFs adapter,
+  enhanced safeInline with leading-space/spacing/indented-code handling
+- `src/reports/index.ts` — exported WriteReportFs type
+- `tests/unit/report-write.test.ts` — 4 real failure-injection tests, updated
+  markdown containment test with regression strings
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
 | `npm run check` | PASS | Zero errors |
-| `npm test` | PASS | 81 tests (12 files), zero failures |
+| `npm test` | PASS | 75 tests (12 files), zero failures |
 | `npm run smoke:stdio` | PASS | write_report in tools, fixture byte-stable |
 | `npm run pack:check` | PASS | Tarball includes all new files |
 | `git diff --check` | PASS | No whitespace errors |
@@ -220,12 +219,12 @@ Third commit (second review round fixes):
 
 ### Known limitations and risks
 
-- `mkdtempSync` requires write permission in the target directory; failure
-  surfaces as `staging_create_failed`.
-- Rollback is best-effort; if `.bak` rename fails during recovery, the error
-  includes unresolved artifact paths for operator inspection.
-- The `realpathSync` ancestor walk may fail on network mounts where intermediate
-  directories cannot be resolved.
+- `mkdtempSync` and `wx` writes require write permission in the target
+  directory.
+- `WriteReportFs` adapter is internal; the public `writeReport` signature is
+  `(input, fs?)` where `fs` defaults to real Node.js `fs` operations.
+- Rollback is best-effort when the filesystem itself is failing; unresolved
+  artifact paths are reported in the error for operator inspection.
 
 ### Decisions or questions for coordinator
 
