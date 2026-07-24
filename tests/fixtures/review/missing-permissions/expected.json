@@ -9,8 +9,10 @@
       "category": "other",
       "status": "inconclusive",
       "recommendation": "investigate",
+      "requiredEvidenceIds": ["evidence:doc:missperm-spec", "evidence:diff:missperm-auth"],
       "minCount": 1
     }
   ],
+  "forbiddenStatuses": ["confirmed", "suspected"],
   "rationale": "The .env.production evidence is inaccessible; findings must remain inconclusive and not claim hidden content."
 }

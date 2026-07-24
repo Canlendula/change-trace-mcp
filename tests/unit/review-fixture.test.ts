@@ -1,4 +1,13 @@
-import { readdir, readFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { beforeAll, describe, expect, it } from "vitest";
@@ -12,6 +21,7 @@ import {
   discoverReviewFixtures,
   expectedSchema,
   loadReviewFixture,
+  validateFixtureDirectory,
   type LoadedReviewFixture,
   type ReviewFixtureDescriptor,
 } from "../helpers/review-fixture.js";
@@ -30,11 +40,9 @@ beforeAll(async () => {
 
 describe("review fixture corpus", () => {
   it("contains only expected fixture IDs with no duplicates", () => {
-    for (const fixture of fixtures) {
-      expect(EXPECTED_FIXTURE_IDS).toContain(fixture.fixtureId);
-    }
     const ids = fixtures.map((f) => f.fixtureId);
     expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toEqual([...EXPECTED_FIXTURE_IDS].sort());
   });
 
   it.each(EXPECTED_FIXTURE_IDS)(
@@ -47,24 +55,52 @@ describe("review fixture corpus", () => {
 
   it("each fixture directory has exactly the three required files", async () => {
     for (const descriptor of fixtures) {
-      const entries = await readdir(descriptor.directory, { withFileTypes: true });
-      const dirFiles = new Set(
-        entries
-          .filter((entry) => entry.isFile())
-          .map((entry) => entry.name),
+      expect(await validateFixtureDirectory(descriptor), descriptor.fixtureId).toEqual([]);
+    }
+  });
+
+  it("rejects unexpected root files, directories, and symbolic links", async () => {
+    const root = await mkdtemp(join(tmpdir(), "review-fixture-root-"));
+    try {
+      await writeFile(join(root, "unexpected.json"), "{}", "utf-8");
+      await mkdir(join(root, "unexpected-fixture"));
+      await symlink(join(root, "unexpected.json"), join(root, "unexpected-link"));
+      await expect(discoverReviewFixtures(root)).rejects.toThrow(
+        /Unexpected (non-directory entry|fixture directory|symbolic link)/,
       );
-      for (const expectedFile of EXPECTED_FILES) {
-        expect(
-          dirFiles.has(expectedFile),
-          `${descriptor.fixtureId} missing ${expectedFile}`,
-        ).toBe(true);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects nested directories and symbolic links in a fixture directory", async () => {
+    const root = await mkdtemp(join(tmpdir(), "review-fixture-directory-"));
+    const directory = join(root, "implemented-correctly");
+    try {
+      await mkdir(directory);
+      for (const file of EXPECTED_FILES) {
+        await writeFile(join(directory, file), "{}", "utf-8");
       }
-      for (const file of dirFiles) {
-        expect(
-          (EXPECTED_FILES as readonly string[]).includes(file),
-          `${descriptor.fixtureId} unexpected file ${file}`,
-        ).toBe(true);
-      }
+      await mkdir(join(directory, "nested"));
+      await symlink(join(directory, "bundle.json"), join(directory, "bundle-link.json"));
+      const descriptor = {
+        fixtureId: "implemented-correctly",
+        directory,
+        bundlePath: join(directory, "bundle.json"),
+        referenceFindingsPath: join(directory, "reference-findings.json"),
+        expectedPath: join(directory, "expected.json"),
+      };
+      await expect(validateFixtureDirectory(descriptor)).resolves.toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/Unexpected non-file entry nested/),
+          expect.stringMatching(/Unexpected symbolic link bundle-link.json/),
+        ]),
+      );
+      await expect(loadReviewFixture(descriptor)).rejects.toThrow(
+        /Invalid review fixture/,
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
     }
   });
 
@@ -108,6 +144,51 @@ describe("review fixture corpus", () => {
           item.excerpt.length,
           `${descriptor.fixtureId}:${item.id}`,
         ).toBeLessThanOrEqual(3000);
+      }
+    }
+  });
+
+  it("recomputes evidence character metadata and diff UTF-8 byte metadata", () => {
+    for (const { descriptor, bundle } of loaded) {
+      for (const item of bundle.evidenceItems) {
+        const retainedCharacters = item.excerpt.length;
+        expect(
+          item.truncation.retainedCharacters,
+          `${descriptor.fixtureId}:${item.id} retained characters`,
+        ).toBe(retainedCharacters);
+        if (item.truncation.isTruncated) {
+          expect(
+            item.truncation.originalCharacters,
+            `${descriptor.fixtureId}:${item.id} original characters`,
+          ).toBeGreaterThanOrEqual(retainedCharacters);
+        } else {
+          expect(
+            item.truncation.originalCharacters,
+            `${descriptor.fixtureId}:${item.id} original characters`,
+          ).toBe(retainedCharacters);
+        }
+      }
+
+      for (const file of bundle.changeScope.files) {
+        if (file.diff === null) {
+          continue;
+        }
+        const retainedBytes = Buffer.byteLength(file.diff.text, "utf8");
+        expect(
+          file.diff.retainedBytes,
+          `${descriptor.fixtureId}:${file.id} retained bytes`,
+        ).toBe(retainedBytes);
+        if (file.diff.isTruncated) {
+          expect(
+            file.diff.originalBytes,
+            `${descriptor.fixtureId}:${file.id} original bytes`,
+          ).toBeGreaterThanOrEqual(retainedBytes);
+        } else {
+          expect(
+            file.diff.originalBytes,
+            `${descriptor.fixtureId}:${file.id} original bytes`,
+          ).toBe(retainedBytes);
+        }
       }
     }
   });
@@ -184,6 +265,55 @@ describe("review fixture corpus", () => {
     }
   });
 
+  it("keeps evidence indexes, deterministic facts, and change links internally consistent", () => {
+    for (const { descriptor, bundle } of loaded) {
+      const evidenceById = new Map(
+        bundle.evidenceItems.map((item) => [item.id, item]),
+      );
+      const evidenceIndexById = new Map(
+        bundle.evidenceIndex.map((item) => [item.evidenceId, item]),
+      );
+      const changeIds = new Set([
+        ...bundle.changeScope.commits.map((commit) => commit.id),
+        ...bundle.changeScope.files.map((file) => file.id),
+      ]);
+
+      expect(evidenceIndexById.size, `${descriptor.fixtureId} evidence index IDs`).toBe(
+        bundle.evidenceIndex.length,
+      );
+      expect([...evidenceIndexById.keys()].sort()).toEqual(
+        [...evidenceById.keys()].sort(),
+      );
+
+      for (const [evidenceId, evidence] of evidenceById) {
+        const indexEntry = evidenceIndexById.get(evidenceId);
+        expect(indexEntry, `${descriptor.fixtureId}:${evidenceId} index entry`).toBeDefined();
+        expect(indexEntry?.relatedChangeIds, `${descriptor.fixtureId}:${evidenceId} change links`).toEqual(
+          evidence.relatedChangeIds,
+        );
+        for (const relatedChangeId of evidence.relatedChangeIds) {
+          expect(changeIds.has(relatedChangeId), `${descriptor.fixtureId}:${evidenceId} known change`).toBe(true);
+        }
+      }
+
+      const factIds = bundle.deterministicFacts.map((fact) => fact.id);
+      expect(new Set(factIds).size, `${descriptor.fixtureId} deterministic fact IDs`).toBe(
+        factIds.length,
+      );
+      for (const fact of bundle.deterministicFacts) {
+        for (const evidenceId of fact.evidenceIds) {
+          expect(evidenceById.has(evidenceId), `${descriptor.fixtureId}:${fact.id} known evidence`).toBe(true);
+        }
+      }
+
+      if (!bundle.truncation.isTruncated) {
+        expect(bundle.truncation.omittedEvidenceItems, descriptor.fixtureId).toBe(0);
+        expect(bundle.truncation.omittedExcerptCharacters, descriptor.fixtureId).toBe(0);
+        expect(bundle.truncation.omittedMissingEvidence, descriptor.fixtureId).toBe(0);
+      }
+    }
+  });
+
   it("expected count bounds are internally consistent and contain reference answer", () => {
     for (const { descriptor, referenceFindings, expected } of loaded) {
       expect(
@@ -213,6 +343,14 @@ describe("review fixture corpus", () => {
           `${descriptor.fixtureId} findings outcome`,
         ).toBeGreaterThan(0);
       }
+
+      if (expected.outcome === "inconclusive") {
+        expect(referenceFindings, `${descriptor.fixtureId} inconclusive outcome`).not.toHaveLength(0);
+        expect(
+          referenceFindings.every((finding) => finding.status === "inconclusive"),
+          `${descriptor.fixtureId} inconclusive findings only`,
+        ).toBe(true);
+      }
     }
   });
 
@@ -223,24 +361,16 @@ describe("review fixture corpus", () => {
           (f) =>
             f.category === match.category &&
             f.status === match.status &&
-            f.recommendation === match.recommendation,
+            f.recommendation === match.recommendation &&
+            (match.requiredEvidenceIds ?? []).every((evidenceId) =>
+              f.evidenceIds.includes(evidenceId),
+            ),
         );
         expect(
           matched.length,
           `${descriptor.fixtureId}: ${match.category}/${match.status}/${match.recommendation} min ${match.minCount}`,
         ).toBeGreaterThanOrEqual(match.minCount);
 
-        if (match.requiredEvidenceIds) {
-          for (const requiredEvidenceId of match.requiredEvidenceIds) {
-            const hasEvidence = matched.some((f) =>
-              f.evidenceIds.includes(requiredEvidenceId),
-            );
-            expect(
-              hasEvidence,
-              `${descriptor.fixtureId}: no matched finding references ${requiredEvidenceId}`,
-            ).toBe(true);
-          }
-        }
       }
     }
   });

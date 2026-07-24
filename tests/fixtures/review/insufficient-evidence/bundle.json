@@ -14,7 +14,7 @@
         "id": "commit:insuff-main",
         "objectId": "2222222222222222222222222222222222222222",
         "parentObjectIds": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
-        "summary": "Implement complex auth flow with external integrations",
+        "summary": "Wire auth flow to dedicated JWT and permission services",
         "committedAt": "2026-01-01T00:00:00.000Z",
         "redactions": []
       }
@@ -29,10 +29,10 @@
         "additions": 15,
         "deletions": 0,
         "diff": {
-          "text": "+import { createHash } from 'crypto';\n+\n+export async function authenticate(token: string): Promise<boolean> {\n+  return validateJwt(token) && verifyPermissions(token);\n+}\n+\n+async function validateJwt(token: string): Promise<boolean> {\n+  return true;\n+}\n+\n+async function verifyPermissions(token: string): Promise<boolean> {\n+  return true;\n+}\n",
+          "text": "+import { validateJwt } from './jwt-validator.js';\n+import { verifyPermissions } from './permission-service.js';\n+\n+export async function authenticate(token: string): Promise<boolean> {\n+  return validateJwt(token) && verifyPermissions(token);\n+}\n",
           "isTruncated": false,
-          "originalBytes": 289,
-          "retainedBytes": 289
+          "originalBytes": 247,
+          "retainedBytes": 247
         },
         "redactions": []
       }
@@ -71,8 +71,8 @@
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 270,
-        "retainedCharacters": 270
+        "originalCharacters": 269,
+        "retainedCharacters": 269
       },
       "redactions": []
     },
@@ -88,13 +88,13 @@
       "retrievedAt": "2026-01-01T00:00:00.000Z",
       "contentHash": null,
       "relatedChangeIds": ["file:insuff/src/auth.ts"],
-      "excerpt": "+export async function authenticate(token: string): Promise<boolean> {\n+  return validateJwt(token) && verifyPermissions(token);\n+}\n+\n+async function validateJwt(token: string): Promise<boolean> {\n+  return true;\n+}\n+\n+async function verifyPermissions(token: string): Promise<boolean> {\n+  return true;\n+}\n",
-      "selectionReason": "The implementation stubs out validateJwt and verifyPermissions; whether this is correct is unclear without security.md and api.md.",
+      "excerpt": "+import { validateJwt } from './jwt-validator.js';\n+import { verifyPermissions } from './permission-service.js';\n+\n+export async function authenticate(token: string): Promise<boolean> {\n+  return validateJwt(token) && verifyPermissions(token);\n+}\n",
+      "selectionReason": "The implementation delegates JWT and permission checks; their required behavior cannot be assessed without the referenced documents.",
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 245,
-        "retainedCharacters": 245
+        "originalCharacters": 247,
+        "retainedCharacters": 247
       },
       "redactions": []
     }
@@ -116,8 +116,8 @@
       "evidenceIds": ["evidence:doc:insuff-partial-spec"]
     },
     {
-      "id": "fact:insuff-stub-impl",
-      "statement": "validateJwt and verifyPermissions return hardcoded true values.",
+      "id": "fact:insuff-auth-delegates",
+      "statement": "authenticate delegates JWT validation and permission verification to separate modules.",
       "evidenceIds": ["evidence:diff:insuff-auth"]
     }
   ],
@@ -126,6 +126,15 @@
       "source": {
         "system": "repository",
         "locator": "docs/security.md",
+        "uri": null
+      },
+      "reason": "Document not found in the repository.",
+      "status": "not_found"
+    },
+    {
+      "source": {
+        "system": "repository",
+        "locator": "docs/db-schema.md",
         "uri": null
       },
       "reason": "Document not found in the repository.",

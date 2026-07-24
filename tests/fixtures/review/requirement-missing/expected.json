@@ -9,7 +9,7 @@
       "category": "requirement_missing",
       "status": "confirmed",
       "recommendation": "update_code",
-      "requiredEvidenceIds": ["evidence:doc:req-miss-spec"],
+      "requiredEvidenceIds": ["evidence:doc:req-miss-spec", "evidence:diff:req-miss-auth"],
       "minCount": 1
     }
   ],

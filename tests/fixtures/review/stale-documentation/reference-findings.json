@@ -7,7 +7,7 @@
     "confidence": 0.85,
     "title": "Spec documents outdated lockout duration",
     "expectedBehavior": "The spec should reflect the current lockout duration of 600,000 ms.",
-    "observedBehavior": "The spec states lockoutDuration is 300,000 ms but the code uses 600,000 ms.",
+    "observedBehavior": "The spec states lockoutDuration is 300,000 ms, while the current approved code uses 600,000 ms.",
     "deterministicFacts": [
       {
         "statement": "The spec states lockoutDuration is 300,000 ms.",
@@ -16,10 +16,14 @@
       {
         "statement": "The implementation sets lockoutDuration to 600,000 ms.",
         "evidenceIds": ["evidence:diff:stale-config"]
+      },
+      {
+        "statement": "The approved change record establishes 600,000 ms as the intended duration and requests a documentation update.",
+        "evidenceIds": ["evidence:commit:stale-approval"]
       }
     ],
-    "inference": "The lockout duration was increased from 300,000 to 600,000 ms but the spec was not updated.",
-    "evidenceIds": ["evidence:doc:stale-spec", "evidence:diff:stale-config"],
+    "inference": "The approved lockout duration was increased from 300,000 to 600,000 ms, but the spec was not updated.",
+    "evidenceIds": ["evidence:doc:stale-spec", "evidence:diff:stale-config", "evidence:commit:stale-approval"],
     "affectedSources": [
       {
         "system": "repository",
@@ -29,6 +33,11 @@
       {
         "system": "git",
         "locator": "src/config.ts",
+        "uri": null
+      },
+      {
+        "system": "git",
+        "locator": "commit:9999999999999999999999999999999999999999",
         "uri": null
       }
     ],

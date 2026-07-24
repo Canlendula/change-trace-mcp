@@ -9,6 +9,7 @@
       "category": "other",
       "status": "inconclusive",
       "recommendation": "investigate",
+      "requiredEvidenceIds": ["evidence:doc:insuff-partial-spec", "evidence:diff:insuff-auth"],
       "minCount": 1
     }
   ],

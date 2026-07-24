@@ -31,8 +31,8 @@
         "diff": {
           "text": "+export function validateEmail(email: string): boolean {\n+  return /^[^@]+@[^@]+$/.test(email);\n+}\n+\n+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  return password.length >= 8;\n+}\n",
           "isTruncated": false,
-          "originalBytes": 210,
-          "retainedBytes": 210
+          "originalBytes": 247,
+          "retainedBytes": 247
         },
         "redactions": []
       },
@@ -47,8 +47,8 @@
         "diff": {
           "text": "+import { validateEmail, login } from '../src/auth';\n+\n+describe('auth', () => {\n+  it('validates email', () => {\n+    expect(validateEmail('a@b.com')).toBe(true);\n+  });\n+  it('logs in', () => {\n+    expect(login('a@b.com', 'password123')).toBe(true);\n+  });\n+});\n",
           "isTruncated": false,
-          "originalBytes": 230,
-          "retainedBytes": 230
+          "originalBytes": 265,
+          "retainedBytes": 265
         },
         "redactions": []
       }
@@ -87,8 +87,8 @@
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 368,
-        "retainedCharacters": 368
+        "originalCharacters": 365,
+        "retainedCharacters": 365
       },
       "redactions": []
     },
@@ -109,8 +109,8 @@
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 210,
-        "retainedCharacters": 210
+        "originalCharacters": 247,
+        "retainedCharacters": 247
       },
       "redactions": []
     }

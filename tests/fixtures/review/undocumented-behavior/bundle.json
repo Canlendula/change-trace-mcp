@@ -29,10 +29,10 @@
         "additions": 10,
         "deletions": 0,
         "diff": {
-          "text": "+export function validateEmail(email: string): boolean {\n+  return /^[^@]+@[^@]+$/.test(email);\n+}\n+\n+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  if (shouldRateLimit(email)) return false;\n+  return password.length >= 8;\n+}\n+\n+function shouldRateLimit(email: string): boolean { return false; }\n",
+          "text": "+const failedLoginAttempts = new Map<string, number>();\n+\n+export function validateEmail(email: string): boolean {\n+  return /^[^@]+@[^@]+$/.test(email);\n+}\n+\n+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  if (shouldRateLimit(email)) return false;\n+  return password.length >= 8;\n+}\n+\n+function shouldRateLimit(email: string): boolean {\n+  return (failedLoginAttempts.get(email) ?? 0) >= 5;\n+}\n",
           "isTruncated": false,
-          "originalBytes": 325,
-          "retainedBytes": 325
+          "originalBytes": 461,
+          "retainedBytes": 461
         },
         "redactions": []
       }
@@ -71,8 +71,8 @@
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 261,
-        "retainedCharacters": 261
+        "originalCharacters": 251,
+        "retainedCharacters": 251
       },
       "redactions": []
     },
@@ -88,13 +88,13 @@
       "retrievedAt": "2026-01-01T00:00:00.000Z",
       "contentHash": null,
       "relatedChangeIds": ["file:undoc/src/auth.ts"],
-      "excerpt": "+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  if (shouldRateLimit(email)) return false;\n+  return password.length >= 8;\n+}\n+\n+function shouldRateLimit(email: string): boolean { return false; }\n",
-      "selectionReason": "Code includes a shouldRateLimit helper not documented in the spec.",
+      "excerpt": "+const failedLoginAttempts = new Map<string, number>();\n+\n+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  if (shouldRateLimit(email)) return false;\n+  return password.length >= 8;\n+}\n+\n+function shouldRateLimit(email: string): boolean {\n+  return (failedLoginAttempts.get(email) ?? 0) >= 5;\n+}\n",
+      "selectionReason": "Code actively blocks login after five recorded failed attempts, a behavior not documented in the spec.",
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 226,
-        "retainedCharacters": 226
+        "originalCharacters": 360,
+        "retainedCharacters": 360
       },
       "redactions": []
     }
@@ -117,7 +117,7 @@
     },
     {
       "id": "fact:undoc-code-has-rate",
-      "statement": "The implementation includes a shouldRateLimit helper that is called in login.",
+      "statement": "The implementation blocks login when failedLoginAttempts reaches five.",
       "evidenceIds": ["evidence:diff:undoc-auth"]
     }
   ],

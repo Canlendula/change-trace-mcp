@@ -29,10 +29,10 @@
         "additions": 5,
         "deletions": 1,
         "diff": {
-          "text": "+import { readFileSync } from 'fs';\n+\n+function loadSecretKey(): string {\n+  return readFileSync('.env.production', 'utf-8').trim();\n+}\n+\n export function login(email: string, password: string): boolean {\n-  return password.length >= 8;\n+  const secret = loadSecretKey();\n+  return password.length >= 8 && secret.length > 0;\n }\n",
+          "text": "+import { readFileSync } from 'fs';\n+\n+function loadSecretKey(): string {\n+  const match = readFileSync('.env.production', 'utf-8').match(/^SECRET_KEY=(.+)$/m);\n+  return match?.[1] ?? '';\n+}\n+\n export function login(email: string, password: string): boolean {\n-  return password.length >= 8;\n+  const secret = loadSecretKey();\n+  return password.length >= 8 && secret.length > 0;\n }\n",
           "isTruncated": false,
-          "originalBytes": 280,
-          "retainedBytes": 280
+          "originalBytes": 384,
+          "retainedBytes": 384
         },
         "redactions": []
       }
@@ -71,8 +71,8 @@
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 195,
-        "retainedCharacters": 195
+        "originalCharacters": 166,
+        "retainedCharacters": 166
       },
       "redactions": []
     },
@@ -88,13 +88,13 @@
       "retrievedAt": "2026-01-01T00:00:00.000Z",
       "contentHash": null,
       "relatedChangeIds": ["file:missperm/src/auth.ts"],
-      "excerpt": "+function loadSecretKey(): string {\n+  return readFileSync('.env.production', 'utf-8').trim();\n+}\n+\n export function login(email, password) {\n+  const secret = loadSecretKey();\n+  return password.length >= 8 && secret.length > 0;\n }\n",
-      "selectionReason": "Code reads .env.production but the file itself is inaccessible.",
+      "excerpt": "+function loadSecretKey(): string {\n+  const match = readFileSync('.env.production', 'utf-8').match(/^SECRET_KEY=(.+)$/m);\n+  return match?.[1] ?? '';\n+}\n+\n export function login(email, password) {\n+  const secret = loadSecretKey();\n+  return password.length >= 8 && secret.length > 0;\n }\n",
+      "selectionReason": "Code explicitly performs a SECRET_KEY lookup in .env.production, while the file content is inaccessible.",
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 210,
-        "retainedCharacters": 210
+        "originalCharacters": 289,
+        "retainedCharacters": 289
       },
       "redactions": []
     }
@@ -117,7 +117,7 @@
     },
     {
       "id": "fact:missperm-code-reads-env",
-      "statement": "The implementation reads .env.production at runtime.",
+      "statement": "The implementation explicitly looks up SECRET_KEY in .env.production.",
       "evidenceIds": ["evidence:diff:missperm-auth"]
     }
   ],

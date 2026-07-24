@@ -4,7 +4,10 @@ import { join } from "node:path";
 import { z } from "zod";
 
 import {
+  findingCategorySchema,
+  findingRecommendationSchema,
   findingSchema,
+  findingStatusSchema,
   reviewBundleSchema,
   type Finding,
   type ReviewBundle,
@@ -35,48 +38,79 @@ const expectedOutcomeSchema = z.enum([
 ]);
 
 const semanticMatchSchema = z.strictObject({
-  category: z.enum([
-    "requirement_missing",
-    "undocumented_behavior",
-    "contradictory_evidence",
-    "test_gap",
-    "stale_documentation",
-    "security",
-    "other",
-  ]),
-  status: z.enum(["confirmed", "suspected", "inconclusive"]),
-  recommendation: z.enum([
-    "update_code",
-    "update_documentation",
-    "add_or_adjust_tests",
-    "investigate",
-    "accept_intentional_difference",
-  ]),
+  category: findingCategorySchema,
+  status: findingStatusSchema,
+  recommendation: findingRecommendationSchema,
   requiredEvidenceIds: z
     .array(z.string().min(1).max(160))
     .min(1)
     .max(1000)
     .optional(),
-  minCount: z.number().int().nonnegative().default(1),
+  minCount: z.number().int().positive().default(1),
 });
 
-export const expectedSchema = z.strictObject({
+const expectedSchemaBase = z.strictObject({
   schemaVersion: z.literal("1.0.0"),
   fixtureId: z.string().min(1),
   outcome: expectedOutcomeSchema,
   minFindings: z.number().int().nonnegative(),
   maxFindings: z.number().int().nonnegative(),
   requiredMatches: z.array(semanticMatchSchema).max(1000),
-  forbiddenCategories: z
-    .array(semanticMatchSchema.shape.category)
-    .max(1000)
-    .optional(),
-  forbiddenStatuses: z
-    .array(semanticMatchSchema.shape.status)
-    .max(1000)
-    .optional(),
+  forbiddenCategories: z.array(findingCategorySchema).max(1000).optional(),
+  forbiddenStatuses: z.array(findingStatusSchema).max(1000).optional(),
   rationale: z.string().min(1).max(4000),
 });
+
+export const expectedSchema = expectedSchemaBase.superRefine(
+  (expected, context) => {
+    if (expected.minFindings > expected.maxFindings) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["minFindings"],
+        message: "minFindings must not exceed maxFindings",
+      });
+    }
+
+    if (expected.outcome === "no_findings") {
+      if (expected.minFindings !== 0 || expected.maxFindings !== 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["outcome"],
+          message: "no_findings requires zero minimum and maximum findings",
+        });
+      }
+      if (expected.requiredMatches.length !== 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["requiredMatches"],
+          message: "no_findings cannot require semantic matches",
+        });
+      }
+    } else {
+      if (expected.minFindings < 1 || expected.requiredMatches.length === 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["outcome"],
+          message: "findings and inconclusive outcomes require non-empty findings and semantic matches",
+        });
+      }
+    }
+
+    if (expected.outcome === "inconclusive") {
+      const forbiddenStatuses = new Set(expected.forbiddenStatuses ?? []);
+      if (
+        !forbiddenStatuses.has("confirmed") ||
+        !forbiddenStatuses.has("suspected")
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["forbiddenStatuses"],
+          message: "inconclusive outcomes must forbid confirmed and suspected findings",
+        });
+      }
+    }
+  },
+);
 
 export type ExpectedOutcome = z.infer<typeof expectedSchema>;
 export type SemanticMatch = z.infer<typeof semanticMatchSchema>;
@@ -97,17 +131,50 @@ export type LoadedReviewFixture = {
 };
 
 export function canonicalStringify(value: unknown): string {
-  return `${JSON.stringify(value)}\n`;
+  return `${JSON.stringify(canonicalize(value))}\n`;
+}
+
+function canonicalize(value: unknown): unknown {
+  if (typeof value === "string") {
+    return value.replace(/\r\n?/gu, "\n");
+  }
+  if (Array.isArray(value)) {
+    return value.map(canonicalize);
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, child]) => [key, canonicalize(child)]),
+    );
+  }
+  return value;
 }
 
 export async function discoverReviewFixtures(
   fixturesRoot: string,
 ): Promise<ReviewFixtureDescriptor[]> {
   const entries = await readdir(fixturesRoot, { withFileTypes: true });
-  const dirs = entries
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort();
+  const issues: string[] = [];
+  const dirs: string[] = [];
+
+  for (const entry of entries) {
+    if (entry.isSymbolicLink()) {
+      issues.push(`Unexpected symbolic link ${entry.name} in fixture root`);
+    } else if (!entry.isDirectory()) {
+      issues.push(`Unexpected non-directory entry ${entry.name} in fixture root`);
+    } else if (!(EXPECTED_FIXTURE_IDS as readonly string[]).includes(entry.name)) {
+      issues.push(`Unexpected fixture directory ${entry.name}`);
+    } else {
+      dirs.push(entry.name);
+    }
+  }
+
+  if (issues.length > 0) {
+    throw new Error(issues.join("; "));
+  }
+
+  dirs.sort();
 
   return dirs.map((name) => {
     const directory = join(fixturesRoot, name);
@@ -125,11 +192,18 @@ export async function validateFixtureDirectory(
   descriptor: ReviewFixtureDescriptor,
 ): Promise<string[]> {
   const issues: string[] = [];
-  const files = new Set(
-    (await readdir(descriptor.directory, { withFileTypes: true }))
-      .filter((entry) => entry.isFile())
-      .map((entry) => entry.name),
-  );
+  const files = new Set<string>();
+  for (const entry of await readdir(descriptor.directory, {
+    withFileTypes: true,
+  })) {
+    if (entry.isSymbolicLink()) {
+      issues.push(`Unexpected symbolic link ${entry.name} in ${descriptor.fixtureId}`);
+    } else if (!entry.isFile()) {
+      issues.push(`Unexpected non-file entry ${entry.name} in ${descriptor.fixtureId}`);
+    } else {
+      files.add(entry.name);
+    }
+  }
 
   for (const expectedFile of EXPECTED_FILES) {
     if (!files.has(expectedFile)) {
@@ -153,6 +227,12 @@ export async function validateFixtureDirectory(
 export async function loadReviewFixture(
   descriptor: ReviewFixtureDescriptor,
 ): Promise<LoadedReviewFixture> {
+  const issues = await validateFixtureDirectory(descriptor);
+  if (issues.length > 0) {
+    throw new Error(
+      `Invalid review fixture ${descriptor.fixtureId}: ${issues.join("; ")}`,
+    );
+  }
   const [bundleRaw, findingsRaw, expectedRaw] = await Promise.all([
     readFile(descriptor.bundlePath, "utf-8"),
     readFile(descriptor.referenceFindingsPath, "utf-8"),

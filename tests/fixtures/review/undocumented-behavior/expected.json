@@ -9,7 +9,7 @@
       "category": "undocumented_behavior",
       "status": "suspected",
       "recommendation": "update_documentation",
-      "requiredEvidenceIds": ["evidence:diff:undoc-auth"],
+      "requiredEvidenceIds": ["evidence:doc:undoc-spec", "evidence:diff:undoc-auth"],
       "minCount": 1
     }
   ],

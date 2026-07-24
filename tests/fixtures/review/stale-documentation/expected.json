@@ -9,9 +9,9 @@
       "category": "stale_documentation",
       "status": "confirmed",
       "recommendation": "update_documentation",
-      "requiredEvidenceIds": ["evidence:doc:stale-spec"],
+      "requiredEvidenceIds": ["evidence:doc:stale-spec", "evidence:diff:stale-config", "evidence:commit:stale-approval"],
       "minCount": 1
     }
   ],
-  "rationale": "The spec documents 5-minute lockout but code has 10-minute lockout; a stale_documentation finding is expected."
+  "rationale": "The spec documents 5 minutes while approved current code establishes 10 minutes and requests a documentation update; a stale_documentation finding is expected."
 }

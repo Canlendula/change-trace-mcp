@@ -14,7 +14,7 @@
         "id": "commit:int-ref-main",
         "objectId": "dddddddddddddddddddddddddddddddddddddddd",
         "parentObjectIds": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
-        "summary": "refactor: rename internal helpers, no behavior change",
+        "summary": "refactor: extract private auth helpers, no behavior change",
         "committedAt": "2026-01-01T00:00:00.000Z",
         "redactions": []
       }
@@ -29,10 +29,10 @@
         "additions": 3,
         "deletions": 3,
         "diff": {
-          "text": "-export function validateEmail(email: string): boolean {\n-  return /^[^@]+@[^@]+$/.test(email);\n+export function isValidEmail(email: string): boolean {\n+  return /^[^@]+@[^@]+$/.test(email);\n }\n \n export function login(email: string, password: string): boolean {\n-  if (!validateEmail(email)) return false;\n+  if (!isValidEmail(email)) return false;\n+  return sanitizePassword(password).length >= 8;\n+}\n+\n+function sanitizePassword(password: string): string {\n   return password;\n }\n",
+          "text": " export function login(email: string, password: string): boolean {\n-  if (!/^[^@]+@[^@]+$/.test(email)) return false;\n-  return password.length >= 8;\n+  if (!isValidEmail(email)) return false;\n+  return normalizePassword(password).length >= 8;\n }\n+\n+function isValidEmail(email: string): boolean {\n+  return /^[^@]+@[^@]+$/.test(email);\n+}\n+\n+function normalizePassword(password: string): string {\n+  return password;\n+}\n",
           "isTruncated": false,
-          "originalBytes": 380,
-          "retainedBytes": 380
+          "originalBytes": 421,
+          "retainedBytes": 421
         },
         "redactions": []
       }
@@ -66,13 +66,13 @@
       "retrievedAt": "2026-01-01T00:00:00.000Z",
       "contentHash": null,
       "relatedChangeIds": ["file:int-ref/src/auth.ts"],
-      "excerpt": "refactor: rename internal helpers, no behavior change\n\nRenamed validateEmail to isValidEmail. Extracted sanitizePassword helper.\nAll existing tests pass identically and public API surface is unchanged.",
+      "excerpt": "refactor: extract private auth helpers, no behavior change\n\nExtracted private email and password helpers behind the existing login API.\nAll existing tests pass identically and the public login API is unchanged.",
       "selectionReason": "Commit message explicitly states the change is a behavior-preserving refactor.",
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 199,
-        "retainedCharacters": 199
+        "originalCharacters": 210,
+        "retainedCharacters": 210
       },
       "redactions": []
     },
@@ -88,13 +88,13 @@
       "retrievedAt": "2026-01-01T00:00:00.000Z",
       "contentHash": null,
       "relatedChangeIds": ["file:int-ref/src/auth.ts"],
-      "excerpt": "-export function validateEmail(email) { return /^...$/.test(email); }\n+export function isValidEmail(email) { return /^...$/.test(email); }\n \n export function login(email, password) {\n-  if (!validateEmail(email)) return false;\n-  return password.length >= 8;\n+  if (!isValidEmail(email)) return false;\n+  return sanitizePassword(password).length >= 8;\n }\n+\n+function sanitizePassword(p) { return p; }\n",
-      "selectionReason": "Diff shows only internal renames and extraction of a no-op helper.",
+      "excerpt": " export function login(email, password) {\n-  if (!/^...$/.test(email)) return false;\n-  return password.length >= 8;\n+  if (!isValidEmail(email)) return false;\n+  return normalizePassword(password).length >= 8;\n }\n+\n+function isValidEmail(email) { return /^...$/.test(email); }\n+function normalizePassword(password) { return password; }\n",
+      "selectionReason": "Diff preserves the exported login API and extracts only private behavior-preserving helpers.",
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 350,
-        "retainedCharacters": 350
+        "originalCharacters": 337,
+        "retainedCharacters": 337
       },
       "redactions": []
     },
@@ -115,8 +115,8 @@
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 225,
-        "retainedCharacters": 225
+        "originalCharacters": 226,
+        "retainedCharacters": 226
       },
       "redactions": []
     }
@@ -138,7 +138,7 @@
   "deterministicFacts": [
     {
       "id": "fact:int-ref-commit-states-refactor",
-      "statement": "The commit message explicitly states this is a behavior-preserving refactor.",
+      "statement": "The commit message explicitly states this is a behavior-preserving refactor with an unchanged public login API.",
       "evidenceIds": ["evidence:commit:int-ref-msg"]
     },
     {

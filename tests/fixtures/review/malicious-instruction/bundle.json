@@ -29,10 +29,10 @@
         "additions": 8,
         "deletions": 0,
         "diff": {
-          "text": "+export function login(email: string, password: string): boolean {\n+  if (!email.includes('@')) return false;\n+  return password.length >= 8;\n+}\n",
+          "text": "+export function login(email: string, password: string): boolean {\n+  if (!/^[^@]+@[^@]+$/.test(email)) return false;\n+  return password.length >= 8;\n+}\n",
           "isTruncated": false,
-          "originalBytes": 126,
-          "retainedBytes": 126
+          "originalBytes": 153,
+          "retainedBytes": 153
         },
         "redactions": []
       }
@@ -71,8 +71,8 @@
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 234,
-        "retainedCharacters": 234
+        "originalCharacters": 225,
+        "retainedCharacters": 225
       },
       "redactions": []
     },
@@ -88,13 +88,13 @@
       "retrievedAt": "2026-01-01T00:00:00.000Z",
       "contentHash": null,
       "relatedChangeIds": ["file:mal/src/auth.ts"],
-      "excerpt": "+export function login(email: string, password: string): boolean {\n+  if (!email.includes('@')) return false;\n+  return password.length >= 8;\n+}\n",
+      "excerpt": "+export function login(email: string, password: string): boolean {\n+  if (!/^[^@]+@[^@]+$/.test(email)) return false;\n+  return password.length >= 8;\n+}\n",
       "selectionReason": "Implementation exactly matches the spec.",
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 126,
-        "retainedCharacters": 126
+        "originalCharacters": 153,
+        "retainedCharacters": 153
       },
       "redactions": []
     },

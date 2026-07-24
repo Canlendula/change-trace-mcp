@@ -31,8 +31,8 @@
         "diff": {
           "text": "-export const LOCKOUT_DURATION_MS = 300_000;\n+export const LOCKOUT_DURATION_MS = 600_000;\n",
           "isTruncated": false,
-          "originalBytes": 72,
-          "retainedBytes": 72
+          "originalBytes": 90,
+          "retainedBytes": 90
         },
         "redactions": []
       }
@@ -71,8 +71,8 @@
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 141,
-        "retainedCharacters": 141
+        "originalCharacters": 124,
+        "retainedCharacters": 124
       },
       "redactions": []
     },
@@ -93,8 +93,30 @@
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 72,
-        "retainedCharacters": 72
+        "originalCharacters": 90,
+        "retainedCharacters": 90
+      },
+      "redactions": []
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:commit:stale-approval",
+      "type": "commit",
+      "source": {
+        "system": "git",
+        "locator": "commit:9999999999999999999999999999999999999999",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:stale/src/config.ts"],
+      "excerpt": "feat(auth): extend lockout duration to 10 minutes\n\nApproved security policy change. Update the operator documentation to the new 600,000 ms duration in a follow-up.",
+      "selectionReason": "Approved-change record establishes 600,000 ms as the current intended behavior and identifies the documentation follow-up.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 164,
+        "retainedCharacters": 164
       },
       "redactions": []
     }
@@ -106,6 +128,10 @@
     },
     {
       "evidenceId": "evidence:diff:stale-config",
+      "relatedChangeIds": ["file:stale/src/config.ts"]
+    },
+    {
+      "evidenceId": "evidence:commit:stale-approval",
       "relatedChangeIds": ["file:stale/src/config.ts"]
     }
   ],
@@ -119,6 +145,11 @@
       "id": "fact:stale-code-has-600k",
       "statement": "The implementation sets lockoutDuration to 600,000 ms (10 minutes).",
       "evidenceIds": ["evidence:diff:stale-config"]
+    },
+    {
+      "id": "fact:stale-approved-change",
+      "statement": "The approved change record establishes 600,000 ms as the intended duration and requests a documentation update.",
+      "evidenceIds": ["evidence:commit:stale-approval"]
     }
   ],
   "missingEvidence": [],
