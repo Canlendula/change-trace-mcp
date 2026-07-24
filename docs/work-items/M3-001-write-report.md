@@ -156,55 +156,51 @@ git status --short
   - `2cc369e` — fix: second review round
   - `289ab44` — fix: third review round
   - `31fa425` — fix: fourth review round
+  - `68d5f9e` — fix: harden report writer finalization
 
 ### Implementation summary
 
-Fifth commit (fourth review round fixes):
+Sixth commit (final takeover fixes):
 
-- **Rollback unlink failure**: `safeUnlink` replaces swallowed `catch {}` blocks.
-  Failed unlinks of promoted final files are collected in `rollbackErrors`.
-  Residual final paths are reported in the `write_report_rollback_failed` error.
-- **Backup restore failure**: `rollbackFatal` flag set when `safeRename` fails
-  during backup restore. When fatal, bak files are NOT deleted and txDir is NOT
-  removed — both are preserved for manual recovery. Error includes both final
-  residual paths and backup paths. Handled for both JSON and Markdown directions.
-- **Three new failure-injection tests**:
-  - No old reports: md promotion fails + json final unlink fails → reports
-    unlink error and residual json final path
-  - With old reports: json backup restore fails → verifies bak.json preserved
-    in txDir with old content, old md restored from backup
-  - With old reports: md backup restore fails → verifies bak.md preserved in
-    txDir with old content, old json restored from backup
-- **Four-space/Tab indented code block fix**: `safeInline` now replaces
-  `^ {4,}` → `   \\` + rest (3 spaces + backslash breaks 4-space indentation),
-  `^\t` → `   \\t` (3 spaces + backslash-t). Test verifies no output line has
-  valid 4-space or tab indentation structure.
-- **Restored acceptance tests**: bundleId mismatch, absolute output directory
-  rejection, `..` traversal rejection, unsafe reportName rejection, empty
-  findings handling, warnings/rejections in Markdown, truncated evidence
-  display.
-- **WriteReportFs hidden**: Public API is `writeReport(input)` only. Internal
-  `_writeReportForTest(input, fs)` exposed for failure injection; not part of
-  `reports/index.ts` barrel export.
+- **CommonMark containment**: `safeInline` escapes 0–3 spaces followed by a
+  tab, `1)` and `1.` list markers, one-or-more-character Setext underlines
+  with trailing whitespace, and all pipe characters. `inlineNoNewlines`
+  normalizes CRLF, LF, and lone CR.
+- **Exclusive final publication**: fully written, validated staging files are
+  hard-linked to final paths. This provides no-clobber publication for both
+  overwrite modes and avoids partial-final output if a final write fails.
+  `EEXIST` is surfaced as `report_files_exist`.
+- **No-clobber recovery and ownership tracking**: rollback restores backups
+  with hard links, preserves backups and the transaction directory on recovery
+  failure, and tracks when a published final has been removed. Competing files
+  are never removed or reported as writer-owned residuals.
+- **Strict confinement**: shared relative-path checks reject empty relative
+  paths, absolute relatives, and every `..` segment for resolved output and
+  transaction directories. A transaction-directory escape fails before staging
+  writes. Bundle-root resolution errors are wrapped as
+  `bundle_root_unresolvable`; only `repo_root_mismatch` passes through.
+- **Regression coverage**: added tests for Markdown structural injections,
+  CR line endings, report substance mapping, exclusive publish races,
+  transaction-directory escape, hard-link promotion failure, backup restore
+  failures, and competing files during JSON/Markdown recovery.
 
 ### Changed areas
 
-- `src/reports/write-report.ts` — safeUnlink rollback, rollbackFatal flag,
-  fix safeInline 4-space/tab escapes, split public/internal API
-- `src/reports/index.ts` — exports writeReport only
-- `tests/unit/report-write.test.ts` — 3 new failure-injection tests, restored
-  7 acceptance tests, 4-space/tab verification test
+- `src/reports/write-report.ts` — Markdown containment, strict path checks,
+  no-clobber hard-link publication/recovery, and explicit transaction ownership
+- `tests/unit/report-write.test.ts` — Markdown, substance, confinement, race,
+  and rollback regression tests
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
 | `npm run check` | PASS | Zero errors |
-| `npm test` | PASS | 80 tests (12 files), zero failures |
+| `npm test` | PASS | 87 tests (12 files), zero failures |
 | `npm run smoke:stdio` | PASS | write_report in tools |
 | `npm run pack:check` | PASS | 127 files, no warnings |
 | `git diff --check` | PASS | No whitespace errors |
-| `git status --short` | Clean | Task file pending |
+| `git status --short` | Clean | After handoff commit |
 
 ### Deviations from assignment
 
@@ -212,11 +208,12 @@ Fifth commit (fourth review round fixes):
 
 ### Known limitations and risks
 
-- `rollbackFatal` flag-based preservation of bak files and txDir relies on
-  the filesystem not being in a catastrophic failure state; extreme scenarios
-  (disk full) may still leave artifacts.
-- `_writeReportForTest` is internal; coordinator may request removal before
-  release.
+- A concurrent overwrite writer can still replace an existing final before this
+  writer moves it to its private backup; portable filesystem APIs provide no
+  lock for that earlier race. After backup creation, publication and recovery
+  use no-clobber hard links.
+- Catastrophic filesystem failures can leave the preserved transaction directory
+  and backup for manual recovery. This is reported as a rollback error.
 
 ### Decisions or questions for coordinator
 
