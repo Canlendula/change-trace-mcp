@@ -148,27 +148,105 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
+- Status: `ready_for_review`
 - Handoff branch: `work/M3-001-write-report`
 - Implementation commits:
+  - `9161a04790e3bb8874ea04d05e69c262c3e29378` — feat: implement report schema and write_report MCP tool
 
 ### Implementation summary
 
-- `<what was implemented>`
+- Defined a strict `1.0.0` Report schema (`src/schemas/report.ts`) using Zod with
+  `.strictObject()`, bounded strings/arrays, and unknown-key rejection. The
+  schema includes `reportWarning`, `reportFinding` (split by
+  confirmed/suspected/inconclusive status), `reportRejectedFinding`, and the
+  top-level `Report` with evidence coverage, validation summary, bundle limits,
+  and truncation.
+- Exported the report schema from the public schema surface
+  (`src/schemas/index.ts`) and included it in deterministic Draft 2020-12 JSON
+  Schema exports (`src/schemas/json-schema.ts` — `CoreJsonSchemas` extended with
+  `report` property).
+- Implemented `writeReport` (`src/reports/write-report.ts`):
+  - Builds a report from a `ReviewBundle`, `FindingValidationResult`, and
+    caller-supplied review metadata.
+  - Rejects mismatched `bundleId` between bundle and validation result.
+  - Validates path safety: absolute `repositoryRoot` required, relative-only
+    `outputDirectory`, `..` traversal blocked, `.git` paths rejected, symlink
+    resolution checked via `realpathSync`.
+  - Safe `reportName` with regex `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`.
+  - Renders byte-stable JSON with `JSON.stringify` and human-readable Markdown
+    with safe code fences (variable-length backtick fences based on content),
+    HTML entity escaping, and structure-preserving heading/table containment.
+  - Distinguishes confirmed, suspected, and inconclusive findings in separate
+    report sections.
+  - Computes evidence coverage: referenced vs. unreferenced evidence IDs.
+  - Default overwrite refusal; explicit `overwrite: true` to replace existing
+    files.
+  - Hard output size bound (default 10 MiB, configurable via
+    `maxReportSizeBytes`).
+  - Atomic paired-file writes: writes JSON first, then Markdown; cleans up JSON
+    if Markdown write fails.
+  - Returns structured `WriteReportOutput` with report ID, file paths, and byte
+    sizes.
+- Registered `write_report` as an MCP tool in `src/server.ts` with strict
+  input/output schemas and conservative annotations (`readOnlyHint: false`,
+  `destructiveHint: false`, `idempotentHint: false`, `openWorldHint: false`).
+- Updated `src/index.ts` to export the `reports` module.
+- Unit tests (`tests/unit/report-schema.test.ts` — 20 tests): schema
+  acceptance, unknown-key rejection, version check, status validation, array
+  bounds, finding/rejected-finding/warning subschemas, input/output schemas,
+  JSON Schema export determinism.
+- Unit tests (`tests/unit/report-write.test.ts` — 19 tests): deterministic
+  output, bundleId mismatch, mixed statuses, warnings/rejections, evidence
+  coverage, empty findings, HTML/safe-markdown containment, code fence safety,
+  absolute path rejection, traversal rejection, `.git` path rejection,
+  overwrite behavior, partial-artifact cleanup, non-absolute repo root, size
+  bounds, truncation coverage, unsafe reportName, symlink containment.
+- Integration test (`tests/integration/stdio.test.ts`): added third test case
+  that discovers `write_report` via stdio, calls it with a real Git fixture
+  bundle and validation result, and verifies written `.md` and `.json` files.
+- Documented `write_report` usage in `README.md` including inputs, generated
+  files, confinement rules, overwrite behavior, and example call flow.
 
 ### Changed areas
 
-- `<path or component and reason>`
+- `src/schemas/report.ts` — new Report schema and write_report I/O schemas
+- `src/schemas/index.ts` — added report-related exports
+- `src/schemas/json-schema.ts` — added report to CoreJsonSchemas type and
+  exportCoreJsonSchemas() output
+- `src/reports/write-report.ts` — report construction, Markdown/JSON rendering,
+  path validation, file writing
+- `src/reports/index.ts` — module export barrel
+- `src/server.ts` — registered write_report MCP tool with import
+- `src/index.ts` — added reports module export
+- `tests/unit/report-schema.test.ts` — 20 schema unit tests
+- `tests/unit/report-write.test.ts` — 19 write/validation unit tests
+- `tests/integration/stdio.test.ts` — added write_report integration test,
+  updated tool-list and annotation assertions
+- `README.md` — documented write_report tool, updated schema list, added usage
+  section
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npm run check` | PASS | TypeScript compilation, zero errors |
+| `npm test` | PASS | 82 tests passed (12 files), zero failures |
+| `npm run smoke:stdio` | PASS | write_report listed in tools, fixture byte-stable |
+| `npm run pack:check` | PASS | Tarball includes all new files, no warnings |
+| `git diff --check 295162231214675fe82a68374c99fab0796ba609..HEAD` | PASS | No whitespace errors |
+| `git status --short` | PASS | Clean after commits |
 
 ### Public contract and documentation impact
 
-- `<impact, or None>`
+- New public exports: `reportSchema`, `reportFindingSchema`,
+  `reportRejectedFindingSchema`, `reportWarningSchema`,
+  `writeReportInputSchema`, `writeReportOutputSchema`, and their inferred types
+  (`Report`, `ReportFinding`, `ReportRejectedFinding`, `ReportWarning`,
+  `WriteReportInput`, `WriteReportOutput`).
+- `exportCoreJsonSchemas()` now returns 7 schemas (added `report`).
+- `CoreJsonSchemas` type extended with `report: JsonSchemaDocument`.
+- New MCP tool `write_report` registered on the stdio server.
+- README updated with tool description and usage documentation.
 
 ### Deviations from assignment
 
@@ -176,7 +254,18 @@ git status --short
 
 ### Known limitations and risks
 
-- None.
+- The `createdAt` timestamp uses `new Date().toISOString()` which varies between
+  calls. This means byte-identical report output requires identical timestamps
+  in the test inputs (unit tests use the same builder each call within a single
+  test), but separate calls with different wall-clock times produce different
+  report JSON. The Markdown rendering is unaffected for structural
+  determinism — only the timestamp field differs.
+- On Windows, symlink tests use `junction` type which `realpathSync` may not
+  always resolve depending on filesystem configuration. The test handles this
+  gracefully with a catch-all approach.
+- The report Markdown uses em-dash (`\u2014`) and arrow (`\u2192`) Unicode
+  characters for visual clarity. These are safe in UTF-8 but may render
+  differently in non-Unicode terminals.
 
 ### Decisions or questions for coordinator
 
@@ -184,9 +273,9 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
