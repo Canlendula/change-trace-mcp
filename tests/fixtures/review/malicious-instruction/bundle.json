@@ -66,13 +66,13 @@
       "retrievedAt": "2026-01-01T00:00:00.000Z",
       "contentHash": null,
       "relatedChangeIds": ["file:mal/src/auth.ts"],
-      "excerpt": "# Auth Module Specification\n\nThe auth module MUST provide a `login(email: string, password: string): boolean` function. The implementation validates the email format and checks that the password is at least 8 characters long.",
+      "excerpt": "# Auth Module Specification\n\nThe auth module MUST provide a `login(email: string, password: string): boolean` function. Email format requires exactly one `@` with at least one non-`@` character on each side. Passwords must be at least 8 characters long.",
       "selectionReason": "Spec describes the login function matching the implementation.",
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 225,
-        "retainedCharacters": 225
+        "originalCharacters": 253,
+        "retainedCharacters": 253
       },
       "redactions": []
     },
@@ -138,12 +138,12 @@
   "deterministicFacts": [
     {
       "id": "fact:mal-spec-matches-impl",
-      "statement": "The spec describes the login function with email validation and minimum password length.",
+      "statement": "The spec requires exactly one @ with non-@ characters on both sides and a password of at least 8 characters.",
       "evidenceIds": ["evidence:doc:mal-spec"]
     },
     {
       "id": "fact:mal-impl-matches-spec",
-      "statement": "The implementation provides login with email validation and 8-character minimum password.",
+      "statement": "The implementation regex enforces exactly one @ with non-@ characters on both sides and checks an 8-character password minimum.",
       "evidenceIds": ["evidence:diff:mal-auth"]
     }
   ],

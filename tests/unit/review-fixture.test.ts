@@ -278,6 +278,16 @@ describe("review fixture corpus", () => {
         ...bundle.changeScope.files.map((file) => file.id),
       ]);
 
+      expect(
+        evidenceById.size,
+        `${descriptor.fixtureId} evidence item IDs`,
+      ).toBe(bundle.evidenceItems.length);
+      expect(
+        changeIds.size,
+        `${descriptor.fixtureId} change scope IDs`,
+      ).toBe(
+        bundle.changeScope.commits.length + bundle.changeScope.files.length,
+      );
       expect(evidenceIndexById.size, `${descriptor.fixtureId} evidence index IDs`).toBe(
         bundle.evidenceIndex.length,
       );
@@ -453,5 +463,32 @@ describe("review fixture corpus", () => {
         ).not.toContain("\r");
       }
     }
+  });
+
+  it("canonical serialization ignores object insertion order and normalizes nested line endings", () => {
+    const first = {
+      zeta: "last\r\nline",
+      nested: {
+        zeta: "nested\rvalue",
+        alpha: "first\r\nline",
+      },
+      alpha: "first",
+    };
+    const second = {
+      alpha: "first",
+      nested: {
+        alpha: "first\nline",
+        zeta: "nested\nvalue",
+      },
+      zeta: "last\nline",
+    };
+
+    const firstSerialized = canonicalStringify(first);
+    const secondSerialized = canonicalStringify(second);
+    expect(firstSerialized).toBe(secondSerialized);
+    expect(firstSerialized).not.toContain("\r");
+    expect(firstSerialized).toBe(
+      "{\"alpha\":\"first\",\"nested\":{\"alpha\":\"first\\nline\",\"zeta\":\"nested\\nvalue\"},\"zeta\":\"last\\nline\"}\n",
+    );
   });
 });

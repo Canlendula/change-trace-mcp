@@ -26,13 +26,13 @@
         "previousPath": null,
         "status": "added",
         "isBinary": false,
-        "additions": 10,
+        "additions": 24,
         "deletions": 0,
         "diff": {
-          "text": "+const failedLoginAttempts = new Map<string, number>();\n+\n+export function validateEmail(email: string): boolean {\n+  return /^[^@]+@[^@]+$/.test(email);\n+}\n+\n+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  if (shouldRateLimit(email)) return false;\n+  return password.length >= 8;\n+}\n+\n+function shouldRateLimit(email: string): boolean {\n+  return (failedLoginAttempts.get(email) ?? 0) >= 5;\n+}\n",
+          "text": "+const MAX_FAILED_LOGIN_ATTEMPTS = 5;\n+const failedLoginAttempts = new Map<string, number>();\n+\n+export function validateEmail(email: string): boolean {\n+  return /^[^@]+@[^@]+$/.test(email);\n+}\n+\n+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  if (shouldRateLimit(email)) return false;\n+  if (password.length < 8) {\n+    recordFailedAttempt(email);\n+    return false;\n+  }\n+  failedLoginAttempts.delete(email);\n+  return true;\n+}\n+\n+function shouldRateLimit(email: string): boolean {\n+  return (failedLoginAttempts.get(email) ?? 0) >= MAX_FAILED_LOGIN_ATTEMPTS;\n+}\n+\n+function recordFailedAttempt(email: string): void {\n+  failedLoginAttempts.set(email, (failedLoginAttempts.get(email) ?? 0) + 1);\n+}\n",
           "isTruncated": false,
-          "originalBytes": 461,
-          "retainedBytes": 461
+          "originalBytes": 768,
+          "retainedBytes": 768
         },
         "redactions": []
       }
@@ -88,13 +88,13 @@
       "retrievedAt": "2026-01-01T00:00:00.000Z",
       "contentHash": null,
       "relatedChangeIds": ["file:undoc/src/auth.ts"],
-      "excerpt": "+const failedLoginAttempts = new Map<string, number>();\n+\n+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  if (shouldRateLimit(email)) return false;\n+  return password.length >= 8;\n+}\n+\n+function shouldRateLimit(email: string): boolean {\n+  return (failedLoginAttempts.get(email) ?? 0) >= 5;\n+}\n",
-      "selectionReason": "Code actively blocks login after five recorded failed attempts, a behavior not documented in the spec.",
+      "excerpt": "+const MAX_FAILED_LOGIN_ATTEMPTS = 5;\n+const failedLoginAttempts = new Map<string, number>();\n+\n+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  if (shouldRateLimit(email)) return false;\n+  if (password.length < 8) {\n+    recordFailedAttempt(email);\n+    return false;\n+  }\n+  failedLoginAttempts.delete(email);\n+  return true;\n+}\n+\n+function shouldRateLimit(email: string): boolean {\n+  return (failedLoginAttempts.get(email) ?? 0) >= MAX_FAILED_LOGIN_ATTEMPTS;\n+}\n+\n+function recordFailedAttempt(email: string): void {\n+  failedLoginAttempts.set(email, (failedLoginAttempts.get(email) ?? 0) + 1);\n+}\n",
+      "selectionReason": "Code records failed passwords for valid email addresses, blocks later valid credentials after five failures, and clears attempts after a pre-threshold successful login; none of this rate-limiting behavior is documented in the spec.",
       "trustLevel": "trusted_repository",
       "truncation": {
         "isTruncated": false,
-        "originalCharacters": 360,
-        "retainedCharacters": 360
+        "originalCharacters": 667,
+        "retainedCharacters": 667
       },
       "redactions": []
     }
@@ -117,7 +117,7 @@
     },
     {
       "id": "fact:undoc-code-has-rate",
-      "statement": "The implementation blocks login when failedLoginAttempts reaches five.",
+      "statement": "The implementation records failed passwords for valid email addresses, blocks later valid credentials after five failures, and clears attempts after a pre-threshold successful login.",
       "evidenceIds": ["evidence:diff:undoc-auth"]
     }
   ],

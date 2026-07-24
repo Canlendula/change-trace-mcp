@@ -7,14 +7,14 @@
     "confidence": 0.7,
     "title": "rate limiting behavior is undocumented",
     "expectedBehavior": "All implemented functions should be documented in the spec.",
-    "observedBehavior": "The login function calls shouldRateLimit which is not mentioned in the spec.",
+    "observedBehavior": "The login function records failed passwords for valid email addresses, blocks later valid credentials after five failures, and clears attempts after a pre-threshold success; the spec does not mention this rate-limiting behavior.",
     "deterministicFacts": [
       {
         "statement": "The spec does not mention rate limiting.",
         "evidenceIds": ["evidence:doc:undoc-spec"]
       },
       {
-        "statement": "The implementation includes a shouldRateLimit helper called in login.",
+        "statement": "The implementation records failed passwords, blocks later valid credentials after five failures, and clears attempts after a pre-threshold successful login.",
         "evidenceIds": ["evidence:diff:undoc-auth"]
       }
     ],
