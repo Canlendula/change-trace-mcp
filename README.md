@@ -66,15 +66,17 @@ The tool requires:
 - `validationResult` — the matching `FindingValidationResult` from
   `validate_findings`. The validation result's `bundleId` must equal the
   bundle's ID;
-- `reviewMeta` — caller-supplied reviewer identity, optional tool version,
-  notes, and declared limitations.
+- `reviewMeta` — caller-supplied reviewer identity, required `createdAt`
+  timestamp (ISO 8601), optional tool version, notes, and declared limitations;
+  identical inputs including `createdAt` produce byte-identical reports;
 
 Optional parameters:
 
 - `overwrite` — when `true`, existing report files are replaced. The default
   (`false`) refuses the write if either report file exists;
-- `maxReportSizeBytes` — a hard output size bound (default 10 MiB). The write
-  fails instead of silently truncating findings.
+- `maxReportSizeBytes` — an output size bound. The default is 10 MiB; the
+  absolute hard maximum is 100 MiB. The write fails instead of silently
+  truncating findings.
 
 The tool returns a structured result with `reportId`, absolute paths to the
 written files, and their byte sizes. Error responses are bounded and do not

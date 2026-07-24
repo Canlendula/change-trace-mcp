@@ -53,9 +53,13 @@ export {
   type JsonSchemaDocument,
 } from "./json-schema.js";
 export {
+  DEFAULT_MAX_REPORT_SIZE_BYTES,
   HARD_MAX_REPORT_SIZE_BYTES,
   reportFactSchema,
+  reportFindingConfirmedSchema,
+  reportFindingInconclusiveSchema,
   reportFindingSchema,
+  reportFindingSuspectedSchema,
   reportMissingEvidenceSchema,
   reportRejectedFindingSchema,
   reportSchema,

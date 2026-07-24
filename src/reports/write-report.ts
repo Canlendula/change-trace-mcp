@@ -2,8 +2,10 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
+  mkdtempSync,
   realpathSync,
   renameSync,
+  rmdirSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -16,11 +18,10 @@ import {
 
 import {
   CORE_SCHEMA_VERSION,
-  HARD_MAX_REPORT_SIZE_BYTES,
+  DEFAULT_MAX_REPORT_SIZE_BYTES,
   reportSchema,
   writeReportInputSchema,
   writeReportOutputSchema,
-  type FindingValidationResult,
   type Report,
   type ReportFinding,
   type ReportRejectedFinding,
@@ -32,6 +33,14 @@ import {
 
 const SAFE_REPORT_NAME_RE =
   /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+
+const enum TxPhase {
+  Init,
+  Staged,
+  JsonLive,
+  MdLive,
+  Committed,
+}
 
 function validatePathSafety(
   repoRoot: string,
@@ -117,9 +126,9 @@ function validatePathSafety(
   return current;
 }
 
-function validateOutputFiles(reportFile: string): void {
+function validateOutputFile(target: string): void {
   try {
-    const stat = lstatSync(reportFile);
+    const stat = lstatSync(target);
     if (stat.isSymbolicLink()) {
       throw Object.assign(
         new Error("Output file path is a symbolic link"),
@@ -134,8 +143,23 @@ function validateOutputFiles(reportFile: string): void {
     }
   } catch (err) {
     if ((err as { code?: string }).code) throw err;
-    // ENOENT is fine �?file doesn't exist yet
   }
+}
+
+function validateStagingEntry(target: string): void {
+  if (!existsSync(target)) return;
+
+  const stat = lstatSync(target);
+  if (stat.isSymbolicLink()) {
+    throw Object.assign(
+      new Error("Pre-existing staging entry is a symbolic link"),
+      { code: "staging_entry_symlink" },
+    );
+  }
+  throw Object.assign(
+    new Error("Pre-existing entry at staging path"),
+    { code: "staging_entry_exists" },
+  );
 }
 
 function buildReport(
@@ -193,7 +217,7 @@ function buildReport(
     findingId: w.findingId,
   }));
 
-  function toReportFinding(f: (typeof validationResult.validFindings)[number]): ReportFinding {
+  function toReportFinding(f: (typeof validationResult.validFindings)[number]) {
     const findingWarnings = warnings
       .filter((w) => w.findingId === f.id)
       .map((w) => ({ code: w.code, message: w.message }));
@@ -218,16 +242,16 @@ function buildReport(
     };
   }
 
-  const reportFindings = {
+  const reportFindings: Report["findings"] = {
     confirmed: validationResult.validFindings
       .filter((f) => f.status === "confirmed")
-      .map(toReportFinding),
+      .map(toReportFinding) as Report["findings"]["confirmed"],
     suspected: validationResult.validFindings
       .filter((f) => f.status === "suspected")
-      .map(toReportFinding),
+      .map(toReportFinding) as Report["findings"]["suspected"],
     inconclusive: validationResult.validFindings
       .filter((f) => f.status === "inconclusive")
-      .map(toReportFinding),
+      .map(toReportFinding) as Report["findings"]["inconclusive"],
   };
 
   const rejectedFindings: ReportRejectedFinding[] =
@@ -296,7 +320,7 @@ function escapeHtmlEntities(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function safeCodeFence(text: string, language: string = ""): string {
+function dynamicFence(text: string, language: string = ""): string {
   const runs = text.match(/`{3,}/g) ?? [];
   const maxRun = runs.reduce((m, r) => Math.max(m, r.length), 0);
   const fence = "`".repeat(Math.max(3, maxRun + 1));
@@ -304,7 +328,14 @@ function safeCodeFence(text: string, language: string = ""): string {
   return `${fence}${language}\n${safeText}\n${fence}`;
 }
 
-function escapeInlineMarkdown(text: string): string {
+function dynamicCodeSpan(text: string): string {
+  const runs = text.match(/`+/g) ?? [];
+  const maxRun = runs.reduce((m, r) => Math.max(m, r.length), 0);
+  const ticks = "`".repeat(Math.max(1, maxRun + 1));
+  return `${ticks}${text}${ticks}`;
+}
+
+function safeInline(text: string): string {
   return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -315,29 +346,22 @@ function escapeInlineMarkdown(text: string): string {
     .replace(/_/g, "\\_")
     .replace(/\[/g, "\\[")
     .replace(/\]/g, "\\]")
-    .replace(/^#/gm, "\\#");
+    .replace(/!/g, "\\!")
+    .replace(/^#/gm, "\\#")
+    .replace(/^>/gm, "\\>")
+    .replace(/^([-*+])\s/gm, "\\$1 ")
+    .replace(/^(\d+)\.\s/gm, "$1\\. ")
+    .replace(/^---/gm, "\\---")
+    .replace(/^\|/gm, "\\|");
 }
 
-function safeBulletText(text: string): string {
-  return escapeInlineMarkdown(text)
-    .replace(/^[-*+]\s/gm, "\\$&");
-}
-
-function safeLineText(text: string): string {
-  const escaped = escapeHtmlEntities(text);
-  return escaped.replace(/^#/gm, "\\#");
-}
-
-function escapeCodeSpan(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/`/g, "\\`");
-}
-
-function code(value: string): string {
-  return `\`${escapeCodeSpan(value)}\``;
+function safeLiteral(value: string): string {
+  return dynamicCodeSpan(
+    value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;"),
+  );
 }
 
 function renderMarkdown(report: Report, bundle: ReviewBundle): string {
@@ -345,19 +369,19 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
 
   lines.push(`# Change Trace Review Report`);
   lines.push("");
-  lines.push(`**Report ID:** ${code(report.id)}`);
+  lines.push(`**Report ID:** ${safeLiteral(report.id)}`);
   lines.push(`**Created:** ${escapeHtmlEntities(report.createdAt)}`);
-  lines.push(`**Bundle ID:** ${code(report.bundleId)}`);
-  lines.push(`**Reviewer:** ${safeLineText(report.reviewMeta.reviewer)}`);
+  lines.push(`**Bundle ID:** ${safeLiteral(report.bundleId)}`);
+  lines.push(`**Reviewer:** ${safeInline(report.reviewMeta.reviewer)}`);
   if (report.reviewMeta.toolVersion) {
-    lines.push(`**Tool Version:** ${safeLineText(report.reviewMeta.toolVersion)}`);
+    lines.push(`**Tool Version:** ${safeInline(report.reviewMeta.toolVersion)}`);
   }
   lines.push("");
 
   if (report.reviewMeta.notes) {
     lines.push("## Review Notes");
     lines.push("");
-    lines.push(safeLineText(report.reviewMeta.notes));
+    lines.push(safeInline(report.reviewMeta.notes));
     lines.push("");
   }
 
@@ -368,7 +392,7 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
     lines.push("## Declared Limitations");
     lines.push("");
     for (const limitation of report.reviewMeta.declaredLimitations) {
-      lines.push(`- ${safeBulletText(limitation)}`);
+      lines.push(`- ${safeInline(limitation)}`);
     }
     lines.push("");
   }
@@ -392,7 +416,7 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
 
   lines.push("## Bundle Information");
   lines.push("");
-  lines.push(`- **Change scope:** ${code(bundle.changeScope.resolvedBase.slice(0, 8) + "...")} \u2192 ${code(bundle.changeScope.resolvedHead.slice(0, 8) + "...")}`);
+  lines.push(`- **Change scope:** ${safeLiteral(bundle.changeScope.resolvedBase.slice(0, 8) + "...")} -> ${safeLiteral(bundle.changeScope.resolvedHead.slice(0, 8) + "...")}`);
   lines.push(`- **Evidence items:** ${bundle.evidenceItems.length}`);
   lines.push(`- **Deterministic facts:** ${bundle.deterministicFacts.length}`);
   lines.push(`- **Missing evidence:** ${bundle.missingEvidence.length}`);
@@ -417,8 +441,7 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
     lines.push("## Missing Evidence");
     lines.push("");
     for (const me of report.missingEvidence) {
-      const locator = me.source.locator;
-      lines.push(`- **${code(me.status)}** ${code(me.source.system + ":" + locator)}: ${safeLineText(me.reason)}`);
+      lines.push(`- **${safeLiteral(me.status)}** ${safeLiteral(me.source.system + ":" + me.source.locator)}: ${safeInline(me.reason)}`);
     }
     lines.push("");
   }
@@ -428,10 +451,10 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
     lines.push("");
     for (const warning of report.warnings) {
       const prefix = warning.findingId
-        ? `${code(warning.findingId)}: `
+        ? `${safeLiteral(warning.findingId)}: `
         : "";
       lines.push(
-        `- **${code(warning.code)}** ${prefix}${safeLineText(warning.message)}`,
+        `- **${safeLiteral(warning.code)}** ${prefix}${safeInline(warning.message)}`,
       );
     }
     lines.push("");
@@ -446,22 +469,22 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
     lines.push("");
     for (const finding of findings) {
       lines.push(
-        `### ${code(finding.id)} \u2014 ${escapeInlineMarkdown(finding.title)}`,
+        `### ${safeLiteral(finding.id)} -- ${safeInline(finding.title)}`,
       );
       lines.push("");
       lines.push(
-        `**Category:** ${code(finding.category)} | **Severity:** ${code(finding.severity)} | **Confidence:** ${finding.confidence} | **Status:** ${code(finding.status)} | **Recommendation:** ${code(finding.recommendation)}`,
+        `**Category:** ${safeLiteral(finding.category)} | **Severity:** ${safeLiteral(finding.severity)} | **Confidence:** ${finding.confidence} | **Status:** ${safeLiteral(finding.status)} | **Recommendation:** ${safeLiteral(finding.recommendation)}`,
       );
       lines.push("");
 
       lines.push("**Expected behavior:**");
       lines.push("");
-      lines.push(safeCodeFence(finding.expectedBehavior));
+      lines.push(dynamicFence(finding.expectedBehavior));
       lines.push("");
 
       lines.push("**Observed behavior:**");
       lines.push("");
-      lines.push(safeCodeFence(finding.observedBehavior));
+      lines.push(dynamicFence(finding.observedBehavior));
       lines.push("");
 
       if (finding.deterministicFacts.length > 0) {
@@ -469,21 +492,21 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
         lines.push("");
         for (const fact of finding.deterministicFacts) {
           const evidenceList = fact.evidenceIds
-            .map((id) => code(id))
+            .map((id) => safeLiteral(id))
             .join(", ");
-          lines.push(`- ${safeBulletText(fact.statement)} (evidence: ${evidenceList})`);
+          lines.push(`- ${safeInline(fact.statement)} (evidence: ${evidenceList})`);
         }
         lines.push("");
       }
 
       lines.push("**Inference:**");
       lines.push("");
-      lines.push(safeCodeFence(finding.inference));
+      lines.push(dynamicFence(finding.inference));
       lines.push("");
 
       if (finding.evidenceIds.length > 0) {
         lines.push(
-          `**Evidence IDs:** ${finding.evidenceIds.map((id) => code(id)).join(", ")}`,
+          `**Evidence IDs:** ${finding.evidenceIds.map((id) => safeLiteral(id)).join(", ")}`,
         );
         lines.push("");
       }
@@ -493,7 +516,7 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
         lines.push("");
         for (const src of finding.affectedSources) {
           lines.push(
-            `- ${code(src.system + ":" + src.locator)}`,
+            `- ${safeLiteral(src.system)}: ${safeInline(src.locator)}`,
           );
         }
         lines.push("");
@@ -504,7 +527,7 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
         lines.push("");
         for (const w of finding.warnings) {
           lines.push(
-            `- ${code(w.code)}: ${safeLineText(w.message)}`,
+            `- ${safeLiteral(w.code)}: ${safeInline(w.message)}`,
           );
         }
         lines.push("");
@@ -521,7 +544,7 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
     lines.push("");
     for (const rf of report.rejectedFindings) {
       const idDisplay = rf.findingId
-        ? code(rf.findingId)
+        ? safeLiteral(rf.findingId)
         : "(no valid ID)";
       lines.push(
         `### Index ${rf.index}: ${idDisplay}`,
@@ -529,7 +552,7 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
       lines.push("");
       for (const issue of rf.issues) {
         lines.push(
-          `- **${code(issue.code)}** at ${code(issue.path)}: ${safeLineText(issue.message)}`,
+          `- **${safeLiteral(issue.code)}** at ${safeLiteral(issue.path)}: ${safeInline(issue.message)}`,
         );
       }
       lines.push("");
@@ -574,7 +597,40 @@ export function writeReport(
   rawInput: WriteReportInput,
 ): WriteReportOutput {
   const input = writeReportInputSchema.parse(rawInput);
-  const maxBytes = input.maxReportSizeBytes ?? HARD_MAX_REPORT_SIZE_BYTES;
+  const maxBytes = input.maxReportSizeBytes ?? DEFAULT_MAX_REPORT_SIZE_BYTES;
+
+  // Resolve both repositoryRoot and bundle.changeScope.repositoryRoot
+  // and require them to identify the same directory before any mutation.
+  let resolvedRepoRoot: string;
+  let resolvedBundleRoot: string;
+  try {
+    resolvedRepoRoot = realpathSync(input.repositoryRoot);
+  } catch (err) {
+    throw Object.assign(
+      new Error(
+        `Cannot resolve repositoryRoot: ${err instanceof Error ? err.message : String(err)}`,
+      ),
+      { code: "invalid_repo_root" },
+    );
+  }
+  try {
+    resolvedBundleRoot = realpathSync(input.bundle.changeScope.repositoryRoot);
+  } catch (err) {
+    throw Object.assign(
+      new Error(
+        `Cannot resolve bundle.changeScope.repositoryRoot: ${err instanceof Error ? err.message : String(err)}`,
+      ),
+      { code: "bundle_root_unresolvable" },
+    );
+  }
+  if (resolvedRepoRoot !== resolvedBundleRoot) {
+    throw Object.assign(
+      new Error(
+        `repositoryRoot and bundle.changeScope.repositoryRoot must identify the same directory`,
+      ),
+      { code: "repo_root_mismatch" },
+    );
+  }
 
   const targetDir = validatePathSafety(
     input.repositoryRoot,
@@ -589,16 +645,12 @@ export function writeReport(
 
   checkSizeBound(markdown, json, maxBytes);
 
-  const markdownFile = join(targetDir, `${input.reportName}.md`);
-  const jsonFile = join(targetDir, `${input.reportName}.json`);
-  const markdownTmp = join(targetDir, `${input.reportName}.md.tmp`);
-  const jsonTmp = join(targetDir, `${input.reportName}.json.tmp`);
-  const markdownBak = join(targetDir, `${input.reportName}.md.bak`);
-  const jsonBak = join(targetDir, `${input.reportName}.json.bak`);
+  const jsonFinal = join(targetDir, `${input.reportName}.json`);
+  const mdFinal = join(targetDir, `${input.reportName}.md`);
   const overwrite = input.overwrite === true;
 
-  const mdExists = existsSync(markdownFile);
-  const jsonExists = existsSync(jsonFile);
+  const mdExists = existsSync(mdFinal);
+  const jsonExists = existsSync(jsonFinal);
 
   if (!overwrite && (mdExists || jsonExists)) {
     throw Object.assign(
@@ -610,8 +662,8 @@ export function writeReport(
   }
 
   if (overwrite) {
-    if (mdExists) validateOutputFiles(markdownFile);
-    if (jsonExists) validateOutputFiles(jsonFile);
+    if (mdExists) validateOutputFile(mdFinal);
+    if (jsonExists) validateOutputFile(jsonFinal);
   }
 
   try {
@@ -626,10 +678,8 @@ export function writeReport(
   }
 
   let resolvedDir: string;
-  let resolvedRoot: string;
   try {
     resolvedDir = realpathSync(targetDir);
-    resolvedRoot = realpathSync(input.repositoryRoot);
   } catch (err) {
     throw Object.assign(
       new Error(
@@ -639,7 +689,7 @@ export function writeReport(
     );
   }
 
-  const relativeResolved = relative(resolvedRoot, resolvedDir);
+  const relativeResolved = relative(resolvedRepoRoot, resolvedDir);
   if (
     relativeResolved === "" ||
     isAbsolute(relativeResolved) ||
@@ -651,63 +701,144 @@ export function writeReport(
     );
   }
 
-  // Clean any stale backup files from a prior crash
-  try { unlinkSync(jsonBak); } catch (_bk) { void _bk; }
-  try { unlinkSync(markdownBak); } catch (_bk) { void _bk; }
+  let stagingDir: string | null = null;
+  const jsonBak = join(targetDir, `${input.reportName}.json.bak`);
+  const mdBak = join(targetDir, `${input.reportName}.md.bak`);
+  let phase: TxPhase = TxPhase.Init;
+  const unresolved: string[] = [];
 
-  // Stage both temp files first
-  writeFileSync(jsonTmp, json, "utf-8");
-  try {
-    writeFileSync(markdownTmp, markdown, "utf-8");
-  } catch (_err: unknown) {
-    try { unlinkSync(jsonTmp); } catch (_bk) { void _bk; }
-    throw _err;
+  function failClosed(message: string, code: string): never {
+    const artifacts = unresolved.filter((p) => existsSync(p));
+    const detail = artifacts.length > 0
+      ? `; unresolved artifacts: ${artifacts.join(", ")}`
+      : "";
+    throw Object.assign(
+      new Error(`${message}${detail}`),
+      { code },
+    );
   }
 
-  // Back up existing originals during overwrite (after temps are safely on disk)
-  if (overwrite) {
-    try { if (jsonExists) renameSync(jsonFile, jsonBak); } catch (_bk) { void _bk; }
-    try { if (mdExists) renameSync(markdownFile, markdownBak); } catch (_bk) { void _bk; }
-  }
-
-  // Promote json temp to final
   try {
-    renameSync(jsonTmp, jsonFile);
-  } catch (_err: unknown) {
-    try { unlinkSync(jsonTmp); } catch (_bk) { void _bk; }
-    try { unlinkSync(markdownTmp); } catch (_bk) { void _bk; }
-    if (overwrite) {
-      try { if (existsSync(jsonBak)) renameSync(jsonBak, jsonFile); } catch (_bk) { void _bk; }
-      try { if (existsSync(markdownBak)) renameSync(markdownBak, markdownFile); } catch (_bk) { void _bk; }
+    // Phase 1: create staging directory exclusively
+    try {
+      stagingDir = mkdtempSync(join(targetDir, `.report-`));
+    } catch (err) {
+      throw Object.assign(
+        new Error(
+          `Cannot create staging directory: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+        { code: "staging_create_failed" },
+      );
     }
-    throw _err;
-  }
+    unresolved.push(stagingDir);
 
-  // Promote markdown temp to final
-  try {
-    renameSync(markdownTmp, markdownFile);
-  } catch (_err: unknown) {
-    try { unlinkSync(jsonFile); } catch (_bk) { void _bk; }
-    try { unlinkSync(markdownTmp); } catch (_bk) { void _bk; }
+    const jsonStaging = join(stagingDir, `${input.reportName}.json`);
+    const mdStaging = join(stagingDir, `${input.reportName}.md`);
+
+    // Verify staging entries don't exist or are not symlinks
+    validateStagingEntry(jsonStaging);
+    validateStagingEntry(mdStaging);
+
+    // Phase 2: write both files in staging
+    writeFileSync(jsonStaging, json, "utf-8");
+    writeFileSync(mdStaging, markdown, "utf-8");
+
+    validateOutputFile(jsonStaging);
+    validateOutputFile(mdStaging);
+
+    phase = TxPhase.Staged;
+
+    // Phase 3: if overwriting, back up existing files
+    let jsonBackedUp = false;
+    let mdBackedUp = false;
+
     if (overwrite) {
-      try { if (existsSync(jsonBak)) renameSync(jsonBak, jsonFile); } catch (_bk) { void _bk; }
-      try { if (existsSync(markdownBak)) renameSync(markdownBak, markdownFile); } catch (_bk) { void _bk; }
-    }
-    throw _err;
-  }
+      try { unlinkSync(jsonBak); } catch { /* pre-existing bak from crash */ }
+      try { unlinkSync(mdBak); } catch { /* pre-existing bak from crash */ }
 
-  // Success �?remove backups
-  try { unlinkSync(jsonBak); } catch (_bk) { void _bk; }
-  try { unlinkSync(markdownBak); } catch (_bk) { void _bk; }
+      if (jsonExists) {
+        renameSync(jsonFinal, jsonBak);
+        jsonBackedUp = true;
+      }
+      if (mdExists) {
+        renameSync(mdFinal, mdBak);
+        mdBackedUp = true;
+      }
+    }
+
+    // Phase 4: promote JSON from staging to final
+    renameSync(jsonStaging, jsonFinal);
+    phase = TxPhase.JsonLive;
+
+    // Phase 5: promote Markdown from staging to final
+    renameSync(mdStaging, mdFinal);
+    phase = TxPhase.MdLive;
+
+    // Phase 6: clean up backups and staging
+    if (jsonBackedUp) unlinkSync(jsonBak);
+    if (mdBackedUp) unlinkSync(mdBak);
+
+    try { rmdirSync(stagingDir); } catch { /* staging already promoted */ }
+    unresolved.length = 0;
+    phase = TxPhase.Committed;
+  } catch (err) {
+    // Rollback: restore backups, remove partial artifacts
+    const rollbackErrors: string[] = [];
+
+    if (phase >= TxPhase.JsonLive) {
+      try { unlinkSync(jsonFinal); } catch { /* gone */ }
+    }
+    if (overwrite) {
+      if (jsonExists && existsSync(jsonBak)) {
+        try { renameSync(jsonBak, jsonFinal); } catch (e) {
+          rollbackErrors.push(`json.bak: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+      if (mdExists && existsSync(mdBak)) {
+        try { renameSync(mdBak, mdFinal); } catch (e) {
+          rollbackErrors.push(`md.bak: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+    }
+
+    if (stagingDir && existsSync(stagingDir)) {
+      try { unlinkSync(join(stagingDir, `${input.reportName}.json`)); } catch { /* gone */ }
+      try { unlinkSync(join(stagingDir, `${input.reportName}.md`)); } catch { /* gone */ }
+      try { rmdirSync(stagingDir); } catch { /* may not be empty */ }
+    }
+
+    const remaining = unresolved.filter((p) => existsSync(p));
+    if (remaining.length > 0) {
+      rollbackErrors.push(
+        `unresolved artifacts: ${remaining.join(", ")}`,
+      );
+    }
+
+    if (rollbackErrors.length > 0) {
+      throw Object.assign(
+        new Error(
+          `writeReport failed with rollback errors: ${rollbackErrors.join("; ")}`,
+        ),
+        { code: "write_report_rollback_failed" },
+      );
+    }
+
+    throw err;
+  }
 
   const markdownSizeBytes = Buffer.byteLength(markdown, "utf-8");
   const jsonSizeBytes = Buffer.byteLength(json, "utf-8");
 
+  // Assert phase committed
+  if (phase !== TxPhase.Committed) {
+    failClosed("Report transaction did not reach committed state", "tx_not_committed");
+  }
+
   return writeReportOutputSchema.parse({
     reportId: report.id,
     reportPath: targetDir,
-    markdownFile,
-    jsonFile,
+    markdownFile: mdFinal,
+    jsonFile: jsonFinal,
     markdownSizeBytes,
     jsonSizeBytes,
   } satisfies WriteReportOutput);

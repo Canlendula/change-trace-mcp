@@ -26,7 +26,7 @@ export const reportFactSchema = z.strictObject({
   evidenceIds: z.array(stableIdSchema).min(1).max(1_000),
 });
 
-export const reportFindingSchema = z.strictObject({
+const baseFindingFields = {
   id: stableIdSchema,
   category: findingCategorySchema,
   severity: findingSeveritySchema,
@@ -39,8 +39,27 @@ export const reportFindingSchema = z.strictObject({
   evidenceIds: z.array(stableIdSchema).max(1_000),
   affectedSources: z.array(sourceReferenceSchema).max(1_000),
   recommendation: findingRecommendationSchema,
-  status: findingStatusSchema,
   warnings: z.array(reportWarningSchema).max(1_000),
+} as const;
+
+export const reportFindingConfirmedSchema = z.strictObject({
+  ...baseFindingFields,
+  status: z.literal("confirmed"),
+});
+
+export const reportFindingSuspectedSchema = z.strictObject({
+  ...baseFindingFields,
+  status: z.literal("suspected"),
+});
+
+export const reportFindingInconclusiveSchema = z.strictObject({
+  ...baseFindingFields,
+  status: z.literal("inconclusive"),
+});
+
+export const reportFindingSchema = z.strictObject({
+  ...baseFindingFields,
+  status: findingStatusSchema,
 });
 
 export const reportValidationIssueSchema = z.strictObject({
@@ -77,9 +96,9 @@ export const reportSchema = z
         .optional(),
     }),
     findings: z.strictObject({
-      confirmed: z.array(reportFindingSchema).max(1_000),
-      suspected: z.array(reportFindingSchema).max(1_000),
-      inconclusive: z.array(reportFindingSchema).max(1_000),
+      confirmed: z.array(reportFindingConfirmedSchema).max(1_000),
+      suspected: z.array(reportFindingSuspectedSchema).max(1_000),
+      inconclusive: z.array(reportFindingInconclusiveSchema).max(1_000),
     }),
     rejectedFindings: z.array(reportRejectedFindingSchema).max(1_000),
     missingEvidence: z.array(reportMissingEvidenceSchema).max(10_000),
@@ -119,6 +138,7 @@ export type ReportRejectedFinding = z.infer<typeof reportRejectedFindingSchema>;
 export type ReportMissingEvidence = z.infer<typeof reportMissingEvidenceSchema>;
 export type Report = z.infer<typeof reportSchema>;
 
+export const DEFAULT_MAX_REPORT_SIZE_BYTES = 10 * 1024 * 1024;
 export const HARD_MAX_REPORT_SIZE_BYTES = 100 * 1024 * 1024;
 
 export const writeReportInputSchema = z.strictObject({

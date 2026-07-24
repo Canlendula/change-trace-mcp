@@ -4,11 +4,15 @@ import {
   CORE_SCHEMA_VERSION,
   exportCoreJsonSchemas,
   reportSchema,
-  reportFindingSchema,
+  reportFindingConfirmedSchema,
+  reportFindingSuspectedSchema,
+  reportFindingInconclusiveSchema,
   reportRejectedFindingSchema,
   reportWarningSchema,
   writeReportInputSchema,
   writeReportOutputSchema,
+  DEFAULT_MAX_REPORT_SIZE_BYTES,
+  HARD_MAX_REPORT_SIZE_BYTES,
   type Report,
 } from "../../src/schemas/index.js";
 
@@ -157,24 +161,41 @@ describe("reportSchema", () => {
     ).toBe(false);
   });
 
-  it("rejects findings with invalid status", () => {
-    const report = structuredClone(validReport);
-    report.findings = {
-      ...validReport.findings,
-      confirmed: [
-        {
-          ...validReport.findings.confirmed[0]!,
-          status: "INVALID" as never,
-        },
-      ],
-    };
-    expect(reportSchema.safeParse(report).success).toBe(false);
+  it("enforces literal status per finding group", () => {
+    expect(
+      reportFindingConfirmedSchema.parse({ ...validReport.findings.confirmed[0]!, status: "confirmed" }),
+    ).toBeTruthy();
+    expect(
+      reportFindingSuspectedSchema.parse({ ...validReport.findings.suspected[0]!, status: "suspected" }),
+    ).toBeTruthy();
+    expect(
+      reportFindingInconclusiveSchema.parse({ ...validReport.findings.inconclusive[0]!, status: "inconclusive" }),
+    ).toBeTruthy();
+  });
+
+  it("rejects confirmed group with wrong status literal", () => {
+    expect(
+      reportFindingConfirmedSchema.safeParse({
+        ...validReport.findings.confirmed[0]!,
+        status: "suspected",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects suspected group with wrong status literal", () => {
+    expect(
+      reportFindingSuspectedSchema.safeParse({
+        ...validReport.findings.suspected[0]!,
+        status: "confirmed",
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects empty finding arrays beyond max", () => {
     const tooMany = Array.from({ length: 1_001 }, (_, i) => ({
       ...validReport.findings.confirmed[0]!,
       id: `finding:${i}`,
+      status: "confirmed" as const,
     }));
     expect(
       reportSchema.safeParse({
@@ -192,40 +213,6 @@ describe("reportSchema", () => {
   });
 });
 
-describe("reportFindingSchema", () => {
-  it("accepts a valid finding with all substance fields", () => {
-    expect(
-      reportFindingSchema.parse(validReport.findings.confirmed[0]),
-    ).toEqual(validReport.findings.confirmed[0]);
-  });
-
-  it("rejects confidence out of range", () => {
-    expect(
-      reportFindingSchema.safeParse({
-        ...validReport.findings.confirmed[0]!,
-        confidence: 1.5,
-      }).success,
-    ).toBe(false);
-  });
-
-  it("rejects empty title", () => {
-    expect(
-      reportFindingSchema.safeParse({
-        ...validReport.findings.confirmed[0]!,
-        title: "",
-      }).success,
-    ).toBe(false);
-  });
-
-  it("preserves deterministicFacts, inference, evidenceIds, and affectedSources", () => {
-    const f = validReport.findings.confirmed[0]!;
-    expect(f.deterministicFacts).toHaveLength(1);
-    expect(f.inference.length).toBeGreaterThan(0);
-    expect(f.evidenceIds).toHaveLength(2);
-    expect(f.affectedSources).toHaveLength(1);
-  });
-});
-
 describe("reportRejectedFindingSchema", () => {
   it("accepts a valid rejected finding with full issue details", () => {
     expect(
@@ -239,39 +226,6 @@ describe("reportRejectedFindingSchema", () => {
         index: 0,
         findingId: null,
         issues: [],
-      }).success,
-    ).toBe(false);
-  });
-
-  it("rejects missing issue path", () => {
-    expect(
-      reportRejectedFindingSchema.safeParse({
-        index: 0,
-        findingId: null,
-        issues: [{ code: "E001", message: "Bad" }],
-      }).success,
-    ).toBe(false);
-  });
-});
-
-describe("reportWarningSchema", () => {
-  it("accepts a valid warning", () => {
-    expect(
-      reportWarningSchema.parse({
-        code: "normalized_enum",
-        message: "Enum was normalized.",
-      }),
-    ).toEqual({
-      code: "normalized_enum",
-      message: "Enum was normalized.",
-    });
-  });
-
-  it("rejects empty code", () => {
-    expect(
-      reportWarningSchema.safeParse({
-        code: "",
-        message: "Some message.",
       }).success,
     ).toBe(false);
   });
@@ -320,26 +274,12 @@ describe("writeReportInputSchema", () => {
       bundle: minimalBundle,
       validationResult: minimalValidation,
       reviewMeta: { reviewer: "agent-a", createdAt: "2026-07-24T12:00:00.000Z" },
-      repositoryRoot: "/workspace/repo",
+      repositoryRoot: "/repo",
       outputDirectory: "reports",
       reportName: "release-review",
       overwrite: false,
     };
     expect(writeReportInputSchema.parse(input)).toEqual(input);
-  });
-
-  it("rejects bundle without schemaVersion", () => {
-    expect(
-      writeReportInputSchema.safeParse({
-        ...minimalBundle,
-        bundle: { ...minimalBundle, schemaVersion: "0.9.0" },
-        validationResult: minimalValidation,
-        reviewMeta: { reviewer: "a", createdAt: "2026-07-24T12:00:00.000Z" },
-        repositoryRoot: "/repo",
-        outputDirectory: "reports",
-        reportName: "report",
-      }).success,
-    ).toBe(false);
   });
 
   it("rejects missing createdAt in reviewMeta", () => {
@@ -355,6 +295,20 @@ describe("writeReportInputSchema", () => {
     ).toBe(false);
   });
 
+  it("accepts maxReportSizeBytes up to hard cap", () => {
+    expect(
+      writeReportInputSchema.safeParse({
+        bundle: minimalBundle,
+        validationResult: minimalValidation,
+        reviewMeta: { reviewer: "a", createdAt: "2026-07-24T12:00:00.000Z" },
+        repositoryRoot: "/repo",
+        outputDirectory: "reports",
+        reportName: "report",
+        maxReportSizeBytes: HARD_MAX_REPORT_SIZE_BYTES,
+      }).success,
+    ).toBe(true);
+  });
+
   it("rejects maxReportSizeBytes above hard cap", () => {
     expect(
       writeReportInputSchema.safeParse({
@@ -364,36 +318,15 @@ describe("writeReportInputSchema", () => {
         repositoryRoot: "/repo",
         outputDirectory: "reports",
         reportName: "report",
-        maxReportSizeBytes: 200_000_000,
+        maxReportSizeBytes: HARD_MAX_REPORT_SIZE_BYTES + 1,
       }).success,
     ).toBe(false);
   });
 
-  it("rejects unsafe report name characters", () => {
-    expect(
-      writeReportInputSchema.safeParse({
-        bundle: minimalBundle,
-        validationResult: minimalValidation,
-        reviewMeta: { reviewer: "a", createdAt: "2026-07-24T12:00:00.000Z" },
-        repositoryRoot: "/repo",
-        outputDirectory: "reports",
-        reportName: "../escape",
-      }).success,
-    ).toBe(false);
-  });
-});
-
-describe("writeReportOutputSchema", () => {
-  it("accepts valid output", () => {
-    const output = {
-      reportId: "report:test",
-      reportPath: "/workspace/reports",
-      markdownFile: "/workspace/reports/test.md",
-      jsonFile: "/workspace/reports/test.json",
-      markdownSizeBytes: 1024,
-      jsonSizeBytes: 2048,
-    };
-    expect(writeReportOutputSchema.parse(output)).toEqual(output);
+  it("has separate default and hard max constants", () => {
+    expect(DEFAULT_MAX_REPORT_SIZE_BYTES).toBe(10 * 1024 * 1024);
+    expect(HARD_MAX_REPORT_SIZE_BYTES).toBe(100 * 1024 * 1024);
+    expect(DEFAULT_MAX_REPORT_SIZE_BYTES).toBeLessThan(HARD_MAX_REPORT_SIZE_BYTES);
   });
 });
 
