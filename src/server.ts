@@ -22,9 +22,14 @@ import {
   collectChangeScope,
   getChangeScopeInputSchema,
 } from "./git/change-scope.js";
+import { writeReport } from "./reports/write-report.js";
 import { changeScopeSchema } from "./schemas/change-scope.js";
 import { localEvidenceCollectionSchema } from "./schemas/local-evidence.js";
 import { findingValidationResultSchema } from "./schemas/finding-validation.js";
+import {
+  writeReportInputSchema,
+  writeReportOutputSchema,
+} from "./schemas/report.js";
 import { reviewBundleSchema } from "./schemas/review-bundle.js";
 
 const serverInfoSchema = z.object({
@@ -255,6 +260,44 @@ export function createServer(): McpServer {
       } catch (error) {
         const result = {
           error: "validate_findings_failed",
+          message: (error instanceof Error ? error.message : String(error)).slice(
+            0,
+            2_000,
+          ),
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    "write_report",
+    {
+      title: "Write a versioned review report",
+      description:
+        "Render validated Agent findings as a deterministic Markdown and JSON report pair inside a repository-relative output directory. The report preserves confirmed, suspected, and inconclusive findings, evidence coverage, bundle limits/truncation, and validation warnings.",
+      inputSchema: writeReportInputSchema,
+      outputSchema: writeReportOutputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (input) => {
+      try {
+        const result = writeReport(input);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          structuredContent: result,
+        };
+      } catch (error) {
+        const result = {
+          error: "write_report_failed",
           message: (error instanceof Error ? error.message : String(error)).slice(
             0,
             2_000,

@@ -6,6 +6,7 @@ import { evidenceItemSchema } from "./evidence.js";
 import { findingSchema } from "./finding.js";
 import { findingValidationResultSchema } from "./finding-validation.js";
 import { localEvidenceCollectionSchema } from "./local-evidence.js";
+import { reportSchema } from "./report.js";
 import { reviewBundleSchema } from "./review-bundle.js";
 
 export type JsonSchemaDocument = Readonly<Record<string, unknown>> & {
@@ -20,6 +21,7 @@ export type CoreJsonSchemas = {
   readonly finding: JsonSchemaDocument;
   readonly findingValidationResult: JsonSchemaDocument;
   readonly localEvidenceCollection: JsonSchemaDocument;
+  readonly report: JsonSchemaDocument;
 };
 
 export function exportCoreJsonSchemas(): CoreJsonSchemas {
@@ -53,6 +55,10 @@ export function exportCoreJsonSchemas(): CoreJsonSchemas {
     localEvidenceCollection: {
       $id: `urn:change-trace-mcp:schema:local-evidence-collection:${CORE_SCHEMA_VERSION}`,
       ...z.toJSONSchema(localEvidenceCollectionSchema, options),
+    },
+    report: {
+      $id: `urn:change-trace-mcp:schema:report:${CORE_SCHEMA_VERSION}`,
+      ...z.toJSONSchema(reportSchema, options),
     },
   };
 }

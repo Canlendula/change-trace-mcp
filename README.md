@@ -18,7 +18,9 @@ exposed MCP tools are:
 - `get_review_bundle` combines change and document evidence into a bounded,
   indexed bundle with deterministic facts and missing-evidence records;
 - `validate_findings` validates Agent output against the shared schema and the
-  bundle's evidence/source indexes.
+  bundle's evidence/source indexes;
+- `write_report` renders validated findings as a deterministic Markdown and JSON
+  report pair inside a repository-relative output directory.
 
 ## Requirements
 
@@ -42,6 +44,49 @@ node dist/cli.js
 The server reserves stdout for MCP JSON-RPC messages. Structured operational
 logs are emitted to stderr.
 
+### `write_report` usage
+
+`write_report` accepts a validated `ReviewBundle`, a `FindingValidationResult`,
+reviewer metadata, and a repository-relative output path. It renders a
+deterministic Markdown report and a structured JSON report as a pair of files:
+
+- `<reportName>.md` — human-readable Markdown with safe code fences, escaped
+  HTML, and bounded structure;
+- `<reportName>.json` — machine-readable report conforming to the versioned
+  `Report` JSON Schema.
+
+The tool requires:
+
+- `repositoryRoot` — an absolute path to the repository working directory;
+- `outputDirectory` — a path relative to `repositoryRoot`. Absolute paths,
+  `..` traversal, `.git` metadata paths, and symlink escapes are rejected;
+- `reportName` — a safe basename (`[A-Za-z0-9][A-Za-z0-9._-]{0,127}`) that
+  determines the output filenames;
+- `bundle` — a validated `ReviewBundle` from `get_review_bundle`;
+- `validationResult` — the matching `FindingValidationResult` from
+  `validate_findings`. The validation result's `bundleId` must equal the
+  bundle's ID;
+- `reviewMeta` — caller-supplied reviewer identity, optional tool version,
+  notes, and declared limitations.
+
+Optional parameters:
+
+- `overwrite` — when `true`, existing report files are replaced. The default
+  (`false`) refuses the write if either report file exists;
+- `maxReportSizeBytes` — a hard output size bound (default 10 MiB). The write
+  fails instead of silently truncating findings.
+
+The tool returns a structured result with `reportId`, absolute paths to the
+written files, and their byte sizes. Error responses are bounded and do not
+expose report content.
+
+Example MCP call flow:
+
+```
+get_change_scope → collect_local_evidence → get_review_bundle →
+validate_findings → write_report
+```
+
 ## Contribution workflow
 
 This repository uses a coordinator/worker model with isolated worktrees,
@@ -53,7 +98,7 @@ starting delegated implementation work.
 
 The package exports strict Zod schemas and deterministic Draft 2020-12 JSON
 Schema documents for `EvidenceItem`, `ChangeScope`, `LocalEvidenceCollection`,
-`ReviewBundle`, and `Finding`:
+`ReviewBundle`, `Finding`, `FindingValidationResult`, and `Report`:
 
 ```ts
 import {

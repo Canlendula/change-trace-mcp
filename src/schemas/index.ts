@@ -53,6 +53,20 @@ export {
   type JsonSchemaDocument,
 } from "./json-schema.js";
 export {
+  reportFindingSchema,
+  reportRejectedFindingSchema,
+  reportSchema,
+  reportWarningSchema,
+  writeReportInputSchema,
+  writeReportOutputSchema,
+  type Report,
+  type ReportFinding,
+  type ReportRejectedFinding,
+  type ReportWarning,
+  type WriteReportInput,
+  type WriteReportOutput,
+} from "./report.js";
+export {
   reviewBundleSchema,
   type DeterministicFact,
   type MissingEvidence,
