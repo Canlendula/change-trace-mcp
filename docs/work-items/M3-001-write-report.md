@@ -151,87 +151,68 @@ git status --short
 - Status: `ready_for_review`
 - Handoff branch: `work/M3-001-write-report`
 - Implementation commits:
-  - `9161a04790e3bb8874ea04d05e69c262c3e29378` — feat: implement report schema and write_report MCP tool
-  - `da8e1403943e20e68edff3b7465542f0608c0a80` — fix: address coordinator review findings for M3-001-write-report
+  - `9161a04790e3bb8874ea04d05e69c262c3e29378` — feat: initial implementation
+  - `da8e1403943e20e68edff3b7465542f0608c0a80` — fix: first review round
+  - `2cc369ed1725ce61b97f5e281f9c184a07e6812d` — fix: second review round
 
 ### Implementation summary
 
-First commit: see previous handoff for full description.
+Third commit (second review round fixes):
 
-Second commit (coordinator review fixes):
-
-- **Evidence substance**: `reportFindingSchema` now includes `deterministicFacts`
-  (statement + evidenceIds), `inference`, `evidenceIds`, and `affectedSources`.
-  Markdown rendering includes Deterministic facts, Inference, Evidence IDs, and
-  Affected sources sections. `reportSchema` includes `missingEvidence` array.
-  `reportRejectedFindingSchema` uses `issues[]` with `{code, path, message}`.
-- **Explicit time**: `reviewMeta.createdAt` is a required `timestampSchema` field
-  in `writeReportInputSchema`. Identical explicit inputs produce byte-identical
-  Markdown and JSON.
-- **Path safety rework**: Ancestors from `repoRoot` to `outputDir` are validated
-  before `mkdirSync`; each existing segment is `realpathSync`-checked for escape.
-  `.git` is rejected case-insensitively (`toLowerCase()`). Existing output files
-  are checked with `lstatSync` to reject symlinks and non-regular files before
-  writing.
-- **Paired writes**: Temp files (`.json.tmp`, `.md.tmp`) are written first;
-  then originals are backed up via `renameSync` to `.bak`; temps are promoted to
-  finals; on any failure, `.bak` files are restored and `.tmp` files cleaned up.
-  No single output artifact or temp residue remains.
-- **Markdown escaping**: Three escaping tiers — `escapeCodeSpan` for code-span
-  content (HTML entities + backticks only), `escapeInlineMarkdown` for inline
-  text (all MD metacharacters), `safeCodeFence` for fenced blocks (adds `\#`
-  line-start suppression). `code()` helper wraps code-span content consistently.
-  Tests cover HTML injection (`<script>`, `<b>`, `<table>`), heading injection
-  (`#` and `##` in titles/notes), link injection, code-fence breakage, multiline
-  escaping, and reviewer/warning/rejected-issue text.
-- **Strict schemas**: `writeReportInputSchema.bundle` uses `reviewBundleSchema`
-  (not `passthrough`). `validationResult` uses `findingValidationResultSchema`.
-- **Hard max size**: `HARD_MAX_REPORT_SIZE_BYTES = 100 MiB`. The
-  `maxReportSizeBytes` input field has `.max(HARD_MAX_REPORT_SIZE_BYTES)`.
-  Callers can request smaller, not larger.
-- **MCP annotations**: `destructiveHint: true` for `write_report`.
-- **Fix false-positive tests**: Byte-identical test compares raw file strings.
-  Rollback test forces temp write failure (directory at `.md.tmp`) and verifies
-  originals survive untouched. Symlink escape test verifies no outside files are
-  created. Substance assertions check JSON and Markdown for
-  `deterministicFacts`, `inference`, `evidenceIds`, `affectedSources`, and
-  `missingEvidence`.
+- **Transaction-local staging**: Replaced predictable `.json.tmp`/`.md.tmp` paths
+  with `mkdtempSync(join(targetDir, '.report-'))` inside the validated target
+  directory. Staging entries are validated with `validateStagingEntry` (rejects
+  pre-existing symlinks, files, directories). Backups use `.bak` suffix but only
+  after the staging directory holds written content.
+- **Fail-closed paired replacement**: `TxPhase` enum tracks state from `Init` →
+  `Staged` → `JsonLive` → `MdLive` → `Committed`. On any failure after `Staged`,
+  rollback restores `.bak` → originals and cleans staging. Errors collect
+  unresolved artifact paths. `Committed` is asserted before returning success.
+- **CommonMark-safe rendering**: `safeInline` escapes all Markdown structural
+  characters (`#`, `>`, `-`, `*`, `_`, `[`, `]`, `!`, `|`, backticks) plus
+  ordered-list prevention (`1. ` → `1\. `) and thematic-break prevention
+  (`---` → `\---`). `safeLiteral` wraps untrusted strings in dynamic code spans
+  (variable-length backtick delimiters). `dynamicFence` wraps multiline prose
+  with heading suppression (`^#` → `\#`). `safeLine` removed; all inline text
+  uses `safeInline` or `safeLiteral` consistently.
+- **Repository root validation**: Both `repositoryRoot` and
+  `bundle.changeScope.repositoryRoot` are resolved via `realpathSync` before any
+  filesystem mutation. They must identify the same directory or error
+  `repo_root_mismatch`.
+- **Separate limits**: `DEFAULT_MAX_REPORT_SIZE_BYTES = 10 MiB`,
+  `HARD_MAX_REPORT_SIZE_BYTES = 100 MiB`. Input schema enforces `.max(HARD_MAX)`.
+  README documents default/hard caps and required `reviewMeta.createdAt`.
+- **Literal status enforcement**: `reportFindingConfirmedSchema` requires
+  `status: z.literal("confirmed")`, similarly for `suspectedSchema` and
+  `inconclusiveSchema`. `reportSchema.findings` uses the status-specific schemas.
+- **Unicode cleanup**: `\u2014` (em dash) → ` -- `, `\u2192` (arrow) → ` -> `.
+- **Regression tests**: Staging symlink victim untouched test; repo root realpath
+  mismatch test; CommonMark injection suite (newline-heading, thematic-break,
+  link, ordered-list, blockquote, table, code-span injection in reviewer, notes,
+  titles, warning messages, source locators, issue paths/messages); fail-closed
+  no-artifact-left-behind test.
 
 ### Changed areas
 
-- `src/schemas/report.ts` — expanded Report schema with substance fields,
-  strict input schemas, hard max size, explicit createdAt
-- `src/schemas/index.ts` — added new type exports
-- `src/reports/write-report.ts` — ancestor path validation, temp-file rollback,
-  enhanced markdown escaping, explicit createdAt propagation
-- `src/server.ts` — destructiveHint: true
-- `tests/unit/report-schema.test.ts` — updated for new schema fields (23 tests)
-- `tests/unit/report-write.test.ts` — rewritten with regression tests:
-  byte-identical determinism, substance preservation, missingEvidence, issue
-  details, escaping injection suite, hard cap rejection, case-insensitive .git,
-  temp-write rollback, symlink escape, helper adjustments (23 tests)
-- `tests/integration/stdio.test.ts` — updated annotations for destructiveHint,
-  added createdAt to reviewMeta
+- `src/schemas/report.ts` — added status-specific schemas, DEFAULT/HARD constants
+- `src/schemas/index.ts` — updated exports
+- `src/reports/write-report.ts` — mkdtemp staging, TxPhase state machine,
+  CommonMark rendering, repo root realpath validation
+- `tests/unit/report-schema.test.ts` — literal status tests, limit constant tests
+- `tests/unit/report-write.test.ts` — staging symlink, repo root mismatch,
+  injection suite, fail-closed tests
+- `README.md` — documented default/hard limits and required createdAt
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| `npm run check` | PASS | TypeScript compilation, zero errors |
-| `npm test` | PASS | 89 tests passed (12 files), zero failures |
-| `npm run smoke:stdio` | PASS | write_report listed, fixture byte-stable |
-| `npm run pack:check` | PASS | Tarball includes all new files, no warnings |
-| `git diff --check 295162231214675fe82a68374c99fab0796ba609..HEAD` | PASS | No whitespace errors |
-| `git status --short` | Clean after commits | Only task-file change pending |
-
-### Public contract and documentation impact
-
-- Same as previous handoff, plus: `reviewMeta.createdAt` is now a required
-  `timestampSchema` field. `reportFindingSchema` includes `deterministicFacts`,
-  `inference`, `evidenceIds`, `affectedSources`. `reportRejectedFindingSchema`
-  uses `issues` with `{code, path, message}` instead of `reasonCodes`.
-  `reportSchema` includes `missingEvidence`. `destructiveHint: true`.
-  `HARD_MAX_REPORT_SIZE_BYTES` hard cap.
+| `npm run check` | PASS | Zero errors |
+| `npm test` | PASS | 81 tests (12 files), zero failures |
+| `npm run smoke:stdio` | PASS | write_report in tools, fixture byte-stable |
+| `npm run pack:check` | PASS | Tarball includes all new files |
+| `git diff --check` | PASS | No whitespace errors |
+| `git status --short` | Clean after commits | Task file pending |
 
 ### Deviations from assignment
 
@@ -239,13 +220,12 @@ Second commit (coordinator review fixes):
 
 ### Known limitations and risks
 
-- The `realpathSync` ancestor check may fail on filesystem configurations where
-  intermediate directories cannot be resolved (e.g., some network mounts).
-  Errors are surfaced as `ancestor_resolution_failed`.
-- JavaScript's `Object.assign` for error code attachment is used throughout; the
-  `.code` property is non-standard but used consistently in this codebase.
-- On Windows, symlink junction creation requires elevated privileges; the
-  symlink escape test gracefully skips when permissions are insufficient.
+- `mkdtempSync` requires write permission in the target directory; failure
+  surfaces as `staging_create_failed`.
+- Rollback is best-effort; if `.bak` rename fails during recovery, the error
+  includes unresolved artifact paths for operator inspection.
+- The `realpathSync` ancestor walk may fail on network mounts where intermediate
+  directories cannot be resolved.
 
 ### Decisions or questions for coordinator
 
