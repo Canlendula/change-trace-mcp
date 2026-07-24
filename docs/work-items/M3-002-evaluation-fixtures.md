@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `changes_requested`
+- Status: `accepted`
 - Milestone: `M3 — Agent review loop`
 - Base commit: `7076f1cfb2042e9978641ea5556e16ea00e10199`
 - Branch: `work/M3-002-evaluation-fixtures`
@@ -275,61 +275,28 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `changes_requested`
-- Reviewed branch head: `65eb0808a1bc244672de5df9478bdd5cab43859e`
-- Integration commit:
+- Outcome: `accepted`
+- Reviewed branch head: `505555bd78f62ef0f700bbd26f322f05a7c80523`
+- Integration commit: `505555bd78f62ef0f700bbd26f322f05a7c80523`
 
 ### Review findings
 
-- Every fixture contains incorrect byte/character accounting. For example,
-  `implemented-correctly` records 297 retained characters for a 324-character
-  specification excerpt and 210 retained bytes for a 247-byte diff. Independent
-  checks found mismatches in every evidence item and changed-file diff across
-  all nine bundles. The current tests enforce maximum sizes but not metadata
-  consistency.
-- Several scenarios do not isolate their assigned ground truth:
-  - `intentional-doc-free-refactor` claims the public API is unchanged while
-    renaming an exported `validateEmail` function to `isValidEmail`;
-  - `malicious-instruction` requires general email-format validation while its
-    implementation checks only for the presence of `@`, leaving a legitimate
-    non-injection finding;
-  - `insufficient-evidence` hardcodes both JWT validation and permission checks
-    to `true`, creating a directly supportable security finding, and claims
-    three documents are missing while `missingEvidence` records only two;
-  - `stale-documentation` contains no approved-change or intent evidence that
-    establishes the code as current and the document as stale;
-  - `missing-permissions` reads the entire `.env.production` file as the secret
-    instead of showing an unambiguous `SECRET_KEY` lookup;
-  - `undocumented-behavior` defines `shouldRateLimit` to always return `false`,
-    so the claimed rate-limiting behavior is not actually exercised.
-- Fixture discovery silently ignores unexpected root files, symlinks, and
-  nested directories. `validateFixtureDirectory` also ignores directories and
-  is not called by the loader or tests, so the required rejection behavior is
-  absent.
-- The expected-outcome tests leave semantic holes: `minCount` accepts zero,
-  `inconclusive` does not require a non-empty all-inconclusive reference answer,
-  and separate matched findings may collectively satisfy
-  `requiredEvidenceIds` even when no single finding references the complete
-  required set. Cross-record bundle integrity is also untested.
+- None. The final Terra/high implementation passed independent source and
+  semantic review, fixture metadata and relationship recomputation, and every
+  required validation command.
 
 ### Required follow-up
 
-- Correct all character/UTF-8 byte metadata and add tests that recompute it,
-  including non-truncated original/retained equality.
-- Revise the six ambiguous scenarios listed above so each bundle supports only
-  its assigned ground truth without relying on maintainer rationale.
-- Make discovery/loading reject every unexpected root or scenario entry,
-  including files, directories, and symbolic links, and add negative tests.
-- Tighten expected-outcome invariants and require each semantic match to be
-  satisfied by the configured number of findings that individually contain
-  the complete required evidence-ID set.
-- Add cross-record integrity tests for evidence indexes, deterministic-fact
-  references, related change IDs, truncation metadata, and diff byte counts.
-- Run every required validation command, update the Worker handoff accurately,
-  commit all changes, and return the same branch at `ready_for_review`.
+- Continue M3 with the replay/scoring and cross-Host evaluation work that
+  consumes this deterministic corpus.
+- Preserve these fixtures as test-only ground truth; do not publish Host quality
+  or compatibility claims until the remaining M3 exit criteria pass.
 
 ### Roadmap and release impact
 
-- M3-002 is not accepted and must not be integrated into `main`.
-- M3 remains in progress. No fixture-replay, Host compatibility, milestone, or
-  release claim is authorized by this review.
+- The deterministic nine-scenario evaluation corpus is integrated, completing
+  this work item.
+- M3 remains in progress because replay/scoring and cross-Host evaluation have
+  not yet passed.
+- No fixture-replay, Host compatibility, milestone-completion, version, tag,
+  publication, or release claim is authorized by this acceptance.
