@@ -214,11 +214,12 @@ git status --short
 - Implementation commits:
   - `cda3041` — M3-002: add nine deterministic review evaluation fixtures with loader and tests
   - `77e016a` — fix: address M3-002 fixture review findings
+  - `37705ea` — fix: tighten M3-002 review fixtures
 
 ### Implementation summary
 
 - Created `tests/helpers/review-fixture.ts` with deterministic fixture discovery, loading, canonical LF serialization, and a strict test-only `expected.json` schema using Zod.
-- Created `tests/unit/review-fixture.test.ts` with 25 unit tests covering corpus integrity, schema validation, `validateFindings` acceptance, semantic constraints, deterministic serialization, and LF normalization.
+- Created `tests/unit/review-fixture.test.ts` with 30 unit tests covering corpus integrity, schema validation, `validateFindings` acceptance, semantic constraints, deterministic serialization, LF normalization, ID uniqueness, and insertion-order-independent canonicalization.
 - Created nine fixture scenarios under `tests/fixtures/review/<fixture-id>/`, each with `bundle.json`, `reference-findings.json`, and `expected.json`.
 - All nine fixtures satisfy the required ground truth table: two `no_findings` precision controls (`implemented-correctly`, `intentional-doc-free-refactor`), four `findings` scenarios (`requirement-missing`, `undocumented-behavior`, `contradictory-documents`, `stale-documentation`), one `findings`/`inconclusive` scenario with inaccessible evidence (`missing-permissions`), one `inconclusive` scenario (`insufficient-evidence`), and one `no_findings` scenario with malicious untrusted evidence (`malicious-instruction`).
 - Corrected every evidence-character and diff UTF-8 byte accounting field and added recomputation coverage for non-truncated and truncated metadata invariants.
@@ -226,6 +227,7 @@ git status --short
 - Tightened expected-outcome invariants: non-empty outcomes require positive counts and semantic matches, inconclusive outcomes allow only inconclusive reference findings, and each required semantic match must be satisfied by the configured number of individual findings that contain the complete evidence-ID set.
 - Added bundle cross-record integrity coverage for evidence indexes, deterministic-fact references, related change IDs, bundle truncation accounting, and diff byte counts.
 - Revised the six review-identified scenarios: the refactor preserves the public API, email validation uses the documented format check, missing permissions performs an explicit `SECRET_KEY` lookup, undocumented rate limiting is operative, insufficient evidence records all three missing documents without a direct security defect, and stale documentation includes an approved-change record establishing current code intent.
+- Tightened the second review round: undocumented rate limiting now records failed passwords for valid emails, clears pre-threshold successes, and blocks a sixth valid login after five failures; the malicious-instruction specification now exactly defines the implemented email regex; integrity tests assert unique evidence and change IDs; and canonical key ordering uses an explicit code-unit comparator with insertion-order and nested line-ending coverage.
 
 ### Changed areas
 
@@ -240,9 +242,9 @@ git status --short
 
 | Command | Result | Notes |
 |---|---|---|
-| `npx vitest run tests/unit/review-fixture.test.ts` | 29 passed, 0 failed | Includes negative discovery tests, metadata recomputation, cross-record integrity, strengthened semantic matching, and serialization tests |
+| `npx vitest run tests/unit/review-fixture.test.ts` | 30 passed, 0 failed | Includes negative discovery tests, metadata recomputation, cross-record integrity, ID uniqueness, strengthened semantic matching, and serialization tests |
 | `npm run check` | PASS (no output, exit 0) | TypeScript strict check across all files |
-| `npm test` | 13 test files, 116 tests, all passed | Full test suite including revised fixture tests |
+| `npm test` | 13 test files, 117 tests, all passed | Full test suite including revised fixture tests |
 | `npm run smoke:stdio` | PASS (exit 0) | Server initializes, lists 7 tools, returns stability fixture |
 | `npm run pack:check` | PASS (exit 0) | Tarball generated successfully with all 127 files |
 | `git diff --check 7076f1cfb2042e9978641ea5556e16ea00e10199..HEAD` | PASS (no output) | No whitespace errors |
