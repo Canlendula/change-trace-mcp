@@ -183,8 +183,19 @@ describe("writeReport", () => {
     i.reviewMeta = {
       reviewer: "crlf\r\nlf\ncr\rend",
       createdAt: FIXED_TIME,
-      notes: "\tzero-tab\n \tone-tab\n  \ttwo-tab\n   \tthree-tab\n1) close-list\n1. dot-list\nsetext equals\n=  \nsetext dash\n-\t\na | b\n--- | ---",
+      notes: "\tzero-tab\n \tone-tab\n  \ttwo-tab\n   \tthree-tab\n1) close-list\n1. dot-list\nsetext equals\n=  \nsetext dash\n-\t\na | b\n--- | ---\n~~~js\nfenced text\n~~~",
+      declaredLimitations: ["~~~limit"],
     };
+    const validationResult = { ...i.validationResult as FindingValidationResult };
+    validationResult.warnings = [{
+      findingId: "finding:1",
+      index: 0,
+      code: "tilde-fence",
+      path: "notes",
+      message: "~~~warning",
+    }];
+    validationResult.summary = { ...validationResult.summary, warnings: 1 };
+    i.validationResult = validationResult;
     const md = readFileSync(writeReport(i).markdownFile, "utf-8");
     expect(md).toContain("1\\) close-list");
     expect(md).toContain("1\\. dot-list");
@@ -192,6 +203,10 @@ describe("writeReport", () => {
     expect(md).toContain("\\-");
     expect(md).toContain("a \\| b");
     expect(md).toContain("--- \\| ---");
+    expect(md).toContain("\\~\\~\\~js");
+    expect(md).toContain("\\~\\~\\~limit");
+    expect(md).toContain("\\~\\~\\~warning");
+    expect(md).not.toMatch(/^ {0,3}~~~/m);
     expect(md).toContain("**Reviewer:** crlf / lf / cr / end");
     for (const line of md.split("\n")) expect(line).not.toMatch(/^ {0,3}\t/);
   });

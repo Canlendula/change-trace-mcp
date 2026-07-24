@@ -120,7 +120,7 @@ function dynamicCodeSpan(text: string): string {
 function safeInline(text: string): string {
   return text
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/\\/g, "\\\\").replace(/`/g, "\\`")
+    .replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/~/g, "\\~")
     .replace(/\*/g, "\\*").replace(/_/g, "\\_")
     .replace(/\[/g, "\\[").replace(/\]/g, "\\]").replace(/!/g, "\\!")
     .replace(/^ {0,3}#/gm, "\\#").replace(/^ {0,3}>/gm, "\\>")
