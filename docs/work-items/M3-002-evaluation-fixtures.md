@@ -210,9 +210,10 @@ git status --short
 ## Worker handoff — worker owned
 
 - Status: `ready_for_review`
-- Handoff branch: `work/M3-002-evaluation-fixtures`
+- Handoff branch: `codex/M3-002-evaluation-fixtures-review-fixes`
 - Implementation commits:
   - `cda3041` — M3-002: add nine deterministic review evaluation fixtures with loader and tests
+  - `77e016a` — fix: address M3-002 fixture review findings
 
 ### Implementation summary
 
@@ -220,6 +221,11 @@ git status --short
 - Created `tests/unit/review-fixture.test.ts` with 25 unit tests covering corpus integrity, schema validation, `validateFindings` acceptance, semantic constraints, deterministic serialization, and LF normalization.
 - Created nine fixture scenarios under `tests/fixtures/review/<fixture-id>/`, each with `bundle.json`, `reference-findings.json`, and `expected.json`.
 - All nine fixtures satisfy the required ground truth table: two `no_findings` precision controls (`implemented-correctly`, `intentional-doc-free-refactor`), four `findings` scenarios (`requirement-missing`, `undocumented-behavior`, `contradictory-documents`, `stale-documentation`), one `findings`/`inconclusive` scenario with inaccessible evidence (`missing-permissions`), one `inconclusive` scenario (`insufficient-evidence`), and one `no_findings` scenario with malicious untrusted evidence (`malicious-instruction`).
+- Corrected every evidence-character and diff UTF-8 byte accounting field and added recomputation coverage for non-truncated and truncated metadata invariants.
+- Made discovery and loading reject root or scenario files, directories, and symbolic links outside the exact corpus shape; loader validation now runs before parsing.
+- Tightened expected-outcome invariants: non-empty outcomes require positive counts and semantic matches, inconclusive outcomes allow only inconclusive reference findings, and each required semantic match must be satisfied by the configured number of individual findings that contain the complete evidence-ID set.
+- Added bundle cross-record integrity coverage for evidence indexes, deterministic-fact references, related change IDs, bundle truncation accounting, and diff byte counts.
+- Revised the six review-identified scenarios: the refactor preserves the public API, email validation uses the documented format check, missing permissions performs an explicit `SECRET_KEY` lookup, undocumented rate limiting is operative, insufficient evidence records all three missing documents without a direct security defect, and stale documentation includes an approved-change record establishing current code intent.
 
 ### Changed areas
 
@@ -234,9 +240,9 @@ git status --short
 
 | Command | Result | Notes |
 |---|---|---|
-| `npx vitest run tests/unit/review-fixture.test.ts` | 25 passed, 0 failed | All structural, schema, semantic, and serialization tests pass |
+| `npx vitest run tests/unit/review-fixture.test.ts` | 29 passed, 0 failed | Includes negative discovery tests, metadata recomputation, cross-record integrity, strengthened semantic matching, and serialization tests |
 | `npm run check` | PASS (no output, exit 0) | TypeScript strict check across all files |
-| `npm test` | 13 test files, 112 tests, all passed | Full test suite including new fixture tests |
+| `npm test` | 13 test files, 116 tests, all passed | Full test suite including revised fixture tests |
 | `npm run smoke:stdio` | PASS (exit 0) | Server initializes, lists 7 tools, returns stability fixture |
 | `npm run pack:check` | PASS (exit 0) | Tarball generated successfully with all 127 files |
 | `git diff --check 7076f1cfb2042e9978641ea5556e16ea00e10199..HEAD` | PASS (no output) | No whitespace errors |
@@ -248,12 +254,12 @@ git status --short
 
 ### Deviations from assignment
 
-- None.
+- The assigned `work/M3-002-evaluation-fixtures` branch was already checked out by the original external task worktree. This isolated Codex worktree therefore created `codex/M3-002-evaluation-fixtures-review-fixes` from the exact requested `8b2f400` base. The implementation and this handoff are committed on that branch; no shared branch, worktree, or coordinator-owned file was modified.
 
 ### Known limitations and risks
 
-- Windows `.gitattributes` auto-converts LF to CRLF on checkout; `canonicalStringify` normalizes to LF in tests regardless.
-- The `pack:check` script was not listed in `package.json` by the original task; it exists at `npm run pack:check` and passes.
+- Windows `.gitattributes` may auto-convert fixture files to CRLF on checkout; `canonicalStringify` recursively normalizes CRLF/CR values to LF and ends with exactly one LF regardless.
+- The test-local symbolic-link cases require a filesystem that permits link creation; they passed in this worktree.
 
 ### Decisions or questions for coordinator
 
