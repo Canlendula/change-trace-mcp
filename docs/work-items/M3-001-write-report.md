@@ -157,6 +157,7 @@ git status --short
   - `289ab44` — fix: third review round
   - `31fa425` — fix: fourth review round
   - `68d5f9e` — fix: harden report writer finalization
+  - `75b197d` — fix: contain tilde fenced Markdown
 
 ### Implementation summary
 
@@ -164,8 +165,8 @@ Sixth commit (final takeover fixes):
 
 - **CommonMark containment**: `safeInline` escapes 0–3 spaces followed by a
   tab, `1)` and `1.` list markers, one-or-more-character Setext underlines
-  with trailing whitespace, and all pipe characters. `inlineNoNewlines`
-  normalizes CRLF, LF, and lone CR.
+  with trailing whitespace, all pipe characters, and tilde fence markers.
+  `inlineNoNewlines` normalizes CRLF, LF, and lone CR.
 - **Exclusive final publication**: fully written, validated staging files are
   hard-linked to final paths. This provides no-clobber publication for both
   overwrite modes and avoids partial-final output if a final write fails.
@@ -180,9 +181,9 @@ Sixth commit (final takeover fixes):
   writes. Bundle-root resolution errors are wrapped as
   `bundle_root_unresolvable`; only `repo_root_mismatch` passes through.
 - **Regression coverage**: added tests for Markdown structural injections,
-  CR line endings, report substance mapping, exclusive publish races,
-  transaction-directory escape, hard-link promotion failure, backup restore
-  failures, and competing files during JSON/Markdown recovery.
+  CR line endings, backtick/tilde fences, report substance mapping, exclusive
+  publish races, transaction-directory escape, hard-link promotion failure,
+  backup restore failures, and competing files during JSON/Markdown recovery.
 
 ### Changed areas
 
