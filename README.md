@@ -42,6 +42,13 @@ node dist/cli.js
 The server reserves stdout for MCP JSON-RPC messages. Structured operational
 logs are emitted to stderr.
 
+## Contribution workflow
+
+This repository uses a coordinator/worker model with isolated worktrees,
+tracked task assignments, and coordinator-owned Roadmap and release decisions.
+See [`docs/CONTRIBUTING_WORKFLOW.md`](docs/CONTRIBUTING_WORKFLOW.md) before
+starting delegated implementation work.
+
 ## Versioned schemas
 
 The package exports strict Zod schemas and deterministic Draft 2020-12 JSON
