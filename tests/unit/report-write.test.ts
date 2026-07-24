@@ -31,7 +31,7 @@ function makeValidInput(repoRoot: string, overrides: Partial<WriteReportInput> =
 }
 
 function proxyFs(): WriteReportFs {
-  return { mkdtempSync: (p) => realFs.mkdtempSync(p), writeFileSync: (p, d, o) => realFs.writeFileSync(p, d, o ?? {}), renameSync: (o, n) => realFs.renameSync(o, n), unlinkSync: (p) => realFs.unlinkSync(p), rmdirSync: (p) => realFs.rmdirSync(p) };
+  return { mkdtempSync: (p) => realFs.mkdtempSync(p), writeFileSync: (p, d, o) => realFs.writeFileSync(p, d, o ?? {}), linkSync: (o, n) => realFs.linkSync(o, n), renameSync: (o, n) => realFs.renameSync(o, n), unlinkSync: (p) => realFs.unlinkSync(p), rmdirSync: (p) => realFs.rmdirSync(p) };
 }
 
 describe("writeReport", () => {
@@ -178,14 +178,104 @@ describe("writeReport", () => {
     expect(md).toContain("safe /");
   });
 
+  it("escapes tab indentation, ordered-list variants, setext headings, and pipe tables", () => {
+    const i = makeValidInput(repoRoot, { reportName: "cm-boundaries", overwrite: true });
+    i.reviewMeta = {
+      reviewer: "crlf\r\nlf\ncr\rend",
+      createdAt: FIXED_TIME,
+      notes: "\tzero-tab\n \tone-tab\n  \ttwo-tab\n   \tthree-tab\n1) close-list\n1. dot-list\nsetext equals\n=  \nsetext dash\n-\t\na | b\n--- | ---",
+    };
+    const md = readFileSync(writeReport(i).markdownFile, "utf-8");
+    expect(md).toContain("1\\) close-list");
+    expect(md).toContain("1\\. dot-list");
+    expect(md).toContain("\\=");
+    expect(md).toContain("\\-");
+    expect(md).toContain("a \\| b");
+    expect(md).toContain("--- \\| ---");
+    expect(md).toContain("**Reviewer:** crlf / lf / cr / end");
+    for (const line of md.split("\n")) expect(line).not.toMatch(/^ {0,3}\t/);
+  });
+
+  it("preserves report substance in both JSON and Markdown", () => {
+    const i = makeValidInput(repoRoot, { reportName: "substance", overwrite: true });
+    i.reviewMeta = { reviewer: "test", createdAt: FIXED_TIME, declaredLimitations: ["No live runtime access"] };
+    (i.bundle as ReviewBundle).evidenceItems.push({ ...i.bundle.evidenceItems[0]!, id: "evidence:unreferenced" });
+    const result = writeReport(i);
+    const json = JSON.parse(readFileSync(result.jsonFile, "utf-8"));
+    const finding = json.findings.confirmed[0];
+    expect(finding.deterministicFacts[0].evidenceIds).toEqual(["evidence:1"]);
+    expect(finding.inference).toContain("leaks credentials");
+    expect(finding.evidenceIds).toEqual(["evidence:1"]);
+    expect(finding.affectedSources[0].locator).toBe("src/config.ts");
+    expect(json.missingEvidence[0].status).toBe("inaccessible");
+    expect(json.evidenceCoverage.unreferencedEvidenceIds).toEqual(["evidence:unreferenced"]);
+    expect(json.reviewMeta.declaredLimitations).toEqual(["No live runtime access"]);
+    const md = readFileSync(result.markdownFile, "utf-8");
+    for (const text of ["Deterministic facts", "Inference", "Evidence IDs", "Affected sources", "Missing Evidence", "inaccessible", "Unreferenced Evidence", "Declared Limitations", "No live runtime access"]) expect(md).toContain(text);
+  });
+
+  it("wraps an unresolvable bundle root without masking a root mismatch", () => {
+    const i = makeValidInput(repoRoot);
+    (i.bundle as ReviewBundle).changeScope.repositoryRoot = join(repoRoot, "missing-bundle-root");
+    try { writeReport(i); expect.fail("should throw"); } catch (err) {
+      expect((err as { code?: string }).code).toBe("bundle_root_unresolvable");
+    }
+  });
+
   // -- Failure injection --
+  it("overwrite false never overwrites a pair created during promotion", () => {
+    const i = makeValidInput(repoRoot, { reportName: "race", overwrite: false });
+    const jf = join(outputDir, "race.json"), mf = join(outputDir, "race.md");
+    const competitorJson = '{"writer":"competitor"}\n', competitorMd = "# Competitor\n";
+    let raced = false;
+    const racingFs: WriteReportFs = {
+      ...proxyFs(),
+      linkSync(existingPath, newPath) {
+        if (!raced && newPath === jf) {
+          raced = true;
+          realFs.writeFileSync(jf, competitorJson, { flag: "wx" });
+          realFs.writeFileSync(mf, competitorMd, { flag: "wx" });
+        }
+        realFs.linkSync(existingPath, newPath);
+      },
+    };
+    try { _writeReportForTest(i, racingFs); expect.fail("should throw"); } catch (err) {
+      expect((err as { code?: string }).code).toBe("report_files_exist");
+    }
+    expect(readFileSync(jf, "utf-8")).toBe(competitorJson);
+    expect(readFileSync(mf, "utf-8")).toBe(competitorMd);
+    expect(readdirSync(outputDir).filter((entry) => entry.startsWith(".report-"))).toHaveLength(0);
+  });
+
+  it("rejects an escaped transaction directory before any staging write", async () => {
+    const escapedTxDir = await mkdtemp(join(tmpdir(), "ct-escaped-tx-"));
+    let wroteStaging = false;
+    const escapingFs: WriteReportFs = {
+      ...proxyFs(),
+      mkdtempSync: () => escapedTxDir,
+      writeFileSync(path, data, options) {
+        if (path.includes("new.json") || path.includes("new.md")) wroteStaging = true;
+        realFs.writeFileSync(path, data, options ?? {});
+      },
+    };
+    try {
+      const i = makeValidInput(repoRoot, { reportName: "tx-escape" });
+      try { _writeReportForTest(i, escapingFs); expect.fail("should throw"); } catch (err) {
+        expect((err as { code?: string }).code).toBe("txdir_escape");
+      }
+      expect(wroteStaging).toBe(false);
+      expect(existsSync(join(escapedTxDir, "new.json"))).toBe(false);
+      expect(existsSync(join(escapedTxDir, "new.md"))).toBe(false);
+    } finally { await rm(escapedTxDir, { recursive: true, force: true }); }
+  });
+
   it("no old reports: md promotion fail + json final unlink fail", () => {
     const i = makeValidInput(repoRoot, { reportName: "nf1" });
-    let calls = 0;
+    const jf = join(outputDir, "nf1.json"), mf = join(outputDir, "nf1.md");
     const badFs: WriteReportFs = {
       ...proxyFs(),
-      renameSync(o, n) { calls++; if (calls === 2) throw new Error("sim-md-promote"); realFs.renameSync(o, n); },
-      unlinkSync(p) { if (calls >= 2 && p.endsWith(".json")) throw new Error("sim-json-unlink"); realFs.unlinkSync(p); },
+      linkSync(oldPath, newPath) { if (newPath === mf) throw new Error("sim-md-promote"); realFs.linkSync(oldPath, newPath); },
+      unlinkSync(path) { if (path === jf) throw new Error("sim-json-unlink"); realFs.unlinkSync(path); },
     };
     try { _writeReportForTest(i, badFs); expect.fail("should throw"); } catch (e) {
       expect((e as Error).message).toMatch(/rollback errors/);
@@ -198,14 +288,13 @@ describe("writeReport", () => {
     writeReport(makeValidInput(repoRoot, { overwrite: true, reportName: "jbr" }));
     const jf = join(outputDir, "jbr.json"), mf = join(outputDir, "jbr.md");
     const oldJ = readFileSync(jf, "utf-8"), oldM = readFileSync(mf, "utf-8");
-    let calls = 0;
     const badFs: WriteReportFs = {
       ...proxyFs(),
-      renameSync(o, n) {
-        calls++;
-        if (calls === 3) throw new Error("sim-json-promote");
-        if (calls >= 4 && o.includes("bak.json")) throw new Error("sim-json-bak-restore");
-        realFs.renameSync(o, n);
+      renameSync(o, n) { realFs.renameSync(o, n); },
+      linkSync(o, n) {
+        if (o.includes("bak.json")) throw new Error("sim-json-bak-restore");
+        if (n.endsWith("jbr.json")) throw new Error("sim-json-promote");
+        realFs.linkSync(o, n);
       },
     };
     const i = makeValidInput(repoRoot, { overwrite: true, reportName: "jbr", reviewMeta: { reviewer: "new", createdAt: FIXED_TIME } });
@@ -228,14 +317,13 @@ describe("writeReport", () => {
     writeReport(makeValidInput(repoRoot, { overwrite: true, reportName: "mbr" }));
     const jf = join(outputDir, "mbr.json"), mf = join(outputDir, "mbr.md");
     const oldJ = readFileSync(jf, "utf-8"), oldM = readFileSync(mf, "utf-8");
-    let calls = 0;
     const badFs: WriteReportFs = {
       ...proxyFs(),
-      renameSync(o, n) {
-        calls++;
-        if (calls === 4) throw new Error("sim-md-promote");
-        if (calls >= 5 && o.includes("bak.md")) throw new Error("sim-md-bak-restore");
-        realFs.renameSync(o, n);
+      renameSync(o, n) { realFs.renameSync(o, n); },
+      linkSync(o, n) {
+        if (o.includes("bak.md")) throw new Error("sim-md-bak-restore");
+        if (n.endsWith("mbr.md")) throw new Error("sim-md-promote");
+        realFs.linkSync(o, n);
       },
     };
     const i = makeValidInput(repoRoot, { overwrite: true, reportName: "mbr", reviewMeta: { reviewer: "new", createdAt: FIXED_TIME } });
@@ -252,6 +340,66 @@ describe("writeReport", () => {
     const bakMd = join(outputDir, txDirs[0]!, "bak.md");
     expect(existsSync(bakMd)).toBe(true);
     expect(readFileSync(bakMd, "utf-8")).toBe(oldM);
+  });
+
+  it("rollback restore does not overwrite a competing final file", () => {
+    writeReport(makeValidInput(repoRoot, { overwrite: true, reportName: "restore-race" }));
+    const jf = join(outputDir, "restore-race.json"), mf = join(outputDir, "restore-race.md");
+    const oldJson = readFileSync(jf, "utf-8"), oldMd = readFileSync(mf, "utf-8");
+    const competitorMd = "# Competing writer\n";
+    const badFs: WriteReportFs = {
+      ...proxyFs(),
+      linkSync(oldPath, newPath) {
+        if (oldPath.endsWith("new.md")) throw new Error("sim-md-publish");
+        if (oldPath.endsWith("bak.md")) realFs.writeFileSync(mf, competitorMd, { flag: "wx" });
+        realFs.linkSync(oldPath, newPath);
+      },
+    };
+    const i = makeValidInput(repoRoot, { overwrite: true, reportName: "restore-race", reviewMeta: { reviewer: "new", createdAt: FIXED_TIME } });
+    try { _writeReportForTest(i, badFs); expect.fail("should throw"); } catch (err) {
+      expect((err as { code?: string }).code).toBe("write_report_rollback_failed");
+      expect((err as Error).message).toContain("restore-md");
+      expect((err as Error).message).not.toContain("residual json final");
+      expect((err as Error).message).not.toContain("residual md final");
+    }
+    expect(readFileSync(jf, "utf-8")).toBe(oldJson);
+    expect(readFileSync(mf, "utf-8")).toBe(competitorMd);
+    const txDir = readdirSync(outputDir).find((entry) => entry.startsWith(".report-"));
+    expect(txDir).toBeDefined();
+    expect(readFileSync(join(outputDir, txDir!, "bak.md"), "utf-8")).toBe(oldMd);
+  });
+
+  it("does not report a competitor after deleting its published JSON", () => {
+    writeReport(makeValidInput(repoRoot, { overwrite: true, reportName: "restore-json-race" }));
+    const jf = join(outputDir, "restore-json-race.json"), mf = join(outputDir, "restore-json-race.md");
+    const oldJson = readFileSync(jf, "utf-8"), oldMd = readFileSync(mf, "utf-8");
+    const competitorJson = '{"writer":"competitor"}\n';
+    const badFs: WriteReportFs = {
+      ...proxyFs(),
+      linkSync(oldPath, newPath) {
+        if (oldPath.endsWith("new.md")) throw new Error("sim-md-publish");
+        realFs.linkSync(oldPath, newPath);
+      },
+      unlinkSync(path) {
+        if (path === jf) {
+          realFs.unlinkSync(path);
+          realFs.writeFileSync(jf, competitorJson, { flag: "wx" });
+          return;
+        }
+        realFs.unlinkSync(path);
+      },
+    };
+    const i = makeValidInput(repoRoot, { overwrite: true, reportName: "restore-json-race", reviewMeta: { reviewer: "new", createdAt: FIXED_TIME } });
+    try { _writeReportForTest(i, badFs); expect.fail("should throw"); } catch (err) {
+      expect((err as { code?: string }).code).toBe("write_report_rollback_failed");
+      expect((err as Error).message).toContain("restore-json");
+      expect((err as Error).message).not.toContain("residual json final");
+    }
+    expect(readFileSync(jf, "utf-8")).toBe(competitorJson);
+    expect(readFileSync(mf, "utf-8")).toBe(oldMd);
+    const txDir = readdirSync(outputDir).find((entry) => entry.startsWith(".report-"));
+    expect(txDir).toBeDefined();
+    expect(readFileSync(join(outputDir, txDir!, "bak.json"), "utf-8")).toBe(oldJson);
   });
 
   // -- symlink + wx --

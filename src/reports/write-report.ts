@@ -1,5 +1,6 @@
 import {
   existsSync,
+  linkSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
@@ -33,11 +34,10 @@ import {
 
 const SAFE_REPORT_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
-const enum TxPhase { Init, TxDirReady, Staged, JsonBackedUp, MdBackedUp, JsonLive, MdLive, Committed }
-
 export interface WriteReportFs {
   mkdtempSync(prefix: string): string;
   writeFileSync(path: string, data: string, options?: { flag?: string }): void;
+  linkSync(existingPath: string, newPath: string): void;
   renameSync(oldPath: string, newPath: string): void;
   unlinkSync(path: string): void;
   rmdirSync(path: string): void;
@@ -45,8 +45,13 @@ export interface WriteReportFs {
 
 const realFs: WriteReportFs = {
   mkdtempSync, writeFileSync: (p, d, o) => fsWriteFileSync(p, d, o ?? {}),
-  renameSync: fsRenameSync, unlinkSync, rmdirSync,
+  linkSync, renameSync: fsRenameSync, unlinkSync, rmdirSync,
 };
+
+function isStrictDescendant(parent: string, child: string): boolean {
+  const rel = relative(parent, child);
+  return rel !== "" && !isAbsolute(rel) && !rel.split(/[\\/]/).some((segment) => segment === "..");
+}
 
 function validatePathSafety(repoRoot: string, outputDir: string): string {
   if (!isAbsolute(repoRoot)) throw Object.assign(new Error("repositoryRoot must be an absolute path"), { code: "invalid_repo_root" });
@@ -55,7 +60,7 @@ function validatePathSafety(repoRoot: string, outputDir: string): string {
   try { resolvedRoot = realpathSync(repoRoot); } catch (err) { throw Object.assign(new Error(`Cannot resolve repositoryRoot: ${err instanceof Error ? err.message : String(err)}`), { code: "invalid_repo_root" }); }
   const normalized = resolve(repoRoot, outputDir);
   const relPath = relative(repoRoot, normalized);
-  if (relPath === "" || isAbsolute(relPath) || relPath.startsWith("..")) throw Object.assign(new Error("Output directory must stay within the repository root"), { code: "output_directory_traversal" });
+  if (!isStrictDescendant(repoRoot, normalized)) throw Object.assign(new Error("Output directory must stay within the repository root"), { code: "output_directory_traversal" });
   const segs = relPath.replace(/\\/g, "/").split("/");
   if (segs.some((s) => s.toLowerCase() === ".git")) throw Object.assign(new Error("Output directory must not include .git paths"), { code: "output_directory_git_path" });
   let cur = resolvedRoot;
@@ -66,7 +71,7 @@ function validatePathSafety(repoRoot: string, outputDir: string): string {
       if (existsSync(cand)) {
         const res = realpathSync(cand);
         const rel = relative(resolvedRoot, res);
-        if (rel === "" || isAbsolute(rel) || rel.split(/[\\/]/).some((s) => s === "..")) throw Object.assign(new Error("Ancestor path resolves outside the repository root"), { code: "ancestor_escape" });
+        if (!isStrictDescendant(resolvedRoot, res)) throw Object.assign(new Error("Ancestor path resolves outside the repository root"), { code: "ancestor_escape" });
         cur = res;
       } else cur = cand;
     } catch (err) { if ((err as { code?: string }).code === "ancestor_escape") throw err; throw Object.assign(new Error(`Cannot validate ancestor path: ${err instanceof Error ? err.message : String(err)}`), { code: "ancestor_resolution_failed" }); }
@@ -119,12 +124,15 @@ function safeInline(text: string): string {
     .replace(/\*/g, "\\*").replace(/_/g, "\\_")
     .replace(/\[/g, "\\[").replace(/\]/g, "\\]").replace(/!/g, "\\!")
     .replace(/^ {0,3}#/gm, "\\#").replace(/^ {0,3}>/gm, "\\>")
-    .replace(/^ {0,3}([-*+])\s/gm, "\\$1 ").replace(/^ {0,3}(\d+)\.\s/gm, "$1\\. ")
-    .replace(/^ {0,3}(={3,}|-{3,})$/gm, "\\$1").replace(/^\|/gm, "\\|")
+    .replace(/^ {0,3}([-*+])\s/gm, "\\$1 ").replace(/^ {0,3}(\d+)([.)])\s/gm, "$1\\$2 ")
+    .replace(/^ {0,3}(=+|-+)[ \t]*$/gm, "\\$1").replace(/\|/g, "\\|")
+    // Up to three leading spaces followed by a tab also form an indented
+    // CommonMark code block. Preserve the input whitespace after an escape.
+    .replace(/^ {0,3}\t/gm, (m) => "   \\" + m)
     .replace(/^ {4,}/gm, (m) => "   \\" + m.slice(3))
     .replace(/^\t/gm, "   \\t");
 }
-function inlineNoNewlines(text: string): string { return safeInline(text.replace(/\n/g, " / ")); }
+function inlineNoNewlines(text: string): string { return safeInline(text.replace(/\r\n|\n|\r/g, " / ")); }
 function safeLit(v: string): string { return dynamicCodeSpan(v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")); }
 
 function renderMarkdown(report: Report, bundle: ReviewBundle): string {
@@ -186,7 +194,14 @@ function writeReportWith(input: WriteReportInput, fs: WriteReportFs): WriteRepor
 
   let resolvedRepoRoot: string;
   try { resolvedRepoRoot = realpathSync(input.repositoryRoot); } catch (err) { throw Object.assign(new Error(`Cannot resolve repositoryRoot: ${err instanceof Error ? err.message : String(err)}`), { code: "invalid_repo_root" }); }
-  try { if (realpathSync(input.bundle.changeScope.repositoryRoot) !== resolvedRepoRoot) throw Object.assign(new Error("repositoryRoot and bundle.changeScope.repositoryRoot must identify the same directory"), { code: "repo_root_mismatch" }); } catch (err) { if ((err as { code?: string }).code) throw err; throw Object.assign(new Error(`Cannot resolve bundle.changeScope.repositoryRoot: ${err instanceof Error ? err.message : String(err)}`), { code: "bundle_root_unresolvable" }); }
+  try {
+    if (realpathSync(input.bundle.changeScope.repositoryRoot) !== resolvedRepoRoot) {
+      throw Object.assign(new Error("repositoryRoot and bundle.changeScope.repositoryRoot must identify the same directory"), { code: "repo_root_mismatch" });
+    }
+  } catch (err) {
+    if ((err as { code?: string }).code === "repo_root_mismatch") throw err;
+    throw Object.assign(new Error(`Cannot resolve bundle.changeScope.repositoryRoot: ${err instanceof Error ? err.message : String(err)}`), { code: "bundle_root_unresolvable" });
+  }
 
   const targetDir = validatePathSafety(input.repositoryRoot, input.outputDirectory);
   const report = buildReport(input);
@@ -204,71 +219,91 @@ function writeReportWith(input: WriteReportInput, fs: WriteReportFs): WriteRepor
   try { mkdirSync(targetDir, { recursive: true }); } catch (err) { throw Object.assign(new Error(`Cannot create output directory: ${err instanceof Error ? err.message : String(err)}`), { code: "output_directory_create_failed" }); }
   let resolvedDir: string;
   try { resolvedDir = realpathSync(targetDir); } catch (err) { throw Object.assign(new Error(`Cannot resolve output path: ${err instanceof Error ? err.message : String(err)}`), { code: "path_resolution_failed" }); }
-  if (relative(resolvedRepoRoot, resolvedDir).split(/[\\/]/).some((s) => s === "..")) throw Object.assign(new Error("Output directory resolved outside the repository root"), { code: "output_directory_escape" });
+  if (!isStrictDescendant(resolvedRepoRoot, resolvedDir)) throw Object.assign(new Error("Output directory resolved outside the repository root"), { code: "output_directory_escape" });
 
   let txDir: string | null = null;
-  let phase: TxPhase = TxPhase.Init;
-  const jsonStaging: string[] = [], mdStaging: string[] = [];
-  const jsonBak: string[] = [], mdBak: string[] = [];
-  const unresolved: string[] = [];
+  let txDirVerified = false;
+  let jsonStagingPresent = false, mdStagingPresent = false;
+  let jsonBackupMoved = false, mdBackupMoved = false;
+  let jsonPublished = false, mdPublished = false;
+  let jsonRestored = false, mdRestored = false;
   let rollbackFatal = false;
+  let jsonStaging = "", mdStaging = "", jsonBackup = "", mdBackup = "";
 
-  function tryOp(fn: () => void, label: string): void { try { fn(); } catch (e) { unresolved.push(label); throw e; } }
+  function exclusivePublish(stagingPath: string, finalPath: string): void {
+    try { fs.linkSync(stagingPath, finalPath); }
+    catch (err) {
+      if ((err as { code?: string }).code === "EEXIST") {
+        throw Object.assign(new Error(`Report files already exist in ${targetDir}. Use overwrite: true to replace them.`), { code: "report_files_exist" });
+      }
+      throw err;
+    }
+  }
 
   try {
-    tryOp(() => { txDir = fs.mkdtempSync(join(targetDir, `.report-`)); }, `<txDir>`);
-    if (txDir) unresolved.push(txDir);
-    phase = TxPhase.TxDirReady;
-    tryOp(() => { if (relative(resolvedDir, realpathSync(txDir!)).split(/[\\/]/).some((s) => s === "..")) throw Object.assign(new Error("Transaction directory resolves outside the target directory"), { code: "txdir_escape" }); }, `<txDir-verify>`);
+    txDir = fs.mkdtempSync(join(targetDir, `.report-`));
+    if (!isStrictDescendant(resolvedDir, realpathSync(txDir))) {
+      throw Object.assign(new Error("Transaction directory resolves outside the target directory"), { code: "txdir_escape" });
+    }
+    txDirVerified = true;
 
-    const jStg = join(txDir!, "new.json"), mStg = join(txDir!, "new.md");
-    jsonStaging.push(jStg); mdStaging.push(mStg);
-    tryOp(() => { fs.writeFileSync(jStg, json, { flag: "wx" }); }, jStg);
-    tryOp(() => { fs.writeFileSync(mStg, markdown, { flag: "wx" }); }, mStg);
-    validateOutputFile(jStg); validateOutputFile(mStg);
-    phase = TxPhase.Staged;
+    jsonStaging = join(txDir, "new.json"); mdStaging = join(txDir, "new.md");
+    fs.writeFileSync(jsonStaging, json, { flag: "wx" }); jsonStagingPresent = true;
+    fs.writeFileSync(mdStaging, markdown, { flag: "wx" }); mdStagingPresent = true;
+    validateOutputFile(jsonStaging); validateOutputFile(mdStaging);
 
     if (overwrite) {
-      if (jsonExists) { const b = join(txDir!, "bak.json"); jsonBak.push(b); tryOp(() => { fs.renameSync(jsonFinal, b); }, `<json-backup>`); phase = TxPhase.JsonBackedUp; }
-      if (mdExists) { const b = join(txDir!, "bak.md"); mdBak.push(b); tryOp(() => { fs.renameSync(mdFinal, b); }, `<md-backup>`); phase = TxPhase.MdBackedUp; }
+      if (jsonExists) { jsonBackup = join(txDir, "bak.json"); fs.renameSync(jsonFinal, jsonBackup); jsonBackupMoved = true; }
+      if (mdExists) { mdBackup = join(txDir, "bak.md"); fs.renameSync(mdFinal, mdBackup); mdBackupMoved = true; }
+      exclusivePublish(jsonStaging, jsonFinal); jsonPublished = true;
+      exclusivePublish(mdStaging, mdFinal); mdPublished = true;
+    } else {
+      // The initial exists check is only an early failure. Each final write is
+      // exclusive hard-link publication so a competing writer cannot be
+      // overwritten after staging, and a failed publish cannot partly write.
+      exclusivePublish(jsonStaging, jsonFinal); jsonPublished = true;
+      exclusivePublish(mdStaging, mdFinal); mdPublished = true;
     }
-    tryOp(() => { fs.renameSync(jStg, jsonFinal); }, `<json-promote>`);
-    jsonStaging.length = 0; phase = TxPhase.JsonLive;
-    tryOp(() => { fs.renameSync(mStg, mdFinal); }, `<md-promote>`);
-    mdStaging.length = 0; phase = TxPhase.MdLive;
   } catch (originalErr) {
     const rb: string[] = [];
-    function safeUnlink(p: string) { try { if (existsSync(p)) fs.unlinkSync(p); } catch (e) { rb.push(`unlink ${p}: ${e instanceof Error ? e.message : String(e)}`); } }
-    function safeRename(from: string, to: string, label: string) { try { fs.renameSync(from, to); } catch (e) { rb.push(`${label}: ${e instanceof Error ? e.message : String(e)}`); rollbackFatal = true; } }
-
-    if (phase >= TxPhase.JsonLive && existsSync(jsonFinal)) safeUnlink(jsonFinal);
-    if (phase >= TxPhase.MdLive && existsSync(mdFinal)) safeUnlink(mdFinal);
-
-    if (jsonBak.length > 0 && existsSync(jsonBak[0]!)) safeRename(jsonBak[0]!, jsonFinal, `restore-json ${jsonBak[0]} -> ${jsonFinal}`);
-    if (mdBak.length > 0 && existsSync(mdBak[0]!)) safeRename(mdBak[0]!, mdFinal, `restore-md ${mdBak[0]} -> ${mdFinal}`);
-
-    // Clean staging
-    for (const s of jsonStaging) { if (existsSync(s)) safeUnlink(s); }
-    for (const s of mdStaging) { if (existsSync(s)) safeUnlink(s); }
-
-    // Only clean bak files if restore succeeded (no rollbackFatal)
-    if (!rollbackFatal) {
-      for (const b of jsonBak) { if (existsSync(b)) safeUnlink(b); }
-      for (const b of mdBak) { if (existsSync(b)) safeUnlink(b); }
+    function safeUnlink(p: string): boolean {
+      try {
+        if (p && existsSync(p)) fs.unlinkSync(p);
+        return true;
+      } catch (e) {
+        rb.push(`unlink ${p}: ${e instanceof Error ? e.message : String(e)}`);
+        return false;
+      }
+    }
+    function safeRestore(from: string, to: string, label: string, restored: () => void): void {
+      if (!from || !existsSync(from)) return;
+      try {
+        // Restore with an exclusive hard link as well. If another writer has
+        // occupied the final path, preserve both its file and this backup.
+        fs.linkSync(from, to);
+        restored();
+        fs.unlinkSync(from);
+      } catch (e) { rb.push(`${label}: ${e instanceof Error ? e.message : String(e)}`); rollbackFatal = true; }
     }
 
-    // Only rmdir txDir if no fatal restore failure
-    if (!rollbackFatal && txDir && existsSync(txDir)) {
+    if (jsonPublished && safeUnlink(jsonFinal)) jsonPublished = false;
+    if (mdPublished && safeUnlink(mdFinal)) mdPublished = false;
+    if (jsonBackupMoved) safeRestore(jsonBackup, jsonFinal, `restore-json ${jsonBackup} -> ${jsonFinal}`, () => { jsonRestored = true; });
+    if (mdBackupMoved) safeRestore(mdBackup, mdFinal, `restore-md ${mdBackup} -> ${mdFinal}`, () => { mdRestored = true; });
+
+    if (jsonStagingPresent) safeUnlink(jsonStaging);
+    if (mdStagingPresent) safeUnlink(mdStaging);
+
+    if (!rollbackFatal && txDirVerified && txDir && existsSync(txDir)) {
       try { fs.rmdirSync(txDir); } catch (e) { rb.push(`rmdir txDir: ${e instanceof Error ? e.message : String(e)}`); }
-    } else if (rollbackFatal && txDir) {
+    } else if (rollbackFatal && txDirVerified && txDir) {
       rb.push(`txDir preserved for manual recovery: ${txDir}`);
     }
 
-    // Report any final-path residuals
-    if (existsSync(jsonFinal)) rb.push(`residual json final: ${jsonFinal}`);
-    if (existsSync(mdFinal)) rb.push(`residual md final: ${mdFinal}`);
-    const remain = unresolved.filter((p) => existsSync(p));
-    if (remain.length > 0) rb.push(`unresolved: ${remain.join(", ")}`);
+    // A restored pre-existing file is the intended recovered state, not a
+    // rollback residual. Only report finals this invocation still owns.
+    if (jsonPublished && !jsonRestored && existsSync(jsonFinal)) rb.push(`residual json final: ${jsonFinal}`);
+    if (mdPublished && !mdRestored && existsSync(mdFinal)) rb.push(`residual md final: ${mdFinal}`);
 
     if (rb.length > 0) throw Object.assign(new Error(`writeReport failed; rollback errors: ${rb.join("; ")}`), { code: "write_report_rollback_failed" });
     throw originalErr;
@@ -277,16 +312,13 @@ function writeReportWith(input: WriteReportInput, fs: WriteReportFs): WriteRepor
   // Cleanup (no rollback on failure)
   const ce: string[] = [];
   function cUnlink(p: string) { try { if (existsSync(p)) fs.unlinkSync(p); } catch (e) { ce.push(`unlink ${p}: ${e instanceof Error ? e.message : String(e)}`); } }
-  cUnlink(jsonBak[0] ?? ""); cUnlink(mdBak[0] ?? "");
-  for (const s of jsonStaging) { if (existsSync(s)) cUnlink(s); }
-  for (const s of mdStaging) { if (existsSync(s)) cUnlink(s); }
-  try { if (txDir && existsSync(txDir)) fs.rmdirSync(txDir); } catch (e) { ce.push(`rmdir txDir: ${e instanceof Error ? e.message : String(e)}`); }
+  cUnlink(jsonBackup); cUnlink(mdBackup);
+  if (jsonStagingPresent) cUnlink(jsonStaging);
+  if (mdStagingPresent) cUnlink(mdStaging);
+  try { if (txDirVerified && txDir && existsSync(txDir)) fs.rmdirSync(txDir); } catch (e) { ce.push(`rmdir txDir: ${e instanceof Error ? e.message : String(e)}`); }
   if (ce.length > 0) throw Object.assign(new Error(`writeReport committed but cleanup failed: ${ce.join("; ")}; txDir: ${txDir}`), { code: "tx_cleanup_failed" });
 
-  unresolved.length = 0; phase = TxPhase.Committed;
-
   if (txDir && existsSync(txDir)) throw Object.assign(new Error(`Transaction directory still present after cleanup: ${txDir}`), { code: "tx_not_cleaned" });
-  if (unresolved.some((p) => existsSync(p))) throw Object.assign(new Error("Unresolved artifacts remain after commit"), { code: "tx_unresolved" });
 
   const mdSz = Buffer.byteLength(markdown, "utf-8"), jsSz = Buffer.byteLength(json, "utf-8");
   return writeReportOutputSchema.parse({ reportId: report.id, reportPath: targetDir, markdownFile: mdFinal, jsonFile: jsonFinal, markdownSizeBytes: mdSz, jsonSizeBytes: jsSz } satisfies WriteReportOutput);
