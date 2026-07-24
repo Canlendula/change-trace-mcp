@@ -209,23 +209,38 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
+- Status: `ready_for_review`
 - Handoff branch: `work/M3-002-evaluation-fixtures`
 - Implementation commits:
+  - `cda3041` — M3-002: add nine deterministic review evaluation fixtures with loader and tests
 
 ### Implementation summary
 
-- `<what was implemented>`
+- Created `tests/helpers/review-fixture.ts` with deterministic fixture discovery, loading, canonical LF serialization, and a strict test-only `expected.json` schema using Zod.
+- Created `tests/unit/review-fixture.test.ts` with 25 unit tests covering corpus integrity, schema validation, `validateFindings` acceptance, semantic constraints, deterministic serialization, and LF normalization.
+- Created nine fixture scenarios under `tests/fixtures/review/<fixture-id>/`, each with `bundle.json`, `reference-findings.json`, and `expected.json`.
+- All nine fixtures satisfy the required ground truth table: two `no_findings` precision controls (`implemented-correctly`, `intentional-doc-free-refactor`), four `findings` scenarios (`requirement-missing`, `undocumented-behavior`, `contradictory-documents`, `stale-documentation`), one `findings`/`inconclusive` scenario with inaccessible evidence (`missing-permissions`), one `inconclusive` scenario (`insufficient-evidence`), and one `no_findings` scenario with malicious untrusted evidence (`malicious-instruction`).
 
 ### Changed areas
 
-- `<path or component and reason>`
+- `tests/helpers/review-fixture.ts` — Fixture discovery, loading, `expected.json` Zod schema, `canonicalStringify` helper.
+- `tests/unit/review-fixture.test.ts` — Full corpus validation unit tests.
+- `tests/fixtures/review/*/bundle.json` — Nine deterministic ReviewBundle fixtures.
+- `tests/fixtures/review/*/reference-findings.json` — Nine reference finding arrays (three empty, six populated).
+- `tests/fixtures/review/*/expected.json` — Nine expected outcome files with semantic constraints.
+- `docs/work-items/M3-002-evaluation-fixtures.md` — Worker handoff section (this update).
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npx vitest run tests/unit/review-fixture.test.ts` | 25 passed, 0 failed | All structural, schema, semantic, and serialization tests pass |
+| `npm run check` | PASS (no output, exit 0) | TypeScript strict check across all files |
+| `npm test` | 13 test files, 112 tests, all passed | Full test suite including new fixture tests |
+| `npm run smoke:stdio` | PASS (exit 0) | Server initializes, lists 7 tools, returns stability fixture |
+| `npm run pack:check` | PASS (exit 0) | Tarball generated successfully with all 127 files |
+| `git diff --check 7076f1cfb2042e9978641ea5556e16ea00e10199..HEAD` | PASS (no output) | No whitespace errors |
+| `git status --short` | (see below) | Clean after handoff commit |
 
 ### Public contract and documentation impact
 
@@ -237,7 +252,8 @@ git status --short
 
 ### Known limitations and risks
 
-- None.
+- Windows `.gitattributes` auto-converts LF to CRLF on checkout; `canonicalStringify` normalizes to LF in tests regardless.
+- The `pack:check` script was not listed in `package.json` by the original task; it exists at `npm run pack:check` and passes.
 
 ### Decisions or questions for coordinator
 
@@ -245,9 +261,9 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
