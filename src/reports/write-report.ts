@@ -4,10 +4,10 @@ import {
   mkdirSync,
   mkdtempSync,
   realpathSync,
-  renameSync,
+  renameSync as fsRenameSync,
   rmdirSync,
   unlinkSync,
-  writeFileSync,
+  writeFileSync as fsWriteFileSync,
 } from "node:fs";
 import {
   isAbsolute,
@@ -36,60 +36,62 @@ const SAFE_REPORT_NAME_RE =
 
 const enum TxPhase {
   Init,
+  TxDirReady,
   Staged,
+  JsonBackedUp,
+  MdBackedUp,
   JsonLive,
   MdLive,
   Committed,
 }
 
-function validatePathSafety(
-  repoRoot: string,
-  outputDir: string,
-): string {
+export interface WriteReportFs {
+  mkdtempSync(prefix: string): string;
+  writeFileSync(path: string, data: string, options?: { flag?: string }): void;
+  renameSync(oldPath: string, newPath: string): void;
+  unlinkSync(path: string): void;
+  rmdirSync(path: string): void;
+}
+
+const realFs: WriteReportFs = {
+  mkdtempSync,
+  writeFileSync(path, data, options) {
+    fsWriteFileSync(path, data, options ?? {});
+  },
+  renameSync: fsRenameSync,
+  unlinkSync,
+  rmdirSync,
+};
+
+function validatePathSafety(repoRoot: string, outputDir: string): string {
   if (!isAbsolute(repoRoot)) {
     throw Object.assign(
       new Error("repositoryRoot must be an absolute path"),
       { code: "invalid_repo_root" },
     );
   }
-
   if (isAbsolute(outputDir)) {
     throw Object.assign(
       new Error("outputDirectory must be a relative path relative to repositoryRoot"),
       { code: "absolute_output_directory" },
     );
   }
-
   let resolvedRoot: string;
-  try {
-    resolvedRoot = realpathSync(repoRoot);
-  } catch (err) {
+  try { resolvedRoot = realpathSync(repoRoot); } catch (err) {
     throw Object.assign(
-      new Error(
-        `Cannot resolve repositoryRoot: ${err instanceof Error ? err.message : String(err)}`,
-      ),
+      new Error(`Cannot resolve repositoryRoot: ${err instanceof Error ? err.message : String(err)}`),
       { code: "invalid_repo_root" },
     );
   }
-
   const normalized = resolve(repoRoot, outputDir);
   const relPath = relative(repoRoot, normalized);
-
   if (relPath === "" || isAbsolute(relPath) || relPath.startsWith("..")) {
-    throw Object.assign(
-      new Error("Output directory must stay within the repository root"),
-      { code: "output_directory_traversal" },
-    );
+    throw Object.assign(new Error("Output directory must stay within the repository root"), { code: "output_directory_traversal" });
   }
-
   const segments = relPath.replace(/\\/g, "/").split("/");
   if (segments.some((s) => s.toLowerCase() === ".git")) {
-    throw Object.assign(
-      new Error("Output directory must not include .git paths"),
-      { code: "output_directory_git_path" },
-    );
+    throw Object.assign(new Error("Output directory must not include .git paths"), { code: "output_directory_git_path" });
   }
-
   let current = resolvedRoot;
   for (const segment of segments) {
     if (segment.length === 0) continue;
@@ -98,233 +100,80 @@ function validatePathSafety(
       if (existsSync(candidate)) {
         const resolved = realpathSync(candidate);
         const rel = relative(resolvedRoot, resolved);
-        if (
-          rel === "" ||
-          isAbsolute(rel) ||
-          rel.split(/[\\/]/).some((s) => s === "..")
-        ) {
-          throw Object.assign(
-            new Error("Ancestor path resolves outside the repository root"),
-            { code: "ancestor_escape" },
-          );
+        if (rel === "" || isAbsolute(rel) || rel.split(/[\\/]/).some((s) => s === "..")) {
+          throw Object.assign(new Error("Ancestor path resolves outside the repository root"), { code: "ancestor_escape" });
         }
         current = resolved;
-      } else {
-        current = candidate;
-      }
+      } else { current = candidate; }
     } catch (err) {
       if ((err as { code?: string }).code === "ancestor_escape") throw err;
       throw Object.assign(
-        new Error(
-          `Cannot validate ancestor path: ${err instanceof Error ? err.message : String(err)}`,
-        ),
+        new Error(`Cannot validate ancestor path: ${err instanceof Error ? err.message : String(err)}`),
         { code: "ancestor_resolution_failed" },
       );
     }
   }
-
   return current;
 }
 
 function validateOutputFile(target: string): void {
   try {
     const stat = lstatSync(target);
-    if (stat.isSymbolicLink()) {
-      throw Object.assign(
-        new Error("Output file path is a symbolic link"),
-        { code: "output_file_symlink" },
-      );
-    }
-    if (!stat.isFile()) {
-      throw Object.assign(
-        new Error("Output file path is not a regular file"),
-        { code: "output_file_not_regular" },
-      );
-    }
-  } catch (err) {
-    if ((err as { code?: string }).code) throw err;
-  }
+    if (stat.isSymbolicLink()) throw Object.assign(new Error("Output file path is a symbolic link"), { code: "output_file_symlink" });
+    if (!stat.isFile()) throw Object.assign(new Error("Output file path is not a regular file"), { code: "output_file_not_regular" });
+  } catch (err) { if ((err as { code?: string }).code) throw err; }
 }
 
-function validateStagingEntry(target: string): void {
-  if (!existsSync(target)) return;
-
-  const stat = lstatSync(target);
-  if (stat.isSymbolicLink()) {
-    throw Object.assign(
-      new Error("Pre-existing staging entry is a symbolic link"),
-      { code: "staging_entry_symlink" },
-    );
-  }
-  throw Object.assign(
-    new Error("Pre-existing entry at staging path"),
-    { code: "staging_entry_exists" },
-  );
-}
-
-function buildReport(
-  input: WriteReportInput,
-): Report {
+function buildReport(input: WriteReportInput): Report {
   const bundle = input.bundle;
   const validationResult = input.validationResult;
-
   if (validationResult.bundleId !== bundle.id) {
-    throw Object.assign(
-      new Error(
-        `Bundle ID mismatch: validation result references ${validationResult.bundleId} but bundle has ${bundle.id}`,
-      ),
-      { code: "bundle_id_mismatch" },
-    );
+    throw Object.assign(new Error(`Bundle ID mismatch: validation result references ${validationResult.bundleId} but bundle has ${bundle.id}`), { code: "bundle_id_mismatch" });
   }
-
   if (!SAFE_REPORT_NAME_RE.test(input.reportName)) {
-    throw Object.assign(
-      new Error("reportName must contain only safe filename characters"),
-      { code: "invalid_report_name" },
-    );
+    throw Object.assign(new Error("reportName must contain only safe filename characters"), { code: "invalid_report_name" });
   }
-
   const reportId = `report:${input.reportName}`;
   const createdAt = input.reviewMeta.createdAt;
-
-  const evidenceIdsInBundle = new Set(
-    bundle.evidenceItems.map((item) => item.id),
-  );
-
+  const evidenceIdsInBundle = new Set(bundle.evidenceItems.map((item) => item.id));
   const referencedIds = new Set<string>();
   for (const finding of validationResult.validFindings) {
-    for (const evidenceId of finding.evidenceIds) {
-      if (evidenceIdsInBundle.has(evidenceId)) {
-        referencedIds.add(evidenceId);
-      }
-    }
-    for (const fact of finding.deterministicFacts) {
-      for (const evidenceId of fact.evidenceIds) {
-        if (evidenceIdsInBundle.has(evidenceId)) {
-          referencedIds.add(evidenceId);
-        }
-      }
-    }
+    for (const evidenceId of finding.evidenceIds) { if (evidenceIdsInBundle.has(evidenceId)) referencedIds.add(evidenceId); }
+    for (const fact of finding.deterministicFacts) { for (const evidenceId of fact.evidenceIds) { if (evidenceIdsInBundle.has(evidenceId)) referencedIds.add(evidenceId); } }
   }
-
-  const unreferencedIds = [...evidenceIdsInBundle].filter(
-    (id) => !referencedIds.has(id),
-  );
-
-  const warnings: ReportWarning[] = validationResult.warnings.map((w) => ({
-    code: w.code,
-    message: w.message.slice(0, 2_000),
-    findingId: w.findingId,
-  }));
-
+  const unreferencedIds = [...evidenceIdsInBundle].filter((id) => !referencedIds.has(id));
+  const warnings: ReportWarning[] = validationResult.warnings.map((w) => ({ code: w.code, message: w.message.slice(0, 2_000), findingId: w.findingId }));
   function toReportFinding(f: (typeof validationResult.validFindings)[number]) {
-    const findingWarnings = warnings
-      .filter((w) => w.findingId === f.id)
-      .map((w) => ({ code: w.code, message: w.message }));
-    return {
-      id: f.id,
-      category: f.category,
-      severity: f.severity,
-      confidence: f.confidence,
-      title: f.title,
-      expectedBehavior: f.expectedBehavior,
-      observedBehavior: f.observedBehavior,
-      deterministicFacts: f.deterministicFacts.map((fact) => ({
-        statement: fact.statement,
-        evidenceIds: fact.evidenceIds,
-      })),
-      inference: f.inference,
-      evidenceIds: f.evidenceIds,
-      affectedSources: f.affectedSources,
-      recommendation: f.recommendation,
-      status: f.status,
-      warnings: findingWarnings,
-    };
+    const fw = warnings.filter((w) => w.findingId === f.id).map((w) => ({ code: w.code, message: w.message }));
+    return { id: f.id, category: f.category, severity: f.severity, confidence: f.confidence, title: f.title, expectedBehavior: f.expectedBehavior, observedBehavior: f.observedBehavior, deterministicFacts: f.deterministicFacts.map((fact) => ({ statement: fact.statement, evidenceIds: fact.evidenceIds })), inference: f.inference, evidenceIds: f.evidenceIds, affectedSources: f.affectedSources, recommendation: f.recommendation, status: f.status, warnings: fw };
   }
-
   const reportFindings: Report["findings"] = {
-    confirmed: validationResult.validFindings
-      .filter((f) => f.status === "confirmed")
-      .map(toReportFinding) as Report["findings"]["confirmed"],
-    suspected: validationResult.validFindings
-      .filter((f) => f.status === "suspected")
-      .map(toReportFinding) as Report["findings"]["suspected"],
-    inconclusive: validationResult.validFindings
-      .filter((f) => f.status === "inconclusive")
-      .map(toReportFinding) as Report["findings"]["inconclusive"],
+    confirmed: validationResult.validFindings.filter((f) => f.status === "confirmed").map(toReportFinding) as Report["findings"]["confirmed"],
+    suspected: validationResult.validFindings.filter((f) => f.status === "suspected").map(toReportFinding) as Report["findings"]["suspected"],
+    inconclusive: validationResult.validFindings.filter((f) => f.status === "inconclusive").map(toReportFinding) as Report["findings"]["inconclusive"],
   };
-
-  const rejectedFindings: ReportRejectedFinding[] =
-    validationResult.rejectedFindings.map((rf) => ({
-      index: rf.index,
-      findingId: rf.findingId,
-      issues: rf.issues.map((issue) => ({
-        code: issue.code,
-        path: issue.path,
-        message: issue.message.slice(0, 2_000),
-      })),
-    }));
-
-  const missingEvidence = bundle.missingEvidence.map((me) => ({
-    source: me.source,
-    reason: me.reason,
-    status: me.status,
-  }));
-
+  const rejectedFindings: ReportRejectedFinding[] = validationResult.rejectedFindings.map((rf) => ({ index: rf.index, findingId: rf.findingId, issues: rf.issues.map((issue) => ({ code: issue.code, path: issue.path, message: issue.message.slice(0, 2_000) })) }));
+  const missingEvidence = bundle.missingEvidence.map((me) => ({ source: me.source, reason: me.reason, status: me.status }));
   const report: Report = {
-    schemaVersion: CORE_SCHEMA_VERSION,
-    id: reportId,
-    createdAt,
-    bundleId: bundle.id,
-    reviewMeta: {
-      reviewer: input.reviewMeta.reviewer,
-      toolVersion: input.reviewMeta.toolVersion,
-      notes: input.reviewMeta.notes,
-      declaredLimitations: input.reviewMeta.declaredLimitations,
-    },
-    findings: reportFindings,
-    rejectedFindings,
-    missingEvidence,
-    evidenceCoverage: {
-      totalEvidenceItems: bundle.evidenceItems.length,
-      referencedEvidenceIds: [...referencedIds].sort(),
-      unreferencedEvidenceIds: unreferencedIds.sort(),
-    },
-    validationSummary: {
-      submitted: validationResult.summary.submitted,
-      valid: validationResult.summary.valid,
-      rejected: validationResult.summary.rejected,
-      warnings: validationResult.summary.warnings,
-    },
-    bundleLimits: {
-      maxEvidenceItems: bundle.limits.maxEvidenceItems,
-      maxTotalExcerptCharacters: bundle.limits.maxTotalExcerptCharacters,
-    },
-    bundleTruncation: {
-      isTruncated: bundle.truncation.isTruncated,
-      omittedEvidenceItems: bundle.truncation.omittedEvidenceItems,
-      omittedExcerptCharacters: bundle.truncation.omittedExcerptCharacters,
-      omittedMissingEvidence: bundle.truncation.omittedMissingEvidence,
-    },
+    schemaVersion: CORE_SCHEMA_VERSION, id: reportId, createdAt, bundleId: bundle.id,
+    reviewMeta: { reviewer: input.reviewMeta.reviewer, toolVersion: input.reviewMeta.toolVersion, notes: input.reviewMeta.notes, declaredLimitations: input.reviewMeta.declaredLimitations },
+    findings: reportFindings, rejectedFindings, missingEvidence,
+    evidenceCoverage: { totalEvidenceItems: bundle.evidenceItems.length, referencedEvidenceIds: [...referencedIds].sort(), unreferencedEvidenceIds: unreferencedIds.sort() },
+    validationSummary: { submitted: validationResult.summary.submitted, valid: validationResult.summary.valid, rejected: validationResult.summary.rejected, warnings: validationResult.summary.warnings },
+    bundleLimits: { maxEvidenceItems: bundle.limits.maxEvidenceItems, maxTotalExcerptCharacters: bundle.limits.maxTotalExcerptCharacters },
+    bundleTruncation: { isTruncated: bundle.truncation.isTruncated, omittedEvidenceItems: bundle.truncation.omittedEvidenceItems, omittedExcerptCharacters: bundle.truncation.omittedExcerptCharacters, omittedMissingEvidence: bundle.truncation.omittedMissingEvidence },
     warnings,
   };
-
   return reportSchema.parse(report) as Report;
 }
 
-function escapeHtmlEntities(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+// --- Markdown rendering ---
 
 function dynamicFence(text: string, language: string = ""): string {
   const runs = text.match(/`{3,}/g) ?? [];
   const maxRun = runs.reduce((m, r) => Math.max(m, r.length), 0);
   const fence = "`".repeat(Math.max(3, maxRun + 1));
-  const safeText = text.replace(/^#/gm, "\\#");
+  const safeText = text.replace(/^ {0,3}#/gm, "\\#");
   return `${fence}${language}\n${safeText}\n${fence}`;
 }
 
@@ -347,499 +196,347 @@ function safeInline(text: string): string {
     .replace(/\[/g, "\\[")
     .replace(/\]/g, "\\]")
     .replace(/!/g, "\\!")
-    .replace(/^#/gm, "\\#")
-    .replace(/^>/gm, "\\>")
-    .replace(/^([-*+])\s/gm, "\\$1 ")
-    .replace(/^(\d+)\.\s/gm, "$1\\. ")
-    .replace(/^---/gm, "\\---")
+    .replace(/^ {0,3}#/gm, "\\#")
+    .replace(/^ {0,3}>/gm, "\\>")
+    .replace(/^ {0,3}([-*+])\s/gm, "\\$1 ")
+    .replace(/^ {0,3}(\d+)\.\s/gm, "$1\\. ")
+    .replace(/^ {0,3}(={3,}|-{3,})$/gm, "\\$1")
+    .replace(/^ {4}/gm, "    \\")
+    .replace(/^\t/gm, "\t\\")
     .replace(/^\|/gm, "\\|");
 }
 
+function inlineNoNewlines(text: string): string {
+  return safeInline(text.replace(/\n/g, " / "));
+}
+
 function safeLiteral(value: string): string {
-  return dynamicCodeSpan(
-    value
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;"),
-  );
+  return dynamicCodeSpan(value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
 }
 
 function renderMarkdown(report: Report, bundle: ReviewBundle): string {
-  const lines: string[] = [];
-
-  lines.push(`# Change Trace Review Report`);
-  lines.push("");
-  lines.push(`**Report ID:** ${safeLiteral(report.id)}`);
-  lines.push(`**Created:** ${escapeHtmlEntities(report.createdAt)}`);
-  lines.push(`**Bundle ID:** ${safeLiteral(report.bundleId)}`);
-  lines.push(`**Reviewer:** ${safeInline(report.reviewMeta.reviewer)}`);
-  if (report.reviewMeta.toolVersion) {
-    lines.push(`**Tool Version:** ${safeInline(report.reviewMeta.toolVersion)}`);
+  const L: string[] = [];
+  const h = (t: string) => { L.push(t); };
+  h(`# Change Trace Review Report`); h("");
+  h(`**Report ID:** ${safeLiteral(report.id)}`);
+  h(`**Created:** ${safeLiteral(report.createdAt)}`);
+  h(`**Bundle ID:** ${safeLiteral(report.bundleId)}`);
+  h(`**Reviewer:** ${inlineNoNewlines(report.reviewMeta.reviewer)}`);
+  if (report.reviewMeta.toolVersion) h(`**Tool Version:** ${safeLiteral(report.reviewMeta.toolVersion)}`);
+  h("");
+  if (report.reviewMeta.notes) { h("## Review Notes"); h(""); h(safeInline(report.reviewMeta.notes)); h(""); }
+  if (report.reviewMeta.declaredLimitations?.length) {
+    h("## Declared Limitations"); h("");
+    for (const lim of report.reviewMeta.declaredLimitations) h(`- ${safeInline(lim)}`);
+    h("");
   }
-  lines.push("");
-
-  if (report.reviewMeta.notes) {
-    lines.push("## Review Notes");
-    lines.push("");
-    lines.push(safeInline(report.reviewMeta.notes));
-    lines.push("");
-  }
-
-  if (
-    report.reviewMeta.declaredLimitations &&
-    report.reviewMeta.declaredLimitations.length > 0
-  ) {
-    lines.push("## Declared Limitations");
-    lines.push("");
-    for (const limitation of report.reviewMeta.declaredLimitations) {
-      lines.push(`- ${safeInline(limitation)}`);
-    }
-    lines.push("");
-  }
-
-  lines.push("## Validation Summary");
-  lines.push("");
-  lines.push(`| Metric | Count |`);
-  lines.push(`|---|---|`);
-  lines.push(`| Submitted findings | ${report.validationSummary.submitted} |`);
-  lines.push(`| Valid findings | ${report.validationSummary.valid} |`);
-  lines.push(`| Rejected findings | ${report.validationSummary.rejected} |`);
-  lines.push(`| Warnings | ${report.validationSummary.warnings} |`);
-  lines.push("");
-
-  lines.push("## Evidence Coverage");
-  lines.push("");
-  lines.push(`- **Total evidence items:** ${report.evidenceCoverage.totalEvidenceItems}`);
-  lines.push(`- **Referenced by findings:** ${report.evidenceCoverage.referencedEvidenceIds.length}`);
-  lines.push(`- **Not referenced:** ${report.evidenceCoverage.unreferencedEvidenceIds.length}`);
-  lines.push("");
-
-  lines.push("## Bundle Information");
-  lines.push("");
-  lines.push(`- **Change scope:** ${safeLiteral(bundle.changeScope.resolvedBase.slice(0, 8) + "...")} -> ${safeLiteral(bundle.changeScope.resolvedHead.slice(0, 8) + "...")}`);
-  lines.push(`- **Evidence items:** ${bundle.evidenceItems.length}`);
-  lines.push(`- **Deterministic facts:** ${bundle.deterministicFacts.length}`);
-  lines.push(`- **Missing evidence:** ${bundle.missingEvidence.length}`);
-  lines.push("");
-
-  lines.push("### Bundle Limits");
-  lines.push("");
-  lines.push(`- Max evidence items: ${report.bundleLimits.maxEvidenceItems}`);
-  lines.push(`- Max excerpt characters: ${report.bundleLimits.maxTotalExcerptCharacters}`);
-  lines.push("");
-
+  h("## Validation Summary"); h("");
+  h(`| Metric | Count |`); h(`|---|---|`);
+  h(`| Submitted findings | ${report.validationSummary.submitted} |`);
+  h(`| Valid findings | ${report.validationSummary.valid} |`);
+  h(`| Rejected findings | ${report.validationSummary.rejected} |`);
+  h(`| Warnings | ${report.validationSummary.warnings} |`); h("");
+  h("## Evidence Coverage"); h("");
+  h(`- **Total evidence items:** ${report.evidenceCoverage.totalEvidenceItems}`);
+  h(`- **Referenced by findings:** ${report.evidenceCoverage.referencedEvidenceIds.length}`);
+  h(`- **Not referenced:** ${report.evidenceCoverage.unreferencedEvidenceIds.length}`); h("");
+  h("## Bundle Information"); h("");
+  h(`- **Change scope:** ${safeLiteral(bundle.changeScope.resolvedBase.slice(0, 8) + "...")} -> ${safeLiteral(bundle.changeScope.resolvedHead.slice(0, 8) + "...")}`);
+  h(`- **Evidence items:** ${bundle.evidenceItems.length}`);
+  h(`- **Deterministic facts:** ${bundle.deterministicFacts.length}`);
+  h(`- **Missing evidence:** ${bundle.missingEvidence.length}`); h("");
+  h("### Bundle Limits"); h("");
+  h(`- Max evidence items: ${report.bundleLimits.maxEvidenceItems}`);
+  h(`- Max excerpt characters: ${report.bundleLimits.maxTotalExcerptCharacters}`); h("");
   if (report.bundleTruncation.isTruncated) {
-    lines.push("### Bundle Truncation");
-    lines.push("");
-    lines.push(`- **Omitted evidence items:** ${report.bundleTruncation.omittedEvidenceItems}`);
-    lines.push(`- **Omitted excerpt characters:** ${report.bundleTruncation.omittedExcerptCharacters}`);
-    lines.push(`- **Omitted missing evidence:** ${report.bundleTruncation.omittedMissingEvidence}`);
-    lines.push("");
+    h("### Bundle Truncation"); h("");
+    h(`- **Omitted evidence items:** ${report.bundleTruncation.omittedEvidenceItems}`);
+    h(`- **Omitted excerpt characters:** ${report.bundleTruncation.omittedExcerptCharacters}`);
+    h(`- **Omitted missing evidence:** ${report.bundleTruncation.omittedMissingEvidence}`); h("");
   }
-
   if (report.missingEvidence.length > 0) {
-    lines.push("## Missing Evidence");
-    lines.push("");
-    for (const me of report.missingEvidence) {
-      lines.push(`- **${safeLiteral(me.status)}** ${safeLiteral(me.source.system + ":" + me.source.locator)}: ${safeInline(me.reason)}`);
-    }
-    lines.push("");
+    h("## Missing Evidence"); h("");
+    for (const me of report.missingEvidence) h(`- **${safeLiteral(me.status)}** ${safeLiteral(me.source.system + ":" + me.source.locator)}: ${safeInline(me.reason)}`);
+    h("");
   }
-
   if (report.warnings.length > 0) {
-    lines.push("## Global Warnings");
-    lines.push("");
-    for (const warning of report.warnings) {
-      const prefix = warning.findingId
-        ? `${safeLiteral(warning.findingId)}: `
-        : "";
-      lines.push(
-        `- **${safeLiteral(warning.code)}** ${prefix}${safeInline(warning.message)}`,
-      );
+    h("## Global Warnings"); h("");
+    for (const w of report.warnings) {
+      const p = w.findingId ? `${safeLiteral(w.findingId)}: ` : "";
+      h(`- **${safeLiteral(w.code)}** ${p}${safeInline(w.message)}`);
     }
-    lines.push("");
+    h("");
   }
-
-  const renderFindingSection = (
-    title: string,
-    findings: ReportFinding[],
-  ) => {
+  const section = (title: string, findings: ReportFinding[]) => {
     if (findings.length === 0) return;
-    lines.push(`## ${title} (${findings.length})`);
-    lines.push("");
-    for (const finding of findings) {
-      lines.push(
-        `### ${safeLiteral(finding.id)} -- ${safeInline(finding.title)}`,
-      );
-      lines.push("");
-      lines.push(
-        `**Category:** ${safeLiteral(finding.category)} | **Severity:** ${safeLiteral(finding.severity)} | **Confidence:** ${finding.confidence} | **Status:** ${safeLiteral(finding.status)} | **Recommendation:** ${safeLiteral(finding.recommendation)}`,
-      );
-      lines.push("");
-
-      lines.push("**Expected behavior:**");
-      lines.push("");
-      lines.push(dynamicFence(finding.expectedBehavior));
-      lines.push("");
-
-      lines.push("**Observed behavior:**");
-      lines.push("");
-      lines.push(dynamicFence(finding.observedBehavior));
-      lines.push("");
-
-      if (finding.deterministicFacts.length > 0) {
-        lines.push("**Deterministic facts:**");
-        lines.push("");
-        for (const fact of finding.deterministicFacts) {
-          const evidenceList = fact.evidenceIds
-            .map((id) => safeLiteral(id))
-            .join(", ");
-          lines.push(`- ${safeInline(fact.statement)} (evidence: ${evidenceList})`);
-        }
-        lines.push("");
+    h(`## ${title} (${findings.length})`); h("");
+    for (const f of findings) {
+      h(`### ${safeLiteral(f.id)} -- ${inlineNoNewlines(f.title)}`);
+      h("");
+      h(`**Category:** ${safeLiteral(f.category)} | **Severity:** ${safeLiteral(f.severity)} | **Confidence:** ${f.confidence} | **Status:** ${safeLiteral(f.status)} | **Recommendation:** ${safeLiteral(f.recommendation)}`);
+      h("");
+      h("**Expected behavior:**"); h(""); h(dynamicFence(f.expectedBehavior)); h("");
+      h("**Observed behavior:**"); h(""); h(dynamicFence(f.observedBehavior)); h("");
+      if (f.deterministicFacts.length > 0) {
+        h("**Deterministic facts:**"); h("");
+        for (const fact of f.deterministicFacts) h(`- ${safeInline(fact.statement)} (evidence: ${fact.evidenceIds.map((id) => safeLiteral(id)).join(", ")})`);
+        h("");
       }
-
-      lines.push("**Inference:**");
-      lines.push("");
-      lines.push(dynamicFence(finding.inference));
-      lines.push("");
-
-      if (finding.evidenceIds.length > 0) {
-        lines.push(
-          `**Evidence IDs:** ${finding.evidenceIds.map((id) => safeLiteral(id)).join(", ")}`,
-        );
-        lines.push("");
+      h("**Inference:**"); h(""); h(dynamicFence(f.inference)); h("");
+      if (f.evidenceIds.length > 0) { h(`**Evidence IDs:** ${f.evidenceIds.map((id) => safeLiteral(id)).join(", ")}`); h(""); }
+      if (f.affectedSources.length > 0) {
+        h("**Affected sources:**"); h("");
+        for (const src of f.affectedSources) h(`- ${safeLiteral(src.system)}: ${safeInline(src.locator)}`);
+        h("");
       }
-
-      if (finding.affectedSources.length > 0) {
-        lines.push("**Affected sources:**");
-        lines.push("");
-        for (const src of finding.affectedSources) {
-          lines.push(
-            `- ${safeLiteral(src.system)}: ${safeInline(src.locator)}`,
-          );
-        }
-        lines.push("");
-      }
-
-      if (finding.warnings.length > 0) {
-        lines.push("**Finding warnings:**");
-        lines.push("");
-        for (const w of finding.warnings) {
-          lines.push(
-            `- ${safeLiteral(w.code)}: ${safeInline(w.message)}`,
-          );
-        }
-        lines.push("");
+      if (f.warnings.length > 0) {
+        h("**Finding warnings:**"); h("");
+        for (const w of f.warnings) h(`- ${safeLiteral(w.code)}: ${safeInline(w.message)}`);
+        h("");
       }
     }
   };
-
-  renderFindingSection("Confirmed Findings", report.findings.confirmed);
-  renderFindingSection("Suspected Findings", report.findings.suspected);
-  renderFindingSection("Inconclusive Findings", report.findings.inconclusive);
-
+  section("Confirmed Findings", report.findings.confirmed);
+  section("Suspected Findings", report.findings.suspected);
+  section("Inconclusive Findings", report.findings.inconclusive);
   if (report.rejectedFindings.length > 0) {
-    lines.push(`## Rejected Findings (${report.rejectedFindings.length})`);
-    lines.push("");
+    h(`## Rejected Findings (${report.rejectedFindings.length})`); h("");
     for (const rf of report.rejectedFindings) {
-      const idDisplay = rf.findingId
-        ? safeLiteral(rf.findingId)
-        : "(no valid ID)";
-      lines.push(
-        `### Index ${rf.index}: ${idDisplay}`,
-      );
-      lines.push("");
-      for (const issue of rf.issues) {
-        lines.push(
-          `- **${safeLiteral(issue.code)}** at ${safeLiteral(issue.path)}: ${safeInline(issue.message)}`,
-        );
-      }
-      lines.push("");
+      const idD = rf.findingId ? safeLiteral(rf.findingId) : "(no valid ID)";
+      h(`### Index ${rf.index}: ${idD}`); h("");
+      for (const issue of rf.issues) h(`- **${safeLiteral(issue.code)}** at ${safeLiteral(issue.path)}: ${safeInline(issue.message)}`);
+      h("");
     }
-    lines.push("");
+    h("");
   }
-
   if (report.evidenceCoverage.unreferencedEvidenceIds.length > 0) {
-    lines.push("## Unreferenced Evidence");
-    lines.push("");
-    lines.push(
-      `${report.evidenceCoverage.unreferencedEvidenceIds.length} evidence item(s) were not referenced by any validated finding.`,
-    );
-    lines.push("");
+    h("## Unreferenced Evidence"); h("");
+    h(`${report.evidenceCoverage.unreferencedEvidenceIds.length} evidence item(s) were not referenced by any validated finding.`); h("");
   }
-
-  return lines.join("\n") + "\n";
+  return L.join("\n") + "\n";
 }
 
-function renderJson(report: Report): string {
-  return JSON.stringify(report, null, 2) + "\n";
+function renderJson(report: Report): string { return JSON.stringify(report, null, 2) + "\n"; }
+function checkSizeBound(md: string, json: string, maxBytes: number): void {
+  const mb = Buffer.byteLength(md, "utf-8"), jb = Buffer.byteLength(json, "utf-8");
+  if (mb > maxBytes || jb > maxBytes) throw Object.assign(new Error(`Report exceeds maximum size of ${maxBytes} bytes (markdown: ${mb}, json: ${jb})`), { code: "report_too_large" });
 }
 
-function checkSizeBound(
-  markdown: string,
-  json: string,
-  maxBytes: number,
-): void {
-  const mdBytes = Buffer.byteLength(markdown, "utf-8");
-  const jsonBytes = Buffer.byteLength(json, "utf-8");
-  if (mdBytes > maxBytes || jsonBytes > maxBytes) {
-    throw Object.assign(
-      new Error(
-        `Report exceeds maximum size of ${maxBytes} bytes (markdown: ${mdBytes}, json: ${jsonBytes})`,
-      ),
-      { code: "report_too_large" },
-    );
-  }
-}
+// --- Core write function ---
 
-export function writeReport(
-  rawInput: WriteReportInput,
-): WriteReportOutput {
+export function writeReport(rawInput: WriteReportInput, fs: WriteReportFs = realFs): WriteReportOutput {
   const input = writeReportInputSchema.parse(rawInput);
   const maxBytes = input.maxReportSizeBytes ?? DEFAULT_MAX_REPORT_SIZE_BYTES;
+  const overwrite = input.overwrite === true;
 
-  // Resolve both repositoryRoot and bundle.changeScope.repositoryRoot
-  // and require them to identify the same directory before any mutation.
+  // Resolve repository roots
   let resolvedRepoRoot: string;
-  let resolvedBundleRoot: string;
-  try {
-    resolvedRepoRoot = realpathSync(input.repositoryRoot);
-  } catch (err) {
-    throw Object.assign(
-      new Error(
-        `Cannot resolve repositoryRoot: ${err instanceof Error ? err.message : String(err)}`,
-      ),
-      { code: "invalid_repo_root" },
-    );
+  try { resolvedRepoRoot = realpathSync(input.repositoryRoot); } catch (err) {
+    throw Object.assign(new Error(`Cannot resolve repositoryRoot: ${err instanceof Error ? err.message : String(err)}`), { code: "invalid_repo_root" });
   }
   try {
-    resolvedBundleRoot = realpathSync(input.bundle.changeScope.repositoryRoot);
-  } catch (err) {
-    throw Object.assign(
-      new Error(
-        `Cannot resolve bundle.changeScope.repositoryRoot: ${err instanceof Error ? err.message : String(err)}`,
-      ),
-      { code: "bundle_root_unresolvable" },
-    );
-  }
-  if (resolvedRepoRoot !== resolvedBundleRoot) {
-    throw Object.assign(
-      new Error(
-        `repositoryRoot and bundle.changeScope.repositoryRoot must identify the same directory`,
-      ),
-      { code: "repo_root_mismatch" },
-    );
+    const resolvedBundleRoot = realpathSync(input.bundle.changeScope.repositoryRoot);
+    if (resolvedRepoRoot !== resolvedBundleRoot) throw Object.assign(new Error("repositoryRoot and bundle.changeScope.repositoryRoot must identify the same directory"), { code: "repo_root_mismatch" });
+  } catch (err) { if ((err as { code?: string }).code) throw err;
+    throw Object.assign(new Error(`Cannot resolve bundle.changeScope.repositoryRoot: ${err instanceof Error ? err.message : String(err)}`), { code: "bundle_root_unresolvable" });
   }
 
-  const targetDir = validatePathSafety(
-    input.repositoryRoot,
-    input.outputDirectory,
-  );
-
+  const targetDir = validatePathSafety(input.repositoryRoot, input.outputDirectory);
   const report = buildReport(input);
   const bundle = input.bundle;
-
   const markdown = renderMarkdown(report, bundle);
   const json = renderJson(report);
-
   checkSizeBound(markdown, json, maxBytes);
 
   const jsonFinal = join(targetDir, `${input.reportName}.json`);
   const mdFinal = join(targetDir, `${input.reportName}.md`);
-  const overwrite = input.overwrite === true;
-
   const mdExists = existsSync(mdFinal);
   const jsonExists = existsSync(jsonFinal);
 
   if (!overwrite && (mdExists || jsonExists)) {
-    throw Object.assign(
-      new Error(
-        `Report files already exist in ${targetDir}. Use overwrite: true to replace them.`,
-      ),
-      { code: "report_files_exist" },
-    );
+    throw Object.assign(new Error(`Report files already exist in ${targetDir}. Use overwrite: true to replace them.`), { code: "report_files_exist" });
   }
-
   if (overwrite) {
     if (mdExists) validateOutputFile(mdFinal);
     if (jsonExists) validateOutputFile(jsonFinal);
   }
 
-  try {
-    mkdirSync(targetDir, { recursive: true });
-  } catch (err) {
-    throw Object.assign(
-      new Error(
-        `Cannot create output directory: ${err instanceof Error ? err.message : String(err)}`,
-      ),
-      { code: "output_directory_create_failed" },
-    );
+  try { mkdirSync(targetDir, { recursive: true }); } catch (err) {
+    throw Object.assign(new Error(`Cannot create output directory: ${err instanceof Error ? err.message : String(err)}`), { code: "output_directory_create_failed" });
   }
 
   let resolvedDir: string;
-  try {
-    resolvedDir = realpathSync(targetDir);
-  } catch (err) {
-    throw Object.assign(
-      new Error(
-        `Cannot resolve output path: ${err instanceof Error ? err.message : String(err)}`,
-      ),
-      { code: "path_resolution_failed" },
-    );
+  try { resolvedDir = realpathSync(targetDir); } catch (err) {
+    throw Object.assign(new Error(`Cannot resolve output path: ${err instanceof Error ? err.message : String(err)}`), { code: "path_resolution_failed" });
+  }
+  const relResolved = relative(resolvedRepoRoot, resolvedDir);
+  if (relResolved === "" || isAbsolute(relResolved) || relResolved.split(/[\\/]/).some((s) => s === "..")) {
+    throw Object.assign(new Error("Output directory resolved outside the repository root"), { code: "output_directory_escape" });
   }
 
-  const relativeResolved = relative(resolvedRepoRoot, resolvedDir);
-  if (
-    relativeResolved === "" ||
-    isAbsolute(relativeResolved) ||
-    relativeResolved.split(/[\\/]/).some((s) => s === "..")
-  ) {
-    throw Object.assign(
-      new Error("Output directory resolved outside the repository root"),
-      { code: "output_directory_escape" },
-    );
-  }
-
-  let stagingDir: string | null = null;
-  const jsonBak = join(targetDir, `${input.reportName}.json.bak`);
-  const mdBak = join(targetDir, `${input.reportName}.md.bak`);
+  let txDir: string | null = null;
   let phase: TxPhase = TxPhase.Init;
+
+  const jsonStaging: string[] = [];
+  const mdStaging: string[] = [];
+  const jsonBak: string[] = [];
+  const mdBak: string[] = [];
   const unresolved: string[] = [];
 
-  function failClosed(message: string, code: string): never {
-    const artifacts = unresolved.filter((p) => existsSync(p));
-    const detail = artifacts.length > 0
-      ? `; unresolved artifacts: ${artifacts.join(", ")}`
-      : "";
-    throw Object.assign(
-      new Error(`${message}${detail}`),
-      { code },
-    );
+  function errDetail(): string {
+    const paths = unresolved.filter((p) => existsSync(p));
+    return paths.length > 0 ? `; unresolved: ${paths.join(", ")}` : "";
+  }
+  function fail(msg: string, code: string): never {
+    throw Object.assign(new Error(`${msg}${errDetail()}`), { code });
+  }
+  function tryOp(fn: () => void, label: string): void {
+    try { fn(); } catch (e) { unresolved.push(label); throw e; }
   }
 
   try {
-    // Phase 1: create staging directory exclusively
-    try {
-      stagingDir = mkdtempSync(join(targetDir, `.report-`));
-    } catch (err) {
-      throw Object.assign(
-        new Error(
-          `Cannot create staging directory: ${err instanceof Error ? err.message : String(err)}`,
-        ),
-        { code: "staging_create_failed" },
-      );
-    }
-    unresolved.push(stagingDir);
+    // Phase 1: create transaction directory
+    tryOp(() => { txDir = fs.mkdtempSync(join(targetDir, `.report-`)); }, `<txDir>`);
+    if (txDir) unresolved.push(txDir);
+    phase = TxPhase.TxDirReady;
 
-    const jsonStaging = join(stagingDir, `${input.reportName}.json`);
-    const mdStaging = join(stagingDir, `${input.reportName}.md`);
+    // Verify txDir realpath stays inside targetDir
+    tryOp(() => {
+      const txReal = realpathSync(txDir!);
+      const txRel = relative(resolvedDir, txReal);
+      if (txRel === "" || isAbsolute(txRel) || txRel.split(/[\\/]/).some((s) => s === "..")) {
+        throw Object.assign(new Error("Transaction directory resolves outside the target directory"), { code: "txdir_escape" });
+      }
+    }, `<txDir-verify>`);
 
-    // Verify staging entries don't exist or are not symlinks
-    validateStagingEntry(jsonStaging);
-    validateStagingEntry(mdStaging);
+    const jStg = join(txDir!, "new.json");
+    const mStg = join(txDir!, "new.md");
+    jsonStaging.push(jStg);
+    mdStaging.push(mStg);
 
-    // Phase 2: write both files in staging
-    writeFileSync(jsonStaging, json, "utf-8");
-    writeFileSync(mdStaging, markdown, "utf-8");
-
-    validateOutputFile(jsonStaging);
-    validateOutputFile(mdStaging);
-
+    // Phase 2: write staging files with wx (exclusive creation)
+    tryOp(() => { fs.writeFileSync(jStg, json, { flag: "wx" }); }, jStg);
+    tryOp(() => { fs.writeFileSync(mStg, markdown, { flag: "wx" }); }, mStg);
+    validateOutputFile(jStg);
+    validateOutputFile(mStg);
     phase = TxPhase.Staged;
 
-    // Phase 3: if overwriting, back up existing files
-    let jsonBackedUp = false;
-    let mdBackedUp = false;
-
+    // Phase 3: if overwriting, backup existing files into txDir
     if (overwrite) {
-      try { unlinkSync(jsonBak); } catch { /* pre-existing bak from crash */ }
-      try { unlinkSync(mdBak); } catch { /* pre-existing bak from crash */ }
-
       if (jsonExists) {
-        renameSync(jsonFinal, jsonBak);
-        jsonBackedUp = true;
+        const bak = join(txDir!, "bak.json");
+        jsonBak.push(bak);
+        tryOp(() => { fs.renameSync(jsonFinal, bak); }, `<json-backup>`);
+        phase = TxPhase.JsonBackedUp;
       }
       if (mdExists) {
-        renameSync(mdFinal, mdBak);
-        mdBackedUp = true;
+        const bak = join(txDir!, "bak.md");
+        mdBak.push(bak);
+        tryOp(() => { fs.renameSync(mdFinal, bak); }, `<md-backup>`);
+        phase = TxPhase.MdBackedUp;
       }
     }
 
-    // Phase 4: promote JSON from staging to final
-    renameSync(jsonStaging, jsonFinal);
+    // Phase 4: promote JSON staging to final
+    tryOp(() => { fs.renameSync(jStg, jsonFinal); }, `<json-promote>`);
+    jsonStaging.length = 0;
     phase = TxPhase.JsonLive;
 
-    // Phase 5: promote Markdown from staging to final
-    renameSync(mdStaging, mdFinal);
+    // Phase 5: promote Markdown staging to final
+    tryOp(() => { fs.renameSync(mStg, mdFinal); }, `<md-promote>`);
+    mdStaging.length = 0;
     phase = TxPhase.MdLive;
 
-    // Phase 6: clean up backups and staging
-    if (jsonBackedUp) unlinkSync(jsonBak);
-    if (mdBackedUp) unlinkSync(mdBak);
-
-    try { rmdirSync(stagingDir); } catch { /* staging already promoted */ }
-    unresolved.length = 0;
-    phase = TxPhase.Committed;
-  } catch (err) {
-    // Rollback: restore backups, remove partial artifacts
+  } catch (originalErr) {
+    // --- Rollback (only for promotion/backup phase failures) ---
     const rollbackErrors: string[] = [];
 
+    function safeUnlink(p: string) { try { fs.unlinkSync(p); } catch (e) { rollbackErrors.push(`unlink ${p}: ${e instanceof Error ? e.message : String(e)}`); } }
+    function safeRename(from: string, to: string) { try { fs.renameSync(from, to); } catch (e) { rollbackErrors.push(`rename ${from}: ${e instanceof Error ? e.message : String(e)}`); } }
+
+    // If JSON was promoted, remove it before restoring backup
     if (phase >= TxPhase.JsonLive) {
-      try { unlinkSync(jsonFinal); } catch { /* gone */ }
+      try { if (existsSync(jsonFinal)) fs.unlinkSync(jsonFinal); } catch { /* best effort */ }
     }
-    if (overwrite) {
-      if (jsonExists && existsSync(jsonBak)) {
-        try { renameSync(jsonBak, jsonFinal); } catch (e) {
-          rollbackErrors.push(`json.bak: ${e instanceof Error ? e.message : String(e)}`);
-        }
-      }
-      if (mdExists && existsSync(mdBak)) {
-        try { renameSync(mdBak, mdFinal); } catch (e) {
-          rollbackErrors.push(`md.bak: ${e instanceof Error ? e.message : String(e)}`);
-        }
-      }
+    // If Markdown was promoted, remove it before restoring backup
+    if (phase >= TxPhase.MdLive) {
+      try { if (existsSync(mdFinal)) fs.unlinkSync(mdFinal); } catch { /* best effort */ }
     }
 
-    if (stagingDir && existsSync(stagingDir)) {
-      try { unlinkSync(join(stagingDir, `${input.reportName}.json`)); } catch { /* gone */ }
-      try { unlinkSync(join(stagingDir, `${input.reportName}.md`)); } catch { /* gone */ }
-      try { rmdirSync(stagingDir); } catch { /* may not be empty */ }
+    // Restore JSON backup if it exists
+    if (jsonBak.length > 0 && existsSync(jsonBak[0]!)) {
+      safeRename(jsonBak[0]!, jsonFinal);
+    }
+    // Restore Markdown backup if it exists
+    if (mdBak.length > 0 && existsSync(mdBak[0]!)) {
+      safeRename(mdBak[0]!, mdFinal);
+    }
+
+    // Clean up staging files
+    for (const s of jsonStaging) { if (existsSync(s)) safeUnlink(s); }
+    for (const s of mdStaging) { if (existsSync(s)) safeUnlink(s); }
+    // Clean up backup files (only if not already restored)
+    for (const b of jsonBak) { if (existsSync(b)) safeUnlink(b); }
+    for (const b of mdBak) { if (existsSync(b)) safeUnlink(b); }
+
+    // Clean up transaction directory
+    if (txDir && existsSync(txDir)) {
+      try { fs.rmdirSync(txDir); } catch (e) {
+        rollbackErrors.push(`rmdir txDir: ${e instanceof Error ? e.message : String(e)}`);
+      }
     }
 
     const remaining = unresolved.filter((p) => existsSync(p));
-    if (remaining.length > 0) {
-      rollbackErrors.push(
-        `unresolved artifacts: ${remaining.join(", ")}`,
-      );
-    }
+    if (remaining.length > 0) rollbackErrors.push(`unresolved artifacts: ${remaining.join(", ")}`);
 
     if (rollbackErrors.length > 0) {
       throw Object.assign(
-        new Error(
-          `writeReport failed with rollback errors: ${rollbackErrors.join("; ")}`,
-        ),
+        new Error(`writeReport failed; rollback errors: ${rollbackErrors.join("; ")}`),
         { code: "write_report_rollback_failed" },
       );
     }
+    // Clean rollback: re-throw the original error
+    throw originalErr;
+  }
 
-    throw err;
+  // Phase 6: clean up transaction directory (no rollback on failure)
+  const cleanupErrors: string[] = [];
+  function cleanupUnlink(p: string) { try { if (existsSync(p)) fs.unlinkSync(p); } catch (e) { cleanupErrors.push(`unlink ${p}: ${e instanceof Error ? e.message : String(e)}`); } }
+  cleanupUnlink(jsonBak[0] ?? "");
+  cleanupUnlink(mdBak[0] ?? "");
+  for (const s of jsonStaging) { if (existsSync(s)) cleanupUnlink(s); }
+  for (const s of mdStaging) { if (existsSync(s)) cleanupUnlink(s); }
+
+  try { fs.rmdirSync(txDir!); } catch (e) {
+    cleanupErrors.push(`rmdir txDir: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  if (cleanupErrors.length > 0) {
+    throw Object.assign(
+      new Error(`writeReport committed but cleanup failed: ${cleanupErrors.join("; ")}; txDir: ${txDir}`),
+      { code: "tx_cleanup_failed" },
+    );
+  }
+
+  unresolved.length = 0;
+  phase = TxPhase.Committed;
+
+  // Post-commit: ensure no artifacts remain
+  if (phase !== TxPhase.Committed) {
+    fail("Report transaction did not reach committed state", "tx_not_committed");
+  }
+  const remainingTx = unresolved.filter((p) => existsSync(p));
+  if (remainingTx.length > 0) {
+    throw Object.assign(
+      new Error(`writeReport committed but unresolved artifacts remain: ${remainingTx.join(", ")}`),
+      { code: "tx_cleanup_failed" },
+    );
   }
 
   const markdownSizeBytes = Buffer.byteLength(markdown, "utf-8");
   const jsonSizeBytes = Buffer.byteLength(json, "utf-8");
-
-  // Assert phase committed
-  if (phase !== TxPhase.Committed) {
-    failClosed("Report transaction did not reach committed state", "tx_not_committed");
-  }
-
   return writeReportOutputSchema.parse({
-    reportId: report.id,
-    reportPath: targetDir,
-    markdownFile: mdFinal,
-    jsonFile: jsonFinal,
-    markdownSizeBytes,
-    jsonSizeBytes,
+    reportId: report.id, reportPath: targetDir, markdownFile: mdFinal,
+    jsonFile: jsonFinal, markdownSizeBytes, jsonSizeBytes,
   } satisfies WriteReportOutput);
 }
