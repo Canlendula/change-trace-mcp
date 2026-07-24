@@ -155,63 +155,56 @@ git status --short
   - `da8e140` — fix: first review round
   - `2cc369e` — fix: second review round
   - `289ab44` — fix: third review round
+  - `31fa425` — fix: fourth review round
 
 ### Implementation summary
 
-Fourth commit (third review round fixes):
+Fifth commit (fourth review round fixes):
 
-- **Transaction lifecycle rework**: `mkdtemp` creates transaction directory
-  inside targetDir. Both staging files (`new.json`, `new.md`) and backups
-  (`bak.json`, `bak.md`) live inside the txDir. No predictable `.bak` paths
-  in the output directory. Staging files created with `flag: "wx"` (exclusive
-  creation, rejects existing entries). TxDir realpath verified within
-  targetDir before any writes. Both backup `renameSync` calls must succeed
-  before either promotion. JSON and Markdown promotion tracked independently
-  via `TxPhase` enum.
-- **Correct rollback**: Phase-gated cleanup. If JSON was promoted, `unlinkSync`
-  before restoring its backup. If Markdown was promoted, `unlinkSync` before
-  restoring its backup. No swallowed failures in backup, promotion, restore,
-  unlink, or rmdir operations. All unresolved paths collected and reported in
-  a bounded rollback error. If rollback is clean, original error re-thrown.
-- **Post-promotion cleanup**: After both files are live (phase >= MdLive),
-  cleanup runs in a separate block. Transaction directory removal failure
-  throws `tx_cleanup_failed` with the unresolved txDir path. No unsafe partial
-  rollback — the new files remain live.
-- **Failure-injection tests**: `WriteReportFs` interface with overridable
-  `mkdtempSync`, `writeFileSync`, `renameSync`, `unlinkSync`, `rmdirSync`.
-  Four real failure tests: backup rename failure leaves old pair untouched;
-  markdown promotion failure after JSON promotion restores both old files;
-  txDir removal failure after both live reports unresolved directory; staging
-  wx semantics reject pre-existing entry. No test named "failure" executes
-  only successful write.
-- **Complete Markdown containment**: `safeInline` handles leading spaces
-  (0-3) + `#`, `>`, `-`, `*`, `+`, ordered lists, `===`/`---` thematic breaks,
-  table pipe. Four-space/tab indentation escaped to prevent indented code
-  blocks. `dynamicFence` wraps unrestricted multiline prose with heading
-  suppression. `inlineNoNewlines` converts `\n` to ` / ` for values in
-  headings/inline prose. Regression strings tested: `"safe\n   # heading"`,
-  `"safe\n   - list"`, `"safe\n   1. ordered"`, `"safe\n    indented code"`,
-  `"safe\n\tindented code"`.
+- **Rollback unlink failure**: `safeUnlink` replaces swallowed `catch {}` blocks.
+  Failed unlinks of promoted final files are collected in `rollbackErrors`.
+  Residual final paths are reported in the `write_report_rollback_failed` error.
+- **Backup restore failure**: `rollbackFatal` flag set when `safeRename` fails
+  during backup restore. When fatal, bak files are NOT deleted and txDir is NOT
+  removed — both are preserved for manual recovery. Error includes both final
+  residual paths and backup paths. Handled for both JSON and Markdown directions.
+- **Three new failure-injection tests**:
+  - No old reports: md promotion fails + json final unlink fails → reports
+    unlink error and residual json final path
+  - With old reports: json backup restore fails → verifies bak.json preserved
+    in txDir with old content, old md restored from backup
+  - With old reports: md backup restore fails → verifies bak.md preserved in
+    txDir with old content, old json restored from backup
+- **Four-space/Tab indented code block fix**: `safeInline` now replaces
+  `^ {4,}` → `   \\` + rest (3 spaces + backslash breaks 4-space indentation),
+  `^\t` → `   \\t` (3 spaces + backslash-t). Test verifies no output line has
+  valid 4-space or tab indentation structure.
+- **Restored acceptance tests**: bundleId mismatch, absolute output directory
+  rejection, `..` traversal rejection, unsafe reportName rejection, empty
+  findings handling, warnings/rejections in Markdown, truncated evidence
+  display.
+- **WriteReportFs hidden**: Public API is `writeReport(input)` only. Internal
+  `_writeReportForTest(input, fs)` exposed for failure injection; not part of
+  `reports/index.ts` barrel export.
 
 ### Changed areas
 
-- `src/reports/write-report.ts` — mkdtemp transaction staging, wx semantics,
-  phase-gated rollback, separate cleanup block, WriteReportFs adapter,
-  enhanced safeInline with leading-space/spacing/indented-code handling
-- `src/reports/index.ts` — exported WriteReportFs type
-- `tests/unit/report-write.test.ts` — 4 real failure-injection tests, updated
-  markdown containment test with regression strings
+- `src/reports/write-report.ts` — safeUnlink rollback, rollbackFatal flag,
+  fix safeInline 4-space/tab escapes, split public/internal API
+- `src/reports/index.ts` — exports writeReport only
+- `tests/unit/report-write.test.ts` — 3 new failure-injection tests, restored
+  7 acceptance tests, 4-space/tab verification test
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
 | `npm run check` | PASS | Zero errors |
-| `npm test` | PASS | 75 tests (12 files), zero failures |
-| `npm run smoke:stdio` | PASS | write_report in tools, fixture byte-stable |
-| `npm run pack:check` | PASS | Tarball includes all new files |
+| `npm test` | PASS | 80 tests (12 files), zero failures |
+| `npm run smoke:stdio` | PASS | write_report in tools |
+| `npm run pack:check` | PASS | 127 files, no warnings |
 | `git diff --check` | PASS | No whitespace errors |
-| `git status --short` | Clean after commits | Task file pending |
+| `git status --short` | Clean | Task file pending |
 
 ### Deviations from assignment
 
@@ -219,12 +212,11 @@ Fourth commit (third review round fixes):
 
 ### Known limitations and risks
 
-- `mkdtempSync` and `wx` writes require write permission in the target
-  directory.
-- `WriteReportFs` adapter is internal; the public `writeReport` signature is
-  `(input, fs?)` where `fs` defaults to real Node.js `fs` operations.
-- Rollback is best-effort when the filesystem itself is failing; unresolved
-  artifact paths are reported in the error for operator inspection.
+- `rollbackFatal` flag-based preservation of bak files and txDir relies on
+  the filesystem not being in a catastrophic failure state; extreme scenarios
+  (disk full) may still leave artifacts.
+- `_writeReportForTest` is internal; coordinator may request removal before
+  release.
 
 ### Decisions or questions for coordinator
 
