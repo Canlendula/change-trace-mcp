@@ -1,0 +1,38 @@
+[
+  {
+    "schemaVersion": "1.0.0",
+    "id": "finding:stale-001",
+    "category": "stale_documentation",
+    "severity": "medium",
+    "confidence": 0.85,
+    "title": "Spec documents outdated lockout duration",
+    "expectedBehavior": "The spec should reflect the current lockout duration of 600,000 ms.",
+    "observedBehavior": "The spec states lockoutDuration is 300,000 ms but the code uses 600,000 ms.",
+    "deterministicFacts": [
+      {
+        "statement": "The spec states lockoutDuration is 300,000 ms.",
+        "evidenceIds": ["evidence:doc:stale-spec"]
+      },
+      {
+        "statement": "The implementation sets lockoutDuration to 600,000 ms.",
+        "evidenceIds": ["evidence:diff:stale-config"]
+      }
+    ],
+    "inference": "The lockout duration was increased from 300,000 to 600,000 ms but the spec was not updated.",
+    "evidenceIds": ["evidence:doc:stale-spec", "evidence:diff:stale-config"],
+    "affectedSources": [
+      {
+        "system": "repository",
+        "locator": "docs/spec.md",
+        "uri": null
+      },
+      {
+        "system": "git",
+        "locator": "src/config.ts",
+        "uri": null
+      }
+    ],
+    "recommendation": "update_documentation",
+    "status": "confirmed"
+  }
+]

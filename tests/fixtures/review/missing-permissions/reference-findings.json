@@ -1,0 +1,38 @@
+[
+  {
+    "schemaVersion": "1.0.0",
+    "id": "finding:missperm-001",
+    "category": "other",
+    "severity": "medium",
+    "confidence": 0.3,
+    "title": "Cannot verify SECRET_KEY configuration due to inaccessible evidence",
+    "expectedBehavior": "The SECRET_KEY configuration should be verifiable from available evidence.",
+    "observedBehavior": "The .env.production file required for verification is inaccessible due to permission denied.",
+    "deterministicFacts": [
+      {
+        "statement": "The spec requires SECRET_KEY from .env.production.",
+        "evidenceIds": ["evidence:doc:missperm-spec"]
+      },
+      {
+        "statement": "The implementation reads .env.production.",
+        "evidenceIds": ["evidence:diff:missperm-auth"]
+      }
+    ],
+    "inference": "Without access to .env.production, the key configuration cannot be verified.",
+    "evidenceIds": ["evidence:doc:missperm-spec", "evidence:diff:missperm-auth"],
+    "affectedSources": [
+      {
+        "system": "repository",
+        "locator": "docs/spec.md",
+        "uri": null
+      },
+      {
+        "system": "git",
+        "locator": "src/auth.ts",
+        "uri": null
+      }
+    ],
+    "recommendation": "investigate",
+    "status": "inconclusive"
+  }
+]

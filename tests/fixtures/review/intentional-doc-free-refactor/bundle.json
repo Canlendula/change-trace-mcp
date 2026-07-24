@@ -1,0 +1,161 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "bundle:intentional-doc-free-refactor",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "changeScope": {
+    "schemaVersion": "1.0.0",
+    "repositoryRoot": "/workspace/auth-service",
+    "baseRef": "main",
+    "headRef": "feature/refactor-auth",
+    "resolvedBase": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resolvedHead": "dddddddddddddddddddddddddddddddddddddddd",
+    "commits": [
+      {
+        "id": "commit:int-ref-main",
+        "objectId": "dddddddddddddddddddddddddddddddddddddddd",
+        "parentObjectIds": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+        "summary": "refactor: rename internal helpers, no behavior change",
+        "committedAt": "2026-01-01T00:00:00.000Z",
+        "redactions": []
+      }
+    ],
+    "files": [
+      {
+        "id": "file:int-ref/src/auth.ts",
+        "path": "src/auth.ts",
+        "previousPath": null,
+        "status": "modified",
+        "isBinary": false,
+        "additions": 3,
+        "deletions": 3,
+        "diff": {
+          "text": "-export function validateEmail(email: string): boolean {\n-  return /^[^@]+@[^@]+$/.test(email);\n+export function isValidEmail(email: string): boolean {\n+  return /^[^@]+@[^@]+$/.test(email);\n }\n \n export function login(email: string, password: string): boolean {\n-  if (!validateEmail(email)) return false;\n+  if (!isValidEmail(email)) return false;\n+  return sanitizePassword(password).length >= 8;\n+}\n+\n+function sanitizePassword(password: string): string {\n   return password;\n }\n",
+          "isTruncated": false,
+          "originalBytes": 380,
+          "retainedBytes": 380
+        },
+        "redactions": []
+      }
+    ],
+    "detectedLanguages": ["TypeScript"],
+    "detectedComponents": ["src"],
+    "limits": {
+      "maxCommits": 500,
+      "maxFiles": 500,
+      "maxDiffBytes": 1000000,
+      "maxPatchBytesPerFile": 64000
+    },
+    "truncation": {
+      "isTruncated": false,
+      "reasons": [],
+      "omittedCommits": 0,
+      "omittedFiles": 0
+    },
+    "errors": []
+  },
+  "evidenceItems": [
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:commit:int-ref-msg",
+      "type": "commit",
+      "source": {
+        "system": "git",
+        "locator": "commit:dddddddddddddddddddddddddddddddddddddddd",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:int-ref/src/auth.ts"],
+      "excerpt": "refactor: rename internal helpers, no behavior change\n\nRenamed validateEmail to isValidEmail. Extracted sanitizePassword helper.\nAll existing tests pass identically and public API surface is unchanged.",
+      "selectionReason": "Commit message explicitly states the change is a behavior-preserving refactor.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 199,
+        "retainedCharacters": 199
+      },
+      "redactions": []
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:diff:int-ref-auth",
+      "type": "git_diff",
+      "source": {
+        "system": "git",
+        "locator": "src/auth.ts",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:int-ref/src/auth.ts"],
+      "excerpt": "-export function validateEmail(email) { return /^...$/.test(email); }\n+export function isValidEmail(email) { return /^...$/.test(email); }\n \n export function login(email, password) {\n-  if (!validateEmail(email)) return false;\n-  return password.length >= 8;\n+  if (!isValidEmail(email)) return false;\n+  return sanitizePassword(password).length >= 8;\n }\n+\n+function sanitizePassword(p) { return p; }\n",
+      "selectionReason": "Diff shows only internal renames and extraction of a no-op helper.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 350,
+        "retainedCharacters": 350
+      },
+      "redactions": []
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:test:int-ref-results",
+      "type": "test_result",
+      "source": {
+        "system": "repository",
+        "locator": "tests/auth.test.ts",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:int-ref/src/auth.ts"],
+      "excerpt": "PASS tests/auth.test.ts (5 tests)\n  auth (5)\n    validates email format\n    rejects invalid email\n    logs in with correct password\n    rejects short password\n    login returns false for invalid email\n\nTests: 5 passed, 5 total",
+      "selectionReason": "Test results show all 5 tests pass identically before and after the refactor.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 225,
+        "retainedCharacters": 225
+      },
+      "redactions": []
+    }
+  ],
+  "evidenceIndex": [
+    {
+      "evidenceId": "evidence:commit:int-ref-msg",
+      "relatedChangeIds": ["file:int-ref/src/auth.ts"]
+    },
+    {
+      "evidenceId": "evidence:diff:int-ref-auth",
+      "relatedChangeIds": ["file:int-ref/src/auth.ts"]
+    },
+    {
+      "evidenceId": "evidence:test:int-ref-results",
+      "relatedChangeIds": ["file:int-ref/src/auth.ts"]
+    }
+  ],
+  "deterministicFacts": [
+    {
+      "id": "fact:int-ref-commit-states-refactor",
+      "statement": "The commit message explicitly states this is a behavior-preserving refactor.",
+      "evidenceIds": ["evidence:commit:int-ref-msg"]
+    },
+    {
+      "id": "fact:int-ref-tests-identical",
+      "statement": "All 5 existing tests pass identically after the refactor.",
+      "evidenceIds": ["evidence:test:int-ref-results"]
+    }
+  ],
+  "missingEvidence": [],
+  "limits": {
+    "maxEvidenceItems": 100,
+    "maxTotalExcerptCharacters": 100000
+  },
+  "truncation": {
+    "isTruncated": false,
+    "omittedEvidenceItems": 0,
+    "omittedExcerptCharacters": 0,
+    "omittedMissingEvidence": 0
+  }
+}

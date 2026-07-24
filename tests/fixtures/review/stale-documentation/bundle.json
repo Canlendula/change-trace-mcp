@@ -1,0 +1,135 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "bundle:stale-documentation",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "changeScope": {
+    "schemaVersion": "1.0.0",
+    "repositoryRoot": "/workspace/auth-service",
+    "baseRef": "main",
+    "headRef": "feature/lockout-update",
+    "resolvedBase": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resolvedHead": "9999999999999999999999999999999999999999",
+    "commits": [
+      {
+        "id": "commit:stale-main",
+        "objectId": "9999999999999999999999999999999999999999",
+        "parentObjectIds": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+        "summary": "Increase lockout duration from 5 to 10 minutes",
+        "committedAt": "2026-01-01T00:00:00.000Z",
+        "redactions": []
+      }
+    ],
+    "files": [
+      {
+        "id": "file:stale/src/config.ts",
+        "path": "src/config.ts",
+        "previousPath": null,
+        "status": "modified",
+        "isBinary": false,
+        "additions": 1,
+        "deletions": 1,
+        "diff": {
+          "text": "-export const LOCKOUT_DURATION_MS = 300_000;\n+export const LOCKOUT_DURATION_MS = 600_000;\n",
+          "isTruncated": false,
+          "originalBytes": 72,
+          "retainedBytes": 72
+        },
+        "redactions": []
+      }
+    ],
+    "detectedLanguages": ["TypeScript"],
+    "detectedComponents": ["src"],
+    "limits": {
+      "maxCommits": 500,
+      "maxFiles": 500,
+      "maxDiffBytes": 1000000,
+      "maxPatchBytesPerFile": 64000
+    },
+    "truncation": {
+      "isTruncated": false,
+      "reasons": [],
+      "omittedCommits": 0,
+      "omittedFiles": 0
+    },
+    "errors": []
+  },
+  "evidenceItems": [
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:doc:stale-spec",
+      "type": "document",
+      "source": {
+        "system": "repository",
+        "locator": "docs/spec.md",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:stale/src/config.ts"],
+      "excerpt": "## Lockout Configuration\n\nAfter 3 failed login attempts the account MUST be locked out for 300,000 milliseconds (5 minutes).",
+      "selectionReason": "Spec documents lockoutDuration as 300,000 ms (5 minutes).",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 141,
+        "retainedCharacters": 141
+      },
+      "redactions": []
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:diff:stale-config",
+      "type": "git_diff",
+      "source": {
+        "system": "git",
+        "locator": "src/config.ts",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:stale/src/config.ts"],
+      "excerpt": "-export const LOCKOUT_DURATION_MS = 300_000;\n+export const LOCKOUT_DURATION_MS = 600_000;\n",
+      "selectionReason": "The diff shows lockoutDuration was changed from 300,000 to 600,000 ms.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 72,
+        "retainedCharacters": 72
+      },
+      "redactions": []
+    }
+  ],
+  "evidenceIndex": [
+    {
+      "evidenceId": "evidence:doc:stale-spec",
+      "relatedChangeIds": ["file:stale/src/config.ts"]
+    },
+    {
+      "evidenceId": "evidence:diff:stale-config",
+      "relatedChangeIds": ["file:stale/src/config.ts"]
+    }
+  ],
+  "deterministicFacts": [
+    {
+      "id": "fact:stale-spec-says-300k",
+      "statement": "The spec states lockoutDuration is 300,000 ms (5 minutes).",
+      "evidenceIds": ["evidence:doc:stale-spec"]
+    },
+    {
+      "id": "fact:stale-code-has-600k",
+      "statement": "The implementation sets lockoutDuration to 600,000 ms (10 minutes).",
+      "evidenceIds": ["evidence:diff:stale-config"]
+    }
+  ],
+  "missingEvidence": [],
+  "limits": {
+    "maxEvidenceItems": 100,
+    "maxTotalExcerptCharacters": 100000
+  },
+  "truncation": {
+    "isTruncated": false,
+    "omittedEvidenceItems": 0,
+    "omittedExcerptCharacters": 0,
+    "omittedMissingEvidence": 0
+  }
+}

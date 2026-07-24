@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "fixtureId": "stale-documentation",
+  "outcome": "findings",
+  "minFindings": 1,
+  "maxFindings": 5,
+  "requiredMatches": [
+    {
+      "category": "stale_documentation",
+      "status": "confirmed",
+      "recommendation": "update_documentation",
+      "requiredEvidenceIds": ["evidence:doc:stale-spec"],
+      "minCount": 1
+    }
+  ],
+  "rationale": "The spec documents 5-minute lockout but code has 10-minute lockout; a stale_documentation finding is expected."
+}

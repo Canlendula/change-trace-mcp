@@ -1,0 +1,161 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "bundle:contradictory-documents",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "changeScope": {
+    "schemaVersion": "1.0.0",
+    "repositoryRoot": "/workspace/auth-service",
+    "baseRef": "main",
+    "headRef": "feature/auth-config",
+    "resolvedBase": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resolvedHead": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "commits": [
+      {
+        "id": "commit:contra-main",
+        "objectId": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "parentObjectIds": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+        "summary": "Configure max login attempts",
+        "committedAt": "2026-01-01T00:00:00.000Z",
+        "redactions": []
+      }
+    ],
+    "files": [
+      {
+        "id": "file:contra/src/config.ts",
+        "path": "src/config.ts",
+        "previousPath": null,
+        "status": "added",
+        "isBinary": false,
+        "additions": 2,
+        "deletions": 0,
+        "diff": {
+          "text": "+export const MAX_LOGIN_ATTEMPTS = 3;\n+export const LOCKOUT_DURATION_MS = 600_000;\n",
+          "isTruncated": false,
+          "originalBytes": 75,
+          "retainedBytes": 75
+        },
+        "redactions": []
+      }
+    ],
+    "detectedLanguages": ["TypeScript"],
+    "detectedComponents": ["src"],
+    "limits": {
+      "maxCommits": 500,
+      "maxFiles": 500,
+      "maxDiffBytes": 1000000,
+      "maxPatchBytesPerFile": 64000
+    },
+    "truncation": {
+      "isTruncated": false,
+      "reasons": [],
+      "omittedCommits": 0,
+      "omittedFiles": 0
+    },
+    "errors": []
+  },
+  "evidenceItems": [
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:doc:contra-spec",
+      "type": "document",
+      "source": {
+        "system": "repository",
+        "locator": "docs/spec.md",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:contra/src/config.ts"],
+      "excerpt": "## Login Rate Limiting\n\nThe system MUST limit login attempts to a maximum of 3 per account before locking out.",
+      "selectionReason": "The spec states max attempts is 3.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 123,
+        "retainedCharacters": 123
+      },
+      "redactions": []
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:doc:contra-changelog",
+      "type": "document",
+      "source": {
+        "system": "repository",
+        "locator": "docs/CHANGELOG.md",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:contra/src/config.ts"],
+      "excerpt": "## v2.1.0 — 2025-12-15\n\n- Changed maximum login attempts from 3 to 5 per account.",
+      "selectionReason": "The changelog states max attempts was changed to 5, contradicting the spec.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 98,
+        "retainedCharacters": 98
+      },
+      "redactions": []
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:diff:contra-config",
+      "type": "git_diff",
+      "source": {
+        "system": "git",
+        "locator": "src/config.ts",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:contra/src/config.ts"],
+      "excerpt": "+export const MAX_LOGIN_ATTEMPTS = 3;\n+export const LOCKOUT_DURATION_MS = 600_000;\n",
+      "selectionReason": "The code sets MAX_LOGIN_ATTEMPTS to 3, matching the spec but contradicting the changelog.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 75,
+        "retainedCharacters": 75
+      },
+      "redactions": []
+    }
+  ],
+  "evidenceIndex": [
+    {
+      "evidenceId": "evidence:doc:contra-spec",
+      "relatedChangeIds": ["file:contra/src/config.ts"]
+    },
+    {
+      "evidenceId": "evidence:doc:contra-changelog",
+      "relatedChangeIds": ["file:contra/src/config.ts"]
+    },
+    {
+      "evidenceId": "evidence:diff:contra-config",
+      "relatedChangeIds": ["file:contra/src/config.ts"]
+    }
+  ],
+  "deterministicFacts": [
+    {
+      "id": "fact:contra-spec-says-3",
+      "statement": "The spec states the maximum login attempts is 3.",
+      "evidenceIds": ["evidence:doc:contra-spec"]
+    },
+    {
+      "id": "fact:contra-changelog-says-5",
+      "statement": "The changelog states the maximum login attempts was changed to 5.",
+      "evidenceIds": ["evidence:doc:contra-changelog"]
+    }
+  ],
+  "missingEvidence": [],
+  "limits": {
+    "maxEvidenceItems": 100,
+    "maxTotalExcerptCharacters": 100000
+  },
+  "truncation": {
+    "isTruncated": false,
+    "omittedEvidenceItems": 0,
+    "omittedExcerptCharacters": 0,
+    "omittedMissingEvidence": 0
+  }
+}

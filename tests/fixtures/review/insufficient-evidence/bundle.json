@@ -1,0 +1,154 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "bundle:insufficient-evidence",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "changeScope": {
+    "schemaVersion": "1.0.0",
+    "repositoryRoot": "/workspace/auth-service",
+    "baseRef": "main",
+    "headRef": "feature/auth-complex",
+    "resolvedBase": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resolvedHead": "2222222222222222222222222222222222222222",
+    "commits": [
+      {
+        "id": "commit:insuff-main",
+        "objectId": "2222222222222222222222222222222222222222",
+        "parentObjectIds": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+        "summary": "Implement complex auth flow with external integrations",
+        "committedAt": "2026-01-01T00:00:00.000Z",
+        "redactions": []
+      }
+    ],
+    "files": [
+      {
+        "id": "file:insuff/src/auth.ts",
+        "path": "src/auth.ts",
+        "previousPath": null,
+        "status": "added",
+        "isBinary": false,
+        "additions": 15,
+        "deletions": 0,
+        "diff": {
+          "text": "+import { createHash } from 'crypto';\n+\n+export async function authenticate(token: string): Promise<boolean> {\n+  return validateJwt(token) && verifyPermissions(token);\n+}\n+\n+async function validateJwt(token: string): Promise<boolean> {\n+  return true;\n+}\n+\n+async function verifyPermissions(token: string): Promise<boolean> {\n+  return true;\n+}\n",
+          "isTruncated": false,
+          "originalBytes": 289,
+          "retainedBytes": 289
+        },
+        "redactions": []
+      }
+    ],
+    "detectedLanguages": ["TypeScript"],
+    "detectedComponents": ["src"],
+    "limits": {
+      "maxCommits": 500,
+      "maxFiles": 500,
+      "maxDiffBytes": 1000000,
+      "maxPatchBytesPerFile": 64000
+    },
+    "truncation": {
+      "isTruncated": false,
+      "reasons": [],
+      "omittedCommits": 0,
+      "omittedFiles": 0
+    },
+    "errors": []
+  },
+  "evidenceItems": [
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:doc:insuff-partial-spec",
+      "type": "document",
+      "source": {
+        "system": "repository",
+        "locator": "docs/README.md",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:insuff/src/auth.ts"],
+      "excerpt": "# Auth Service\n\nProvides token-based authentication for internal services.\n\nThe `authenticate` function validates JWT tokens and checks permissions.\n\nFor detailed security requirements see security.md. For API contracts see api.md. For database schema see db-schema.md.",
+      "selectionReason": "README references three other documents not available in the bundle.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 270,
+        "retainedCharacters": 270
+      },
+      "redactions": []
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:diff:insuff-auth",
+      "type": "git_diff",
+      "source": {
+        "system": "git",
+        "locator": "src/auth.ts",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:insuff/src/auth.ts"],
+      "excerpt": "+export async function authenticate(token: string): Promise<boolean> {\n+  return validateJwt(token) && verifyPermissions(token);\n+}\n+\n+async function validateJwt(token: string): Promise<boolean> {\n+  return true;\n+}\n+\n+async function verifyPermissions(token: string): Promise<boolean> {\n+  return true;\n+}\n",
+      "selectionReason": "The implementation stubs out validateJwt and verifyPermissions; whether this is correct is unclear without security.md and api.md.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 245,
+        "retainedCharacters": 245
+      },
+      "redactions": []
+    }
+  ],
+  "evidenceIndex": [
+    {
+      "evidenceId": "evidence:doc:insuff-partial-spec",
+      "relatedChangeIds": ["file:insuff/src/auth.ts"]
+    },
+    {
+      "evidenceId": "evidence:diff:insuff-auth",
+      "relatedChangeIds": ["file:insuff/src/auth.ts"]
+    }
+  ],
+  "deterministicFacts": [
+    {
+      "id": "fact:insuff-readme-refs-missing",
+      "statement": "The README references security.md, api.md, and db-schema.md which are not available.",
+      "evidenceIds": ["evidence:doc:insuff-partial-spec"]
+    },
+    {
+      "id": "fact:insuff-stub-impl",
+      "statement": "validateJwt and verifyPermissions return hardcoded true values.",
+      "evidenceIds": ["evidence:diff:insuff-auth"]
+    }
+  ],
+  "missingEvidence": [
+    {
+      "source": {
+        "system": "repository",
+        "locator": "docs/security.md",
+        "uri": null
+      },
+      "reason": "Document not found in the repository.",
+      "status": "not_found"
+    },
+    {
+      "source": {
+        "system": "repository",
+        "locator": "docs/api.md",
+        "uri": null
+      },
+      "reason": "Document not found in the repository.",
+      "status": "not_found"
+    }
+  ],
+  "limits": {
+    "maxEvidenceItems": 100,
+    "maxTotalExcerptCharacters": 100000
+  },
+  "truncation": {
+    "isTruncated": false,
+    "omittedEvidenceItems": 0,
+    "omittedExcerptCharacters": 0,
+    "omittedMissingEvidence": 0
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0.0",
+  "fixtureId": "intentional-doc-free-refactor",
+  "outcome": "no_findings",
+  "minFindings": 0,
+  "maxFindings": 0,
+  "requiredMatches": [],
+  "rationale": "Commit message and test results confirm a behavior-preserving refactor with no behavioral changes; no findings expected."
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "schemaVersion": "1.0.0",
+    "id": "finding:req-miss-001",
+    "category": "requirement_missing",
+    "severity": "medium",
+    "confidence": 0.9,
+    "title": "resetPassword function is missing",
+    "expectedBehavior": "The auth module should provide a resetPassword function per the spec.",
+    "observedBehavior": "The implementation only provides validateEmail and login; resetPassword is absent.",
+    "deterministicFacts": [
+      {
+        "statement": "The spec requires resetPassword as a mandatory function.",
+        "evidenceIds": ["evidence:doc:req-miss-spec"]
+      },
+      {
+        "statement": "The implementation contains validateEmail and login but no resetPassword.",
+        "evidenceIds": ["evidence:diff:req-miss-auth"]
+      }
+    ],
+    "inference": "The resetPassword function mandated by the spec was not implemented.",
+    "evidenceIds": ["evidence:doc:req-miss-spec", "evidence:diff:req-miss-auth"],
+    "affectedSources": [
+      {
+        "system": "repository",
+        "locator": "docs/spec.md",
+        "uri": null
+      },
+      {
+        "system": "git",
+        "locator": "src/auth.ts",
+        "uri": null
+      }
+    ],
+    "recommendation": "update_code",
+    "status": "confirmed"
+  }
+]

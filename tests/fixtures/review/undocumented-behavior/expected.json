@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "fixtureId": "undocumented-behavior",
+  "outcome": "findings",
+  "minFindings": 1,
+  "maxFindings": 5,
+  "requiredMatches": [
+    {
+      "category": "undocumented_behavior",
+      "status": "suspected",
+      "recommendation": "update_documentation",
+      "requiredEvidenceIds": ["evidence:diff:undoc-auth"],
+      "minCount": 1
+    }
+  ],
+  "rationale": "The code includes rate-limiting behavior not covered by the spec; an undocumented_behavior finding is expected."
+}

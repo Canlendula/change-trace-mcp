@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "fixtureId": "requirement-missing",
+  "outcome": "findings",
+  "minFindings": 1,
+  "maxFindings": 5,
+  "requiredMatches": [
+    {
+      "category": "requirement_missing",
+      "status": "confirmed",
+      "recommendation": "update_code",
+      "requiredEvidenceIds": ["evidence:doc:req-miss-spec"],
+      "minCount": 1
+    }
+  ],
+  "rationale": "The spec mandates resetPassword but the implementation omits it; a requirement_missing finding is expected."
+}

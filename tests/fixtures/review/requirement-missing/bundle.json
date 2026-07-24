@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "bundle:requirement-missing",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "changeScope": {
+    "schemaVersion": "1.0.0",
+    "repositoryRoot": "/workspace/auth-service",
+    "baseRef": "main",
+    "headRef": "feature/auth-module",
+    "resolvedBase": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resolvedHead": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "commits": [
+      {
+        "id": "commit:req-miss-main",
+        "objectId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "parentObjectIds": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+        "summary": "Implement auth module (login and email validation)",
+        "committedAt": "2026-01-01T00:00:00.000Z",
+        "redactions": []
+      }
+    ],
+    "files": [
+      {
+        "id": "file:req-miss/src/auth.ts",
+        "path": "src/auth.ts",
+        "previousPath": null,
+        "status": "added",
+        "isBinary": false,
+        "additions": 20,
+        "deletions": 0,
+        "diff": {
+          "text": "+export function validateEmail(email: string): boolean {\n+  return /^[^@]+@[^@]+$/.test(email);\n+}\n+\n+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  return password.length >= 8;\n+}\n",
+          "isTruncated": false,
+          "originalBytes": 210,
+          "retainedBytes": 210
+        },
+        "redactions": []
+      },
+      {
+        "id": "file:req-miss/tests/auth.test.ts",
+        "path": "tests/auth.test.ts",
+        "previousPath": null,
+        "status": "added",
+        "isBinary": false,
+        "additions": 18,
+        "deletions": 0,
+        "diff": {
+          "text": "+import { validateEmail, login } from '../src/auth';\n+\n+describe('auth', () => {\n+  it('validates email', () => {\n+    expect(validateEmail('a@b.com')).toBe(true);\n+  });\n+  it('logs in', () => {\n+    expect(login('a@b.com', 'password123')).toBe(true);\n+  });\n+});\n",
+          "isTruncated": false,
+          "originalBytes": 230,
+          "retainedBytes": 230
+        },
+        "redactions": []
+      }
+    ],
+    "detectedLanguages": ["TypeScript"],
+    "detectedComponents": ["src"],
+    "limits": {
+      "maxCommits": 500,
+      "maxFiles": 500,
+      "maxDiffBytes": 1000000,
+      "maxPatchBytesPerFile": 64000
+    },
+    "truncation": {
+      "isTruncated": false,
+      "reasons": [],
+      "omittedCommits": 0,
+      "omittedFiles": 0
+    },
+    "errors": []
+  },
+  "evidenceItems": [
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:doc:req-miss-spec",
+      "type": "document",
+      "source": {
+        "system": "repository",
+        "locator": "docs/spec.md",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:req-miss/src/auth.ts"],
+      "excerpt": "# Auth Module Specification\n\nThe auth module MUST provide:\n\n- `validateEmail(email: string): boolean` that validates email format.\n- `login(email: string, password: string): boolean` that authenticates a user.\n- `resetPassword(email: string): boolean` that initiates a password reset workflow.\n\nAll three functions are mandatory for the minimum viable auth module.\n",
+      "selectionReason": "Spec lists resetPassword as a mandatory requirement.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 368,
+        "retainedCharacters": 368
+      },
+      "redactions": []
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:diff:req-miss-auth",
+      "type": "git_diff",
+      "source": {
+        "system": "git",
+        "locator": "src/auth.ts",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:req-miss/src/auth.ts"],
+      "excerpt": "+export function validateEmail(email: string): boolean {\n+  return /^[^@]+@[^@]+$/.test(email);\n+}\n+\n+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  return password.length >= 8;\n+}\n",
+      "selectionReason": "Code omits resetPassword; only validateEmail and login are present.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 210,
+        "retainedCharacters": 210
+      },
+      "redactions": []
+    }
+  ],
+  "evidenceIndex": [
+    {
+      "evidenceId": "evidence:doc:req-miss-spec",
+      "relatedChangeIds": ["file:req-miss/src/auth.ts"]
+    },
+    {
+      "evidenceId": "evidence:diff:req-miss-auth",
+      "relatedChangeIds": ["file:req-miss/src/auth.ts"]
+    }
+  ],
+  "deterministicFacts": [
+    {
+      "id": "fact:req-miss-spec-requires-reset",
+      "statement": "The spec requires resetPassword as a mandatory auth function.",
+      "evidenceIds": ["evidence:doc:req-miss-spec"]
+    },
+    {
+      "id": "fact:req-miss-impl-missing-reset",
+      "statement": "The implementation provides validateEmail and login but no resetPassword function.",
+      "evidenceIds": ["evidence:diff:req-miss-auth"]
+    }
+  ],
+  "missingEvidence": [],
+  "limits": {
+    "maxEvidenceItems": 100,
+    "maxTotalExcerptCharacters": 100000
+  },
+  "truncation": {
+    "isTruncated": false,
+    "omittedEvidenceItems": 0,
+    "omittedExcerptCharacters": 0,
+    "omittedMissingEvidence": 0
+  }
+}

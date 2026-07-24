@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0.0",
+  "fixtureId": "insufficient-evidence",
+  "outcome": "inconclusive",
+  "minFindings": 1,
+  "maxFindings": 5,
+  "requiredMatches": [
+    {
+      "category": "other",
+      "status": "inconclusive",
+      "recommendation": "investigate",
+      "minCount": 1
+    }
+  ],
+  "forbiddenStatuses": ["confirmed", "suspected"],
+  "forbiddenCategories": ["requirement_missing", "security"],
+  "rationale": "Multiple referenced documents are missing; the auth implementation cannot be properly assessed. No confirmed or suspected findings are warranted."
+}

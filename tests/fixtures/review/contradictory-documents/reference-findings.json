@@ -1,0 +1,38 @@
+[
+  {
+    "schemaVersion": "1.0.0",
+    "id": "finding:contra-001",
+    "category": "contradictory_evidence",
+    "severity": "medium",
+    "confidence": 0.5,
+    "title": "Conflicting max login attempts between spec and changelog",
+    "expectedBehavior": "The spec and changelog should agree on the maximum login attempts value.",
+    "observedBehavior": "The spec states max attempts is 3 while the changelog states it was changed to 5.",
+    "deterministicFacts": [
+      {
+        "statement": "The spec states max login attempts is 3.",
+        "evidenceIds": ["evidence:doc:contra-spec"]
+      },
+      {
+        "statement": "The changelog states max attempts was changed to 5.",
+        "evidenceIds": ["evidence:doc:contra-changelog"]
+      }
+    ],
+    "inference": "The two documents contradict each other; clarification is needed to determine the intended value.",
+    "evidenceIds": ["evidence:doc:contra-spec", "evidence:doc:contra-changelog"],
+    "affectedSources": [
+      {
+        "system": "repository",
+        "locator": "docs/spec.md",
+        "uri": null
+      },
+      {
+        "system": "repository",
+        "locator": "docs/CHANGELOG.md",
+        "uri": null
+      }
+    ],
+    "recommendation": "investigate",
+    "status": "inconclusive"
+  }
+]

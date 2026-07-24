@@ -1,0 +1,38 @@
+[
+  {
+    "schemaVersion": "1.0.0",
+    "id": "finding:insuff-001",
+    "category": "other",
+    "severity": "medium",
+    "confidence": 0.2,
+    "title": "Insufficient evidence to assess auth implementation correctness",
+    "expectedBehavior": "Sufficient documentation should be available to verify the auth implementation.",
+    "observedBehavior": "Three referenced documents (security.md, api.md, db-schema.md) are missing; validateJwt and verifyPermissions are stubs.",
+    "deterministicFacts": [
+      {
+        "statement": "The README references three documents not in the bundle.",
+        "evidenceIds": ["evidence:doc:insuff-partial-spec"]
+      },
+      {
+        "statement": "The implementation stubs out validation and permission functions.",
+        "evidenceIds": ["evidence:diff:insuff-auth"]
+      }
+    ],
+    "inference": "Without the referenced documents the correctness of the auth implementation cannot be assessed.",
+    "evidenceIds": ["evidence:doc:insuff-partial-spec", "evidence:diff:insuff-auth"],
+    "affectedSources": [
+      {
+        "system": "repository",
+        "locator": "docs/README.md",
+        "uri": null
+      },
+      {
+        "system": "git",
+        "locator": "src/auth.ts",
+        "uri": null
+      }
+    ],
+    "recommendation": "investigate",
+    "status": "inconclusive"
+  }
+]

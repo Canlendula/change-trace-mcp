@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "bundle:missing-permissions",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "changeScope": {
+    "schemaVersion": "1.0.0",
+    "repositoryRoot": "/workspace/auth-service",
+    "baseRef": "main",
+    "headRef": "feature/auth-config",
+    "resolvedBase": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resolvedHead": "ffffffffffffffffffffffffffffffffffffffff",
+    "commits": [
+      {
+        "id": "commit:missperm-main",
+        "objectId": "ffffffffffffffffffffffffffffffffffffffff",
+        "parentObjectIds": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+        "summary": "Read SECRET_KEY from environment config",
+        "committedAt": "2026-01-01T00:00:00.000Z",
+        "redactions": []
+      }
+    ],
+    "files": [
+      {
+        "id": "file:missperm/src/auth.ts",
+        "path": "src/auth.ts",
+        "previousPath": null,
+        "status": "modified",
+        "isBinary": false,
+        "additions": 5,
+        "deletions": 1,
+        "diff": {
+          "text": "+import { readFileSync } from 'fs';\n+\n+function loadSecretKey(): string {\n+  return readFileSync('.env.production', 'utf-8').trim();\n+}\n+\n export function login(email: string, password: string): boolean {\n-  return password.length >= 8;\n+  const secret = loadSecretKey();\n+  return password.length >= 8 && secret.length > 0;\n }\n",
+          "isTruncated": false,
+          "originalBytes": 280,
+          "retainedBytes": 280
+        },
+        "redactions": []
+      }
+    ],
+    "detectedLanguages": ["TypeScript"],
+    "detectedComponents": ["src"],
+    "limits": {
+      "maxCommits": 500,
+      "maxFiles": 500,
+      "maxDiffBytes": 1000000,
+      "maxPatchBytesPerFile": 64000
+    },
+    "truncation": {
+      "isTruncated": false,
+      "reasons": [],
+      "omittedCommits": 0,
+      "omittedFiles": 0
+    },
+    "errors": []
+  },
+  "evidenceItems": [
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:doc:missperm-spec",
+      "type": "document",
+      "source": {
+        "system": "repository",
+        "locator": "docs/spec.md",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:missperm/src/auth.ts"],
+      "excerpt": "## Secret Key Configuration\n\nThe application MUST load a SECRET_KEY from the production environment file at `.env.production`. The key is required for authentication.",
+      "selectionReason": "Spec mandates loading SECRET_KEY from .env.production.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 195,
+        "retainedCharacters": 195
+      },
+      "redactions": []
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:diff:missperm-auth",
+      "type": "git_diff",
+      "source": {
+        "system": "git",
+        "locator": "src/auth.ts",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:missperm/src/auth.ts"],
+      "excerpt": "+function loadSecretKey(): string {\n+  return readFileSync('.env.production', 'utf-8').trim();\n+}\n+\n export function login(email, password) {\n+  const secret = loadSecretKey();\n+  return password.length >= 8 && secret.length > 0;\n }\n",
+      "selectionReason": "Code reads .env.production but the file itself is inaccessible.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 210,
+        "retainedCharacters": 210
+      },
+      "redactions": []
+    }
+  ],
+  "evidenceIndex": [
+    {
+      "evidenceId": "evidence:doc:missperm-spec",
+      "relatedChangeIds": ["file:missperm/src/auth.ts"]
+    },
+    {
+      "evidenceId": "evidence:diff:missperm-auth",
+      "relatedChangeIds": ["file:missperm/src/auth.ts"]
+    }
+  ],
+  "deterministicFacts": [
+    {
+      "id": "fact:missperm-spec-requires-env",
+      "statement": "The spec requires loading SECRET_KEY from .env.production.",
+      "evidenceIds": ["evidence:doc:missperm-spec"]
+    },
+    {
+      "id": "fact:missperm-code-reads-env",
+      "statement": "The implementation reads .env.production at runtime.",
+      "evidenceIds": ["evidence:diff:missperm-auth"]
+    }
+  ],
+  "missingEvidence": [
+    {
+      "source": {
+        "system": "repository",
+        "locator": ".env.production",
+        "uri": null
+      },
+      "reason": "File .env.production exists but is not readable (permission denied).",
+      "status": "inaccessible"
+    }
+  ],
+  "limits": {
+    "maxEvidenceItems": 100,
+    "maxTotalExcerptCharacters": 100000
+  },
+  "truncation": {
+    "isTruncated": false,
+    "omittedEvidenceItems": 0,
+    "omittedExcerptCharacters": 0,
+    "omittedMissingEvidence": 0
+  }
+}

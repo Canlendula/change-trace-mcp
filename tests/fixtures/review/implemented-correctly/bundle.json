@@ -1,0 +1,177 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "bundle:implemented-correctly",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "changeScope": {
+    "schemaVersion": "1.0.0",
+    "repositoryRoot": "/workspace/auth-service",
+    "baseRef": "main",
+    "headRef": "feature/auth-module",
+    "resolvedBase": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resolvedHead": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "commits": [
+      {
+        "id": "commit:impl-corr-main",
+        "objectId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "parentObjectIds": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+        "summary": "Implement auth module with email validation and login",
+        "committedAt": "2026-01-01T00:00:00.000Z",
+        "redactions": []
+      }
+    ],
+    "files": [
+      {
+        "id": "file:impl-corr/src/auth.ts",
+        "path": "src/auth.ts",
+        "previousPath": null,
+        "status": "added",
+        "isBinary": false,
+        "additions": 20,
+        "deletions": 0,
+        "diff": {
+          "text": "+export function validateEmail(email: string): boolean {\n+  return /^[^@]+@[^@]+$/.test(email);\n+}\n+\n+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  return password.length >= 8;\n+}\n",
+          "isTruncated": false,
+          "originalBytes": 210,
+          "retainedBytes": 210
+        },
+        "redactions": []
+      },
+      {
+        "id": "file:impl-corr/tests/auth.test.ts",
+        "path": "tests/auth.test.ts",
+        "previousPath": null,
+        "status": "added",
+        "isBinary": false,
+        "additions": 18,
+        "deletions": 0,
+        "diff": {
+          "text": "+import { describe, it, expect } from 'vitest';\n+import { validateEmail, login } from '../src/auth';\n+\n+describe('auth', () => {\n+  it('validates email format', () => {\n+    expect(validateEmail('a@b.com')).toBe(true);\n+    expect(validateEmail('invalid')).toBe(false);\n+  });\n+  it('logs in with correct password', () => {\n+    expect(login('a@b.com', 'password123')).toBe(true);\n+  });\n+});\n",
+          "isTruncated": false,
+          "originalBytes": 320,
+          "retainedBytes": 320
+        },
+        "redactions": []
+      }
+    ],
+    "detectedLanguages": ["TypeScript"],
+    "detectedComponents": ["src"],
+    "limits": {
+      "maxCommits": 500,
+      "maxFiles": 500,
+      "maxDiffBytes": 1000000,
+      "maxPatchBytesPerFile": 64000
+    },
+    "truncation": {
+      "isTruncated": false,
+      "reasons": [],
+      "omittedCommits": 0,
+      "omittedFiles": 0
+    },
+    "errors": []
+  },
+  "evidenceItems": [
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:doc:impl-corr-spec",
+      "type": "document",
+      "source": {
+        "system": "repository",
+        "locator": "docs/spec.md",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:impl-corr/src/auth.ts"],
+      "excerpt": "# Auth Module Specification\n\nThe auth module MUST provide:\n\n- `validateEmail(email: string): boolean` that validates email format.\n- `login(email: string, password: string): boolean` that authenticates a user using email and password.\n\nValidation rules: email must contain an @ sign; password must be at least 8 characters.\n",
+      "selectionReason": "This spec defines the auth module requirements.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 297,
+        "retainedCharacters": 297
+      },
+      "redactions": []
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:diff:impl-corr-auth",
+      "type": "git_diff",
+      "source": {
+        "system": "git",
+        "locator": "src/auth.ts",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:impl-corr/src/auth.ts"],
+      "excerpt": "+export function validateEmail(email: string): boolean {\n+  return /^[^@]+@[^@]+$/.test(email);\n+}\n+\n+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  return password.length >= 8;\n+}\n",
+      "selectionReason": "Shows the auth implementation matching the spec.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 210,
+        "retainedCharacters": 210
+      },
+      "redactions": []
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:diff:impl-corr-tests",
+      "type": "git_diff",
+      "source": {
+        "system": "git",
+        "locator": "tests/auth.test.ts",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:impl-corr/tests/auth.test.ts"],
+      "excerpt": "+import { validateEmail, login } from '../src/auth';\n+\n+describe('auth', () => {\n+  it('validates email format', () => {\n+    expect(validateEmail('a@b.com')).toBe(true);\n+    expect(validateEmail('invalid')).toBe(false);\n+  });\n+  it('logs in with correct password', () => {\n+    expect(login('a@b.com', 'password123')).toBe(true);\n+  });\n+});\n",
+      "selectionReason": "Tests covering both spec-mandated functions.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 282,
+        "retainedCharacters": 282
+      },
+      "redactions": []
+    }
+  ],
+  "evidenceIndex": [
+    {
+      "evidenceId": "evidence:doc:impl-corr-spec",
+      "relatedChangeIds": ["file:impl-corr/src/auth.ts"]
+    },
+    {
+      "evidenceId": "evidence:diff:impl-corr-auth",
+      "relatedChangeIds": ["file:impl-corr/src/auth.ts"]
+    },
+    {
+      "evidenceId": "evidence:diff:impl-corr-tests",
+      "relatedChangeIds": ["file:impl-corr/tests/auth.test.ts"]
+    }
+  ],
+  "deterministicFacts": [
+    {
+      "id": "fact:impl-corr-spec-matches",
+      "statement": "The spec requires validateEmail and login with email validation and minimum password length.",
+      "evidenceIds": ["evidence:doc:impl-corr-spec"]
+    },
+    {
+      "id": "fact:impl-corr-impl-matches",
+      "statement": "The implementation provides validateEmail and login matching the spec requirements.",
+      "evidenceIds": ["evidence:diff:impl-corr-auth"]
+    }
+  ],
+  "missingEvidence": [],
+  "limits": {
+    "maxEvidenceItems": 100,
+    "maxTotalExcerptCharacters": 100000
+  },
+  "truncation": {
+    "isTruncated": false,
+    "omittedEvidenceItems": 0,
+    "omittedExcerptCharacters": 0,
+    "omittedMissingEvidence": 0
+  }
+}

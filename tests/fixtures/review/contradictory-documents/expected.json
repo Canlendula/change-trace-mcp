@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "fixtureId": "contradictory-documents",
+  "outcome": "findings",
+  "minFindings": 1,
+  "maxFindings": 5,
+  "requiredMatches": [
+    {
+      "category": "contradictory_evidence",
+      "status": "inconclusive",
+      "recommendation": "investigate",
+      "requiredEvidenceIds": ["evidence:doc:contra-spec", "evidence:doc:contra-changelog"],
+      "minCount": 1
+    }
+  ],
+  "rationale": "The spec and changelog give conflicting values for max login attempts; a contradictory_evidence finding is expected referencing both documents."
+}

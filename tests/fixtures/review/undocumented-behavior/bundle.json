@@ -1,0 +1,135 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "bundle:undocumented-behavior",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "changeScope": {
+    "schemaVersion": "1.0.0",
+    "repositoryRoot": "/workspace/auth-service",
+    "baseRef": "main",
+    "headRef": "feature/auth-module",
+    "resolvedBase": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resolvedHead": "cccccccccccccccccccccccccccccccccccccccc",
+    "commits": [
+      {
+        "id": "commit:undoc-main",
+        "objectId": "cccccccccccccccccccccccccccccccccccccccc",
+        "parentObjectIds": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+        "summary": "Implement auth with internal rate limiting",
+        "committedAt": "2026-01-01T00:00:00.000Z",
+        "redactions": []
+      }
+    ],
+    "files": [
+      {
+        "id": "file:undoc/src/auth.ts",
+        "path": "src/auth.ts",
+        "previousPath": null,
+        "status": "added",
+        "isBinary": false,
+        "additions": 10,
+        "deletions": 0,
+        "diff": {
+          "text": "+export function validateEmail(email: string): boolean {\n+  return /^[^@]+@[^@]+$/.test(email);\n+}\n+\n+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  if (shouldRateLimit(email)) return false;\n+  return password.length >= 8;\n+}\n+\n+function shouldRateLimit(email: string): boolean { return false; }\n",
+          "isTruncated": false,
+          "originalBytes": 325,
+          "retainedBytes": 325
+        },
+        "redactions": []
+      }
+    ],
+    "detectedLanguages": ["TypeScript"],
+    "detectedComponents": ["src"],
+    "limits": {
+      "maxCommits": 500,
+      "maxFiles": 500,
+      "maxDiffBytes": 1000000,
+      "maxPatchBytesPerFile": 64000
+    },
+    "truncation": {
+      "isTruncated": false,
+      "reasons": [],
+      "omittedCommits": 0,
+      "omittedFiles": 0
+    },
+    "errors": []
+  },
+  "evidenceItems": [
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:doc:undoc-spec",
+      "type": "document",
+      "source": {
+        "system": "repository",
+        "locator": "docs/spec.md",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:undoc/src/auth.ts"],
+      "excerpt": "# Auth Module Specification\n\nThe auth module MUST provide:\n\n- `validateEmail(email: string): boolean` that validates email format.\n- `login(email: string, password: string): boolean` that authenticates a user.\n\nPassword must be at least 8 characters.\n",
+      "selectionReason": "Spec documents only email validation and login; no rate-limiting mentioned.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 261,
+        "retainedCharacters": 261
+      },
+      "redactions": []
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "id": "evidence:diff:undoc-auth",
+      "type": "git_diff",
+      "source": {
+        "system": "git",
+        "locator": "src/auth.ts",
+        "uri": null
+      },
+      "retrievedAt": "2026-01-01T00:00:00.000Z",
+      "contentHash": null,
+      "relatedChangeIds": ["file:undoc/src/auth.ts"],
+      "excerpt": "+export function login(email: string, password: string): boolean {\n+  if (!validateEmail(email)) return false;\n+  if (shouldRateLimit(email)) return false;\n+  return password.length >= 8;\n+}\n+\n+function shouldRateLimit(email: string): boolean { return false; }\n",
+      "selectionReason": "Code includes a shouldRateLimit helper not documented in the spec.",
+      "trustLevel": "trusted_repository",
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": 226,
+        "retainedCharacters": 226
+      },
+      "redactions": []
+    }
+  ],
+  "evidenceIndex": [
+    {
+      "evidenceId": "evidence:doc:undoc-spec",
+      "relatedChangeIds": ["file:undoc/src/auth.ts"]
+    },
+    {
+      "evidenceId": "evidence:diff:undoc-auth",
+      "relatedChangeIds": ["file:undoc/src/auth.ts"]
+    }
+  ],
+  "deterministicFacts": [
+    {
+      "id": "fact:undoc-spec-no-rate",
+      "statement": "The spec does not mention rate limiting or a shouldRateLimit function.",
+      "evidenceIds": ["evidence:doc:undoc-spec"]
+    },
+    {
+      "id": "fact:undoc-code-has-rate",
+      "statement": "The implementation includes a shouldRateLimit helper that is called in login.",
+      "evidenceIds": ["evidence:diff:undoc-auth"]
+    }
+  ],
+  "missingEvidence": [],
+  "limits": {
+    "maxEvidenceItems": 100,
+    "maxTotalExcerptCharacters": 100000
+  },
+  "truncation": {
+    "isTruncated": false,
+    "omittedEvidenceItems": 0,
+    "omittedExcerptCharacters": 0,
+    "omittedMissingEvidence": 0
+  }
+}
