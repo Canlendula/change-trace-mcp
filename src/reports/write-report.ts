@@ -1,5 +1,12 @@
-import { existsSync, mkdirSync, realpathSync, unlinkSync, writeFileSync } from "node:fs";
-import { rename } from "node:fs/promises";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  realpathSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import {
   isAbsolute,
   join,
@@ -9,9 +16,8 @@ import {
 
 import {
   CORE_SCHEMA_VERSION,
-  findingValidationResultSchema,
+  HARD_MAX_REPORT_SIZE_BYTES,
   reportSchema,
-  reviewBundleSchema,
   writeReportInputSchema,
   writeReportOutputSchema,
   type FindingValidationResult,
@@ -24,11 +30,10 @@ import {
   type WriteReportOutput,
 } from "../schemas/index.js";
 
-const DEFAULT_MAX_REPORT_SIZE_BYTES = 10 * 1024 * 1024;
 const SAFE_REPORT_NAME_RE =
   /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
-function validateAndCreateOutputDir(
+function validatePathSafety(
   repoRoot: string,
   outputDir: string,
 ): string {
@@ -46,6 +51,18 @@ function validateAndCreateOutputDir(
     );
   }
 
+  let resolvedRoot: string;
+  try {
+    resolvedRoot = realpathSync(repoRoot);
+  } catch (err) {
+    throw Object.assign(
+      new Error(
+        `Cannot resolve repositoryRoot: ${err instanceof Error ? err.message : String(err)}`,
+      ),
+      { code: "invalid_repo_root" },
+    );
+  }
+
   const normalized = resolve(repoRoot, outputDir);
   const relPath = relative(repoRoot, normalized);
 
@@ -56,52 +73,76 @@ function validateAndCreateOutputDir(
     );
   }
 
-  const segments = relPath.split(/[\\/]/);
-  if (segments.some((s) => s === ".git")) {
+  const segments = relPath.replace(/\\/g, "/").split("/");
+  if (segments.some((s) => s.toLowerCase() === ".git")) {
     throw Object.assign(
       new Error("Output directory must not include .git paths"),
       { code: "output_directory_git_path" },
     );
   }
 
-  mkdirSync(normalized, { recursive: true });
+  let current = resolvedRoot;
+  for (const segment of segments) {
+    if (segment.length === 0) continue;
+    const candidate = join(current, segment);
+    try {
+      if (existsSync(candidate)) {
+        const resolved = realpathSync(candidate);
+        const rel = relative(resolvedRoot, resolved);
+        if (
+          rel === "" ||
+          isAbsolute(rel) ||
+          rel.split(/[\\/]/).some((s) => s === "..")
+        ) {
+          throw Object.assign(
+            new Error("Ancestor path resolves outside the repository root"),
+            { code: "ancestor_escape" },
+          );
+        }
+        current = resolved;
+      } else {
+        current = candidate;
+      }
+    } catch (err) {
+      if ((err as { code?: string }).code === "ancestor_escape") throw err;
+      throw Object.assign(
+        new Error(
+          `Cannot validate ancestor path: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+        { code: "ancestor_resolution_failed" },
+      );
+    }
+  }
 
-  let resolvedDir: string;
-  let resolvedRoot: string;
+  return current;
+}
+
+function validateOutputFiles(reportFile: string): void {
   try {
-    resolvedDir = realpathSync(normalized);
-    resolvedRoot = realpathSync(repoRoot);
-      } catch (_error) {
-    throw Object.assign(
-      new Error(
-        `Cannot resolve output path: ${_error instanceof Error ? _error.message : String(_error)}`,
-      ),
-      { code: "path_resolution_failed" },
-    );
+    const stat = lstatSync(reportFile);
+    if (stat.isSymbolicLink()) {
+      throw Object.assign(
+        new Error("Output file path is a symbolic link"),
+        { code: "output_file_symlink" },
+      );
+    }
+    if (!stat.isFile()) {
+      throw Object.assign(
+        new Error("Output file path is not a regular file"),
+        { code: "output_file_not_regular" },
+      );
+    }
+  } catch (err) {
+    if ((err as { code?: string }).code) throw err;
+    // ENOENT is fine �?file doesn't exist yet
   }
-
-  const relativeResolved = relative(resolvedRoot, resolvedDir);
-  if (
-    relativeResolved === "" ||
-    isAbsolute(relativeResolved) ||
-    relativeResolved.split(/[\\/]/).some((s) => s === "..")
-  ) {
-    throw Object.assign(
-      new Error("Output directory resolved outside the repository root"),
-      { code: "output_directory_escape" },
-    );
-  }
-
-  return resolvedDir;
 }
 
 function buildReport(
   input: WriteReportInput,
 ): Report {
-  const bundle = reviewBundleSchema.parse(input.bundle) as ReviewBundle;
-  const validationResult = findingValidationResultSchema.parse(
-    input.validationResult,
-  ) as FindingValidationResult;
+  const bundle = input.bundle;
+  const validationResult = input.validationResult;
 
   if (validationResult.bundleId !== bundle.id) {
     throw Object.assign(
@@ -120,7 +161,7 @@ function buildReport(
   }
 
   const reportId = `report:${input.reportName}`;
-  const createdAt = new Date().toISOString();
+  const createdAt = input.reviewMeta.createdAt;
 
   const evidenceIdsInBundle = new Set(
     bundle.evidenceItems.map((item) => item.id),
@@ -164,9 +205,15 @@ function buildReport(
       title: f.title,
       expectedBehavior: f.expectedBehavior,
       observedBehavior: f.observedBehavior,
+      deterministicFacts: f.deterministicFacts.map((fact) => ({
+        statement: fact.statement,
+        evidenceIds: fact.evidenceIds,
+      })),
+      inference: f.inference,
+      evidenceIds: f.evidenceIds,
+      affectedSources: f.affectedSources,
       recommendation: f.recommendation,
       status: f.status,
-      evidenceCount: f.evidenceIds.length,
       warnings: findingWarnings,
     };
   }
@@ -187,8 +234,18 @@ function buildReport(
     validationResult.rejectedFindings.map((rf) => ({
       index: rf.index,
       findingId: rf.findingId,
-      reasonCodes: rf.issues.map((issue) => issue.code),
+      issues: rf.issues.map((issue) => ({
+        code: issue.code,
+        path: issue.path,
+        message: issue.message.slice(0, 2_000),
+      })),
     }));
+
+  const missingEvidence = bundle.missingEvidence.map((me) => ({
+    source: me.source,
+    reason: me.reason,
+    status: me.status,
+  }));
 
   const report: Report = {
     schemaVersion: CORE_SCHEMA_VERSION,
@@ -203,6 +260,7 @@ function buildReport(
     },
     findings: reportFindings,
     rejectedFindings,
+    missingEvidence,
     evidenceCoverage: {
       totalEvidenceItems: bundle.evidenceItems.length,
       referencedEvidenceIds: [...referencedIds].sort(),
@@ -242,11 +300,13 @@ function safeCodeFence(text: string, language: string = ""): string {
   const runs = text.match(/`{3,}/g) ?? [];
   const maxRun = runs.reduce((m, r) => Math.max(m, r.length), 0);
   const fence = "`".repeat(Math.max(3, maxRun + 1));
-  return `${fence}${language}\n${text}\n${fence}`;
+  const safeText = text.replace(/^#/gm, "\\#");
+  return `${fence}${language}\n${safeText}\n${fence}`;
 }
 
-function escapeMarkdownHeadingInline(text: string): string {
+function escapeInlineMarkdown(text: string): string {
   return text
+    .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/\\/g, "\\\\")
@@ -254,7 +314,30 @@ function escapeMarkdownHeadingInline(text: string): string {
     .replace(/\*/g, "\\*")
     .replace(/_/g, "\\_")
     .replace(/\[/g, "\\[")
-    .replace(/\]/g, "\\]");
+    .replace(/\]/g, "\\]")
+    .replace(/^#/gm, "\\#");
+}
+
+function safeBulletText(text: string): string {
+  return escapeInlineMarkdown(text)
+    .replace(/^[-*+]\s/gm, "\\$&");
+}
+
+function safeLineText(text: string): string {
+  const escaped = escapeHtmlEntities(text);
+  return escaped.replace(/^#/gm, "\\#");
+}
+
+function escapeCodeSpan(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/`/g, "\\`");
+}
+
+function code(value: string): string {
+  return `\`${escapeCodeSpan(value)}\``;
 }
 
 function renderMarkdown(report: Report, bundle: ReviewBundle): string {
@@ -262,19 +345,19 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
 
   lines.push(`# Change Trace Review Report`);
   lines.push("");
-  lines.push(`**Report ID:** \`${escapeHtmlEntities(report.id)}\``);
+  lines.push(`**Report ID:** ${code(report.id)}`);
   lines.push(`**Created:** ${escapeHtmlEntities(report.createdAt)}`);
-  lines.push(`**Bundle ID:** \`${escapeHtmlEntities(report.bundleId)}\``);
-  lines.push(`**Reviewer:** ${escapeHtmlEntities(report.reviewMeta.reviewer)}`);
+  lines.push(`**Bundle ID:** ${code(report.bundleId)}`);
+  lines.push(`**Reviewer:** ${safeLineText(report.reviewMeta.reviewer)}`);
   if (report.reviewMeta.toolVersion) {
-    lines.push(`**Tool Version:** ${escapeHtmlEntities(report.reviewMeta.toolVersion)}`);
+    lines.push(`**Tool Version:** ${safeLineText(report.reviewMeta.toolVersion)}`);
   }
   lines.push("");
 
   if (report.reviewMeta.notes) {
     lines.push("## Review Notes");
     lines.push("");
-    lines.push(report.reviewMeta.notes);
+    lines.push(safeLineText(report.reviewMeta.notes));
     lines.push("");
   }
 
@@ -285,7 +368,7 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
     lines.push("## Declared Limitations");
     lines.push("");
     for (const limitation of report.reviewMeta.declaredLimitations) {
-      lines.push(`- ${escapeHtmlEntities(limitation)}`);
+      lines.push(`- ${safeBulletText(limitation)}`);
     }
     lines.push("");
   }
@@ -309,7 +392,7 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
 
   lines.push("## Bundle Information");
   lines.push("");
-  lines.push(`- **Change scope:** \`${escapeHtmlEntities(bundle.changeScope.resolvedBase.slice(0, 8))}...\` \u2192 \`${escapeHtmlEntities(bundle.changeScope.resolvedHead.slice(0, 8))}...\``);
+  lines.push(`- **Change scope:** ${code(bundle.changeScope.resolvedBase.slice(0, 8) + "...")} \u2192 ${code(bundle.changeScope.resolvedHead.slice(0, 8) + "...")}`);
   lines.push(`- **Evidence items:** ${bundle.evidenceItems.length}`);
   lines.push(`- **Deterministic facts:** ${bundle.deterministicFacts.length}`);
   lines.push(`- **Missing evidence:** ${bundle.missingEvidence.length}`);
@@ -330,15 +413,25 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
     lines.push("");
   }
 
+  if (report.missingEvidence.length > 0) {
+    lines.push("## Missing Evidence");
+    lines.push("");
+    for (const me of report.missingEvidence) {
+      const locator = me.source.locator;
+      lines.push(`- **${code(me.status)}** ${code(me.source.system + ":" + locator)}: ${safeLineText(me.reason)}`);
+    }
+    lines.push("");
+  }
+
   if (report.warnings.length > 0) {
     lines.push("## Global Warnings");
     lines.push("");
     for (const warning of report.warnings) {
       const prefix = warning.findingId
-        ? `\`${escapeHtmlEntities(warning.findingId)}\`: `
+        ? `${code(warning.findingId)}: `
         : "";
       lines.push(
-        `- **\`${escapeHtmlEntities(warning.code)}\`:** ${prefix}${escapeHtmlEntities(warning.message)}`,
+        `- **${code(warning.code)}** ${prefix}${safeLineText(warning.message)}`,
       );
     }
     lines.push("");
@@ -353,11 +446,11 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
     lines.push("");
     for (const finding of findings) {
       lines.push(
-        `### \`${escapeHtmlEntities(finding.id)}\` \u2014 ${escapeMarkdownHeadingInline(finding.title)}`,
+        `### ${code(finding.id)} \u2014 ${escapeInlineMarkdown(finding.title)}`,
       );
       lines.push("");
       lines.push(
-        `**Category:** \`${escapeHtmlEntities(finding.category)}\` | **Severity:** \`${escapeHtmlEntities(finding.severity)}\` | **Confidence:** ${finding.confidence} | **Status:** \`${escapeHtmlEntities(finding.status)}\` | **Recommendation:** \`${escapeHtmlEntities(finding.recommendation)}\``,
+        `**Category:** ${code(finding.category)} | **Severity:** ${code(finding.severity)} | **Confidence:** ${finding.confidence} | **Status:** ${code(finding.status)} | **Recommendation:** ${code(finding.recommendation)}`,
       );
       lines.push("");
 
@@ -371,17 +464,47 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
       lines.push(safeCodeFence(finding.observedBehavior));
       lines.push("");
 
-      if (finding.evidenceCount > 0) {
-        lines.push(`**Evidence references:** ${finding.evidenceCount}`);
+      if (finding.deterministicFacts.length > 0) {
+        lines.push("**Deterministic facts:**");
+        lines.push("");
+        for (const fact of finding.deterministicFacts) {
+          const evidenceList = fact.evidenceIds
+            .map((id) => code(id))
+            .join(", ");
+          lines.push(`- ${safeBulletText(fact.statement)} (evidence: ${evidenceList})`);
+        }
+        lines.push("");
+      }
+
+      lines.push("**Inference:**");
+      lines.push("");
+      lines.push(safeCodeFence(finding.inference));
+      lines.push("");
+
+      if (finding.evidenceIds.length > 0) {
+        lines.push(
+          `**Evidence IDs:** ${finding.evidenceIds.map((id) => code(id)).join(", ")}`,
+        );
+        lines.push("");
+      }
+
+      if (finding.affectedSources.length > 0) {
+        lines.push("**Affected sources:**");
+        lines.push("");
+        for (const src of finding.affectedSources) {
+          lines.push(
+            `- ${code(src.system + ":" + src.locator)}`,
+          );
+        }
         lines.push("");
       }
 
       if (finding.warnings.length > 0) {
-        lines.push("**Warnings:**");
+        lines.push("**Finding warnings:**");
         lines.push("");
         for (const w of finding.warnings) {
           lines.push(
-            `- \`${escapeHtmlEntities(w.code)}\`: ${escapeHtmlEntities(w.message)}`,
+            `- ${code(w.code)}: ${safeLineText(w.message)}`,
           );
         }
         lines.push("");
@@ -398,11 +521,18 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
     lines.push("");
     for (const rf of report.rejectedFindings) {
       const idDisplay = rf.findingId
-        ? `\`${escapeHtmlEntities(rf.findingId)}\``
+        ? code(rf.findingId)
         : "(no valid ID)";
       lines.push(
-        `- **Index ${rf.index}:** ${idDisplay} \u2014 ${rf.reasonCodes.map((c) => `\`${escapeHtmlEntities(c)}\``).join(", ")}`,
+        `### Index ${rf.index}: ${idDisplay}`,
       );
+      lines.push("");
+      for (const issue of rf.issues) {
+        lines.push(
+          `- **${code(issue.code)}** at ${code(issue.path)}: ${safeLineText(issue.message)}`,
+        );
+      }
+      lines.push("");
     }
     lines.push("");
   }
@@ -444,28 +574,15 @@ export function writeReport(
   rawInput: WriteReportInput,
 ): WriteReportOutput {
   const input = writeReportInputSchema.parse(rawInput);
-  const maxBytes = input.maxReportSizeBytes ?? DEFAULT_MAX_REPORT_SIZE_BYTES;
+  const maxBytes = input.maxReportSizeBytes ?? HARD_MAX_REPORT_SIZE_BYTES;
 
-  const bundle = reviewBundleSchema.parse(input.bundle) as ReviewBundle;
-  const validationResult = findingValidationResultSchema.parse(
-    input.validationResult,
-  ) as FindingValidationResult;
-
-  if (validationResult.bundleId !== bundle.id) {
-    throw Object.assign(
-      new Error(
-        `Bundle ID mismatch: validation result references ${validationResult.bundleId} but bundle has ${bundle.id}`,
-      ),
-      { code: "bundle_id_mismatch" },
-    );
-  }
-
-  const targetDir = validateAndCreateOutputDir(
+  const targetDir = validatePathSafety(
     input.repositoryRoot,
     input.outputDirectory,
   );
 
   const report = buildReport(input);
+  const bundle = input.bundle;
 
   const markdown = renderMarkdown(report, bundle);
   const json = renderJson(report);
@@ -474,9 +591,16 @@ export function writeReport(
 
   const markdownFile = join(targetDir, `${input.reportName}.md`);
   const jsonFile = join(targetDir, `${input.reportName}.json`);
+  const markdownTmp = join(targetDir, `${input.reportName}.md.tmp`);
+  const jsonTmp = join(targetDir, `${input.reportName}.json.tmp`);
+  const markdownBak = join(targetDir, `${input.reportName}.md.bak`);
+  const jsonBak = join(targetDir, `${input.reportName}.json.bak`);
   const overwrite = input.overwrite === true;
 
-  if (!overwrite && (existsSync(markdownFile) || existsSync(jsonFile))) {
+  const mdExists = existsSync(markdownFile);
+  const jsonExists = existsSync(jsonFile);
+
+  if (!overwrite && (mdExists || jsonExists)) {
     throw Object.assign(
       new Error(
         `Report files already exist in ${targetDir}. Use overwrite: true to replace them.`,
@@ -485,13 +609,96 @@ export function writeReport(
     );
   }
 
-  writeFileSync(jsonFile, json, "utf-8");
-  try {
-    writeFileSync(markdownFile, markdown, "utf-8");
-  } catch (_markdownError) {
-    try { unlinkSync(jsonFile); } catch (_cleanupError) { void 0; }
-    throw _markdownError;
+  if (overwrite) {
+    if (mdExists) validateOutputFiles(markdownFile);
+    if (jsonExists) validateOutputFiles(jsonFile);
   }
+
+  try {
+    mkdirSync(targetDir, { recursive: true });
+  } catch (err) {
+    throw Object.assign(
+      new Error(
+        `Cannot create output directory: ${err instanceof Error ? err.message : String(err)}`,
+      ),
+      { code: "output_directory_create_failed" },
+    );
+  }
+
+  let resolvedDir: string;
+  let resolvedRoot: string;
+  try {
+    resolvedDir = realpathSync(targetDir);
+    resolvedRoot = realpathSync(input.repositoryRoot);
+  } catch (err) {
+    throw Object.assign(
+      new Error(
+        `Cannot resolve output path: ${err instanceof Error ? err.message : String(err)}`,
+      ),
+      { code: "path_resolution_failed" },
+    );
+  }
+
+  const relativeResolved = relative(resolvedRoot, resolvedDir);
+  if (
+    relativeResolved === "" ||
+    isAbsolute(relativeResolved) ||
+    relativeResolved.split(/[\\/]/).some((s) => s === "..")
+  ) {
+    throw Object.assign(
+      new Error("Output directory resolved outside the repository root"),
+      { code: "output_directory_escape" },
+    );
+  }
+
+  // Clean any stale backup files from a prior crash
+  try { unlinkSync(jsonBak); } catch (_bk) { void _bk; }
+  try { unlinkSync(markdownBak); } catch (_bk) { void _bk; }
+
+  // Stage both temp files first
+  writeFileSync(jsonTmp, json, "utf-8");
+  try {
+    writeFileSync(markdownTmp, markdown, "utf-8");
+  } catch (_err: unknown) {
+    try { unlinkSync(jsonTmp); } catch (_bk) { void _bk; }
+    throw _err;
+  }
+
+  // Back up existing originals during overwrite (after temps are safely on disk)
+  if (overwrite) {
+    try { if (jsonExists) renameSync(jsonFile, jsonBak); } catch (_bk) { void _bk; }
+    try { if (mdExists) renameSync(markdownFile, markdownBak); } catch (_bk) { void _bk; }
+  }
+
+  // Promote json temp to final
+  try {
+    renameSync(jsonTmp, jsonFile);
+  } catch (_err: unknown) {
+    try { unlinkSync(jsonTmp); } catch (_bk) { void _bk; }
+    try { unlinkSync(markdownTmp); } catch (_bk) { void _bk; }
+    if (overwrite) {
+      try { if (existsSync(jsonBak)) renameSync(jsonBak, jsonFile); } catch (_bk) { void _bk; }
+      try { if (existsSync(markdownBak)) renameSync(markdownBak, markdownFile); } catch (_bk) { void _bk; }
+    }
+    throw _err;
+  }
+
+  // Promote markdown temp to final
+  try {
+    renameSync(markdownTmp, markdownFile);
+  } catch (_err: unknown) {
+    try { unlinkSync(jsonFile); } catch (_bk) { void _bk; }
+    try { unlinkSync(markdownTmp); } catch (_bk) { void _bk; }
+    if (overwrite) {
+      try { if (existsSync(jsonBak)) renameSync(jsonBak, jsonFile); } catch (_bk) { void _bk; }
+      try { if (existsSync(markdownBak)) renameSync(markdownBak, markdownFile); } catch (_bk) { void _bk; }
+    }
+    throw _err;
+  }
+
+  // Success �?remove backups
+  try { unlinkSync(jsonBak); } catch (_bk) { void _bk; }
+  try { unlinkSync(markdownBak); } catch (_bk) { void _bk; }
 
   const markdownSizeBytes = Buffer.byteLength(markdown, "utf-8");
   const jsonSizeBytes = Buffer.byteLength(json, "utf-8");

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   CORE_SCHEMA_VERSION,
+  sourceReferenceSchema,
   stableIdSchema,
   timestampSchema,
 } from "./common.js";
@@ -11,11 +12,18 @@ import {
   findingSeveritySchema,
   findingStatusSchema,
 } from "./finding.js";
+import { reviewBundleSchema } from "./review-bundle.js";
+import { findingValidationResultSchema } from "./finding-validation.js";
 
 export const reportWarningSchema = z.strictObject({
   code: z.string().min(1).max(100),
   message: z.string().min(1).max(2_000),
   findingId: stableIdSchema.optional(),
+});
+
+export const reportFactSchema = z.strictObject({
+  statement: z.string().min(1).max(4_000),
+  evidenceIds: z.array(stableIdSchema).min(1).max(1_000),
 });
 
 export const reportFindingSchema = z.strictObject({
@@ -26,16 +34,31 @@ export const reportFindingSchema = z.strictObject({
   title: z.string().min(1).max(300),
   expectedBehavior: z.string().min(1).max(8_000),
   observedBehavior: z.string().min(1).max(8_000),
+  deterministicFacts: z.array(reportFactSchema).max(1_000),
+  inference: z.string().min(1).max(8_000),
+  evidenceIds: z.array(stableIdSchema).max(1_000),
+  affectedSources: z.array(sourceReferenceSchema).max(1_000),
   recommendation: findingRecommendationSchema,
   status: findingStatusSchema,
-  evidenceCount: z.number().int().nonnegative(),
   warnings: z.array(reportWarningSchema).max(1_000),
+});
+
+export const reportValidationIssueSchema = z.strictObject({
+  code: z.string().min(1).max(100),
+  path: z.string().min(1).max(1_000),
+  message: z.string().min(1).max(2_000),
 });
 
 export const reportRejectedFindingSchema = z.strictObject({
   index: z.number().int().nonnegative(),
   findingId: stableIdSchema.nullable(),
-  reasonCodes: z.array(z.string().min(1).max(100)).min(1).max(100),
+  issues: z.array(reportValidationIssueSchema).min(1).max(100),
+});
+
+export const reportMissingEvidenceSchema = z.strictObject({
+  source: sourceReferenceSchema,
+  reason: z.string().min(1).max(2_000),
+  status: z.enum(["not_found", "inaccessible", "unsupported", "truncated"]),
 });
 
 export const reportSchema = z
@@ -59,6 +82,7 @@ export const reportSchema = z
       inconclusive: z.array(reportFindingSchema).max(1_000),
     }),
     rejectedFindings: z.array(reportRejectedFindingSchema).max(1_000),
+    missingEvidence: z.array(reportMissingEvidenceSchema).max(10_000),
     evidenceCoverage: z.strictObject({
       totalEvidenceItems: z.number().int().nonnegative(),
       referencedEvidenceIds: z.array(stableIdSchema).max(10_000),
@@ -88,15 +112,21 @@ export const reportSchema = z
   });
 
 export type ReportWarning = z.infer<typeof reportWarningSchema>;
+export type ReportFact = z.infer<typeof reportFactSchema>;
 export type ReportFinding = z.infer<typeof reportFindingSchema>;
+export type ReportValidationIssue = z.infer<typeof reportValidationIssueSchema>;
 export type ReportRejectedFinding = z.infer<typeof reportRejectedFindingSchema>;
+export type ReportMissingEvidence = z.infer<typeof reportMissingEvidenceSchema>;
 export type Report = z.infer<typeof reportSchema>;
 
+export const HARD_MAX_REPORT_SIZE_BYTES = 100 * 1024 * 1024;
+
 export const writeReportInputSchema = z.strictObject({
-  bundle: z.object({}).passthrough(),
-  validationResult: z.object({}).passthrough(),
+  bundle: reviewBundleSchema,
+  validationResult: findingValidationResultSchema,
   reviewMeta: z.strictObject({
     reviewer: z.string().min(1).max(200),
+    createdAt: timestampSchema,
     toolVersion: z.string().min(1).max(100).optional(),
     notes: z.string().max(4_000).optional(),
     declaredLimitations: z
@@ -115,16 +145,21 @@ export const writeReportInputSchema = z.strictObject({
       "reportName must contain only safe filename characters",
     ),
   overwrite: z.boolean().optional(),
-  maxReportSizeBytes: z.number().int().positive().optional(),
+  maxReportSizeBytes: z
+    .number()
+    .int()
+    .positive()
+    .max(HARD_MAX_REPORT_SIZE_BYTES)
+    .optional(),
 });
 
 export type WriteReportInput = z.infer<typeof writeReportInputSchema>;
 
 export const writeReportOutputSchema = z.strictObject({
   reportId: stableIdSchema,
-  reportPath: z.string().min(1),
-  markdownFile: z.string().min(1),
-  jsonFile: z.string().min(1),
+  reportPath: z.string().min(1).max(4_096),
+  markdownFile: z.string().min(1).max(4_096),
+  jsonFile: z.string().min(1).max(4_096),
   markdownSizeBytes: z.number().int().nonnegative(),
   jsonSizeBytes: z.number().int().nonnegative(),
 });

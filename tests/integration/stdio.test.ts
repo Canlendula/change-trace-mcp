@@ -53,7 +53,7 @@ describe("stdio MCP server", () => {
       const writeTool = tools.find((t) => t.name === "write_report");
       expect(writeTool?.annotations).toMatchObject({
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: false,
       });
@@ -306,7 +306,7 @@ describe("stdio MCP server", () => {
         arguments: {
           bundle: reviewBundleResult.structuredContent,
           validationResult: validationResult.structuredContent,
-          reviewMeta: { reviewer: "stdio-integration-test" },
+          reviewMeta: { reviewer: "stdio-integration-test", createdAt: "2026-07-24T12:00:00.000Z" },
           repositoryRoot: fixture.repositoryPath,
           outputDirectory: "reports",
           reportName: "integration-test",

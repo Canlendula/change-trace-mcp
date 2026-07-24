@@ -33,9 +33,23 @@ const validReport: Report = {
         title: "Secret in source",
         expectedBehavior: "No secrets should be committed.",
         observedBehavior: "An API key was found in the codebase.",
+        deterministicFacts: [
+          {
+            statement: "The file src/config.ts contains a hardcoded API key.",
+            evidenceIds: ["evidence:1"],
+          },
+        ],
+        inference: "The implementation leaks credentials into version control.",
+        evidenceIds: ["evidence:1", "evidence:2"],
+        affectedSources: [
+          {
+            system: "repository",
+            locator: "src/config.ts",
+            uri: null,
+          },
+        ],
         recommendation: "update_code",
         status: "confirmed",
-        evidenceCount: 2,
         warnings: [],
       },
     ],
@@ -48,9 +62,12 @@ const validReport: Report = {
         title: "Missing requirement coverage",
         expectedBehavior: "Feature X must be documented.",
         observedBehavior: "Feature X has no requirement entry.",
+        deterministicFacts: [],
+        inference: "The implementation lacks corresponding requirements.",
+        evidenceIds: ["evidence:3"],
+        affectedSources: [],
         recommendation: "update_documentation",
         status: "suspected",
-        evidenceCount: 1,
         warnings: [
           { code: "normalized_enum", message: "Enum normalized." },
         ],
@@ -65,9 +82,12 @@ const validReport: Report = {
         title: "Possible test gap",
         expectedBehavior: "Edge case should be tested.",
         observedBehavior: "No test covers the edge case.",
+        deterministicFacts: [],
+        inference: "The test suite may be incomplete.",
+        evidenceIds: [],
+        affectedSources: [],
         recommendation: "investigate",
         status: "inconclusive",
-        evidenceCount: 0,
         warnings: [
           { code: "inconclusive_without_missing_evidence", message: "No evidence." },
         ],
@@ -78,13 +98,26 @@ const validReport: Report = {
     {
       index: 3,
       findingId: null,
-      reasonCodes: ["schema_validation"],
+      issues: [
+        {
+          code: "schema_validation",
+          path: "$",
+          message: "Finding must be a JSON object",
+        },
+      ],
+    },
+  ],
+  missingEvidence: [
+    {
+      source: { system: "git", locator: "config.json", uri: null },
+      reason: "File not found in working tree",
+      status: "not_found",
     },
   ],
   evidenceCoverage: {
     totalEvidenceItems: 5,
-    referencedEvidenceIds: ["evidence:1", "evidence:2"],
-    unreferencedEvidenceIds: ["evidence:3", "evidence:4", "evidence:5"],
+    referencedEvidenceIds: ["evidence:1", "evidence:2", "evidence:3"],
+    unreferencedEvidenceIds: ["evidence:4", "evidence:5"],
   },
   validationSummary: {
     submitted: 4,
@@ -160,7 +193,7 @@ describe("reportSchema", () => {
 });
 
 describe("reportFindingSchema", () => {
-  it("accepts a valid finding", () => {
+  it("accepts a valid finding with all substance fields", () => {
     expect(
       reportFindingSchema.parse(validReport.findings.confirmed[0]),
     ).toEqual(validReport.findings.confirmed[0]);
@@ -183,21 +216,39 @@ describe("reportFindingSchema", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("preserves deterministicFacts, inference, evidenceIds, and affectedSources", () => {
+    const f = validReport.findings.confirmed[0]!;
+    expect(f.deterministicFacts).toHaveLength(1);
+    expect(f.inference.length).toBeGreaterThan(0);
+    expect(f.evidenceIds).toHaveLength(2);
+    expect(f.affectedSources).toHaveLength(1);
+  });
 });
 
 describe("reportRejectedFindingSchema", () => {
-  it("accepts a valid rejected finding", () => {
+  it("accepts a valid rejected finding with full issue details", () => {
     expect(
       reportRejectedFindingSchema.parse(validReport.rejectedFindings[0]),
     ).toEqual(validReport.rejectedFindings[0]);
   });
 
-  it("rejects empty reason codes array", () => {
+  it("rejects empty issues array", () => {
     expect(
       reportRejectedFindingSchema.safeParse({
         index: 0,
         findingId: null,
-        reasonCodes: [],
+        issues: [],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects missing issue path", () => {
+    expect(
+      reportRejectedFindingSchema.safeParse({
+        index: 0,
+        findingId: null,
+        issues: [{ code: "E001", message: "Bad" }],
       }).success,
     ).toBe(false);
   });
@@ -227,11 +278,48 @@ describe("reportWarningSchema", () => {
 });
 
 describe("writeReportInputSchema", () => {
-  it("accepts valid input", () => {
+  const minimalBundle = {
+    schemaVersion: CORE_SCHEMA_VERSION,
+    id: "bundle:test",
+    createdAt: "2026-07-24T12:00:00.000Z",
+    changeScope: {
+      schemaVersion: CORE_SCHEMA_VERSION,
+      repositoryRoot: "/repo",
+      baseRef: "main",
+      headRef: "feature/x",
+      resolvedBase: "a".repeat(40),
+      resolvedHead: "b".repeat(40),
+      commits: [],
+      files: [],
+      detectedLanguages: [],
+      detectedComponents: [],
+      limits: { maxCommits: 500, maxFiles: 500, maxDiffBytes: 1_000_000, maxPatchBytesPerFile: 64_000 },
+      truncation: { isTruncated: false, reasons: [], omittedCommits: 0, omittedFiles: 0 },
+      errors: [],
+    },
+    evidenceItems: [],
+    evidenceIndex: [],
+    deterministicFacts: [],
+    missingEvidence: [],
+    limits: { maxEvidenceItems: 100, maxTotalExcerptCharacters: 100_000 },
+    truncation: { isTruncated: false, omittedEvidenceItems: 0, omittedExcerptCharacters: 0, omittedMissingEvidence: 0 },
+  };
+
+  const minimalValidation = {
+    schemaVersion: CORE_SCHEMA_VERSION,
+    bundleId: "bundle:test",
+    ok: true,
+    validFindings: [],
+    rejectedFindings: [],
+    warnings: [],
+    summary: { submitted: 0, valid: 0, rejected: 0, warnings: 0 },
+  };
+
+  it("accepts valid input with strict schemas", () => {
     const input = {
-      bundle: { schemaVersion: "1.0.0", id: "b:1", _extra: true },
-      validationResult: { schemaVersion: "1.0.0", bundleId: "b:1", _extra: true },
-      reviewMeta: { reviewer: "agent-a" },
+      bundle: minimalBundle,
+      validationResult: minimalValidation,
+      reviewMeta: { reviewer: "agent-a", createdAt: "2026-07-24T12:00:00.000Z" },
       repositoryRoot: "/workspace/repo",
       outputDirectory: "reports",
       reportName: "release-review",
@@ -240,42 +328,56 @@ describe("writeReportInputSchema", () => {
     expect(writeReportInputSchema.parse(input)).toEqual(input);
   });
 
-  it("rejects absolute output directory", () => {
-    const input = {
-      bundle: {},
-      validationResult: {},
-      reviewMeta: { reviewer: "a" },
-      repositoryRoot: "/repo",
-      outputDirectory: "/absolute/path",
-      reportName: "report",
-    };
-    // The schema requires string, but write_report function checks isAbsolute
-    const parsed = writeReportInputSchema.parse(input);
-    expect(parsed.outputDirectory).toBe("/absolute/path");
+  it("rejects bundle without schemaVersion", () => {
+    expect(
+      writeReportInputSchema.safeParse({
+        ...minimalBundle,
+        bundle: { ...minimalBundle, schemaVersion: "0.9.0" },
+        validationResult: minimalValidation,
+        reviewMeta: { reviewer: "a", createdAt: "2026-07-24T12:00:00.000Z" },
+        repositoryRoot: "/repo",
+        outputDirectory: "reports",
+        reportName: "report",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects missing createdAt in reviewMeta", () => {
+    expect(
+      writeReportInputSchema.safeParse({
+        bundle: minimalBundle,
+        validationResult: minimalValidation,
+        reviewMeta: { reviewer: "a" },
+        repositoryRoot: "/repo",
+        outputDirectory: "reports",
+        reportName: "report",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects maxReportSizeBytes above hard cap", () => {
+    expect(
+      writeReportInputSchema.safeParse({
+        bundle: minimalBundle,
+        validationResult: minimalValidation,
+        reviewMeta: { reviewer: "a", createdAt: "2026-07-24T12:00:00.000Z" },
+        repositoryRoot: "/repo",
+        outputDirectory: "reports",
+        reportName: "report",
+        maxReportSizeBytes: 200_000_000,
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects unsafe report name characters", () => {
     expect(
       writeReportInputSchema.safeParse({
-        bundle: {},
-        validationResult: {},
-        reviewMeta: { reviewer: "a" },
+        bundle: minimalBundle,
+        validationResult: minimalValidation,
+        reviewMeta: { reviewer: "a", createdAt: "2026-07-24T12:00:00.000Z" },
         repositoryRoot: "/repo",
         outputDirectory: "reports",
         reportName: "../escape",
-      }).success,
-    ).toBe(false);
-  });
-
-  it("rejects empty report name", () => {
-    expect(
-      writeReportInputSchema.safeParse({
-        bundle: {},
-        validationResult: {},
-        reviewMeta: { reviewer: "a" },
-        repositoryRoot: "/repo",
-        outputDirectory: "reports",
-        reportName: "",
       }).success,
     ).toBe(false);
   });

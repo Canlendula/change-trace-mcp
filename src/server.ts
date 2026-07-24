@@ -283,7 +283,7 @@ export function createServer(): McpServer {
       outputSchema: writeReportOutputSchema,
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: false,
       },
