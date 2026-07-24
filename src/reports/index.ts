@@ -1,1 +1,1 @@
-export { writeReport, type WriteReportFs } from "./write-report.js";
+export { writeReport } from "./write-report.js";
