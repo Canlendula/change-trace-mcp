@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M4 complete; M5 in progress
+> Status: M5 complete; M6 next
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -133,13 +133,17 @@ The technical spike may revise this choice if Host compatibility or package star
   Final GitHub run `30168292163` passed attempts 1 and 2 with no annotations;
   the attempt-2 sidecar records the expected rerun identity and
   `completed_no_findings`. No semantic model/Host claim was added.
-- M5 is in progress. M5-001 through M5-003 are accepted: the strict shared
-  protocol, bounded command runner/normalizer, Host-owned startup
-  configuration, `collect_external_evidence` MCP tool, and deterministic
-  review-bundle merge are implemented. Decisions 23–26 fix the
-  explicit-reference security boundary, structured external provenance,
-  startup registration, and final-report evidence-source catalog. The
-  remaining slice is the Lark and Jira/Confluence fixture/report exit proof.
+- M5 completed on 2026-07-26. The strict shared protocol, bounded command
+  runner/normalizer, Host-owned startup configuration,
+  `collect_external_evidence`, deterministic review-bundle merge,
+  Lark/Jira/Confluence contract fixtures, final-report evidence catalog, and CI
+  catalog guard are accepted.
+- Decisions 23–26 fix the explicit-reference security boundary, structured
+  external provenance, startup registration, and final-report catalog.
+  Local gates passed twice at 27 files / 265 tests. Replacement Ubuntu run
+  `30172390638` passed and its downloaded report parsed with the current
+  `reportSchema`; detailed failure and replacement evidence is recorded in
+  [`docs/evaluation/M5_RESULTS.md`](evaluation/M5_RESULTS.md).
 
 ## 6. M0 — Project foundation
 
@@ -553,6 +557,23 @@ Required fields:
 - explicit references work without broad search access;
 - source URLs and timestamps survive into the final report.
 
+### Completion evidence
+
+- The Lark document/block fixture and the Jira issue, Confluence linked-page,
+  and permission-denied comment fixtures traverse the same configured command,
+  MCP collection, bundle, validation, and report path.
+- External content remains `untrusted_external`; injection-shaped content is
+  contained and secret-shaped values are redacted.
+- Final JSON and Markdown preserve bounded source identity, URI, retrieval and
+  update times, adapter identity, source type, trust, hash, and redaction
+  metadata without copying evidence excerpts.
+- Coordinator validation passed two consecutive 27-file / 265-test suites,
+  stdio and CI smokes, type checking, and package dry-run.
+- Ubuntu run `30172390638` passed from exact reviewed revision `65954cf` and
+  uploaded a schema-valid three-file artifact with no annotations.
+- Exact local, fixture, failed-audit, and replacement-run evidence is in
+  [`docs/evaluation/M5_RESULTS.md`](evaluation/M5_RESULTS.md).
+
 ## 12. M6 — Runtime and staging evidence
 
 ### Goal
@@ -733,7 +754,7 @@ The initial backlog and current progress are:
 7. Add the first Git fixtures before implementing Git collection.
 8. Record M1 compatibility results in the roadmap and memory.
 
-Progress as of 2026-07-25:
+Progress as of 2026-07-26:
 
 | Item | Status |
 |---|---|
@@ -753,13 +774,12 @@ Progress as of 2026-07-25:
 | M3 evaluation fixtures and scorer | Complete; nine fixtures, deterministic replay preparation, capture scoring, and summaries are tracked |
 | M3 cross-Host exit gate | Complete; Codex Desktop, Claude Code, and OpenCode each pass 9 of 9 on instruction `1.4.0` |
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
-| M5 external documents | In progress; M5-001 shared adapter protocol assigned under Decision 23 |
+| M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
 prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 `0.0.0-dev.0` until the next preview release is explicitly published.
 
-The selected sequence remains at M4 advisory CI integration. The reference
-direction is selected; the next construction item is the bounded
-provider-neutral closeout described above.
+The selected sequence has completed M5 external-document integration. The next
+construction milestone is M6 runtime and staging evidence.

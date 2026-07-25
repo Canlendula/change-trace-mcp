@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `assigned`
+- Status: `accepted`
 - Milestone: `M5 — External documentation adapters`
 - Base commit: `3cab00154ff5b1856d5553d620d64f89d5f68c9a`
 - Branch: `codex/M5-001-external-adapter-contract`

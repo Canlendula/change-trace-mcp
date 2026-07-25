@@ -278,10 +278,10 @@ and the catalog cases exercised. Do not omit transient failures.
 - Reviewed branch head:
   `22b1c103f08ebff2cc9e0d35f59a53411de3b0e5`
 - Integration commits:
-  `fad13af5f1ce2601f52780f7718f2b92ba0637a4`,
-  `d3661eb8bca624a6f2299d9e8af84a72941506f5`,
-  `a21d832855180440e51ca3b28cb8e2b68eb912bf`,
-  `a5e73e45e4906d7b934fb483e743daedbbd13966`
+  `fad13afc9ed56a82846a56a1098eaebcdeafc567`,
+  `d3661eb222959d406c81721384f23b5a532da8f2`,
+  `a21d832323b02d207f2a5823762cfd7747ae0c1f`,
+  `a5e73e4518ac97c610254d7db8635a14c6a40bc1`
 
 ### Review findings
 
@@ -301,11 +301,12 @@ and the catalog cases exercised. Do not omit transient failures.
 
 ### Required follow-up
 
-- Rerun the manual Ubuntu workflow from the reviewed `main` commit and audit
-  the downloaded artifact against the required `evidenceSources` contract.
+- None. Manual Ubuntu run `30172390638` passed from exact revision
+  `65954cff60369dce07102d10833b19e8405c1109`; the downloaded report parses
+  with the current `reportSchema` and contains `evidenceSources: []`.
 
 ### Roadmap and release impact
 
-- This task is accepted. M5 remains in progress until a new Ubuntu run uploads
-  a report that satisfies Decision 26 and the coordinator records the
-  milestone exit evidence.
+- This task is accepted. The replacement Ubuntu artifact satisfies Decision
+  26, and the M5 exit evidence is recorded in
+  `docs/evaluation/M5_RESULTS.md`.

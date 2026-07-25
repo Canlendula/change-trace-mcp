@@ -5,10 +5,10 @@ and normalizing change-scoped release evidence. The user's existing Agent makes
 semantic judgments; this package keeps evidence preparation deterministic and
 reviewable.
 
-M1–M4 are complete. The M5 external-adapter path now accepts explicit
-references through bounded Host-configured commands and preserves normalized
-source provenance in final reports. M5 remains pre-stable until coordinator
-exit review; deterministic contract fixtures do not claim live vendor
+M1–M5 are complete. The external-adapter path accepts explicit references
+through bounded Host-configured commands and preserves normalized source
+provenance in final reports. Deterministic Lark and Jira/Confluence contract
+fixtures prove the shared boundary without claiming live vendor API
 compatibility. The currently exposed MCP tools are:
 
 - `get_server_info` reports process and runtime metadata;
