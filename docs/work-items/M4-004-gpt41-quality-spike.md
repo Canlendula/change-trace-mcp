@@ -281,20 +281,52 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
-- Reviewed branch head:
-- Integration commit:
+- Outcome: `accepted`
+- Reviewed branch head: `1340a7f245db213c7eba6de72f5784e323dbb962`
+- Integration commits: `eb6a0b7`, `f2b2416`, `1340a7f`
 
 ### Review findings
 
-- Pending.
+- The accepted harness keeps the semantic quality question separate from the
+  M4-003 MCP-schema capacity failure: GPT-4.1 receives exactly one accepted M3
+  ReviewPacket per attempted fixture and no MCP tools, expected answers,
+  reference findings, repository access, retries, repairs, or response
+  selection.
+- Intermediate review found an undefined capture serializer, an 8,192-token
+  output request above the free High-tier limit, uncontrolled debug output,
+  and an unbounded evaluator child. The final branch uses the stable
+  serializer, fixes `max_tokens` at `4,000`, discards raw diagnostics, removes
+  temporary captures, and bounds both inference and credential-free scoring
+  subprocesses at 30 seconds.
+- Automatic GitHub Models consumption is paused. The legacy OpenCode
+  credential-bearing inference step and its summary require an explicit manual
+  boolean input; ordinary quality checks and trusted no-credential setup remain
+  available on their accepted triggers. The new quality spike itself is
+  `workflow_dispatch` only.
+- Coordinator validation passed: 6 focused quality-spike tests, 5 existing
+  Host/workflow tests, both CI smokes, type checking, 182 full tests, stdio
+  smoke, package dry-run, diff/path scope, clean worktree, and
+  credential/raw-content pattern audit. The first full-suite run reproduced
+  the known M4-001 200 ms parallel-load fixture timeout; its focused rerun and
+  a second complete 182-test run passed without code changes.
+- The request shape and permission boundary were checked against the official
+  GitHub Models inference API: `openai/gpt-4.1`, non-streaming chat
+  completions, `response_format: json_schema`, `models: read`, and the built-in
+  Actions token are supported. Actual provider acceptance and semantic quality
+  remain intentionally unclaimed until the manual cloud run.
 
 ### Required follow-up
 
-- Pending.
+- Push the accepted manual workflow to `main`, trigger exactly one first-run
+  quality spike, and inspect only its bounded `score.json` and job summary.
+- If the first run completes and passes the declared gate, trigger one complete
+  stability rerun. If it fails or stops early, do not retry; record the free
+  GPT-4.1 reference path as no-go or separately classify a provider/protocol
+  incompatibility before making the M4 architecture decision.
 
 ### Roadmap and release impact
 
-- M4 remains in progress. This spike decides whether free GitHub Models
-  GPT-4.1 is semantically adequate for the advisory reference path before any
-  capacity-adapter design is accepted.
+- M4 remains in progress. This task changes no public MCP/package contract,
+  dependency, version, npm state, or release claim. Its live result decides
+  whether the free GitHub Models reference path justifies a capacity adapter
+  or must be replaced, downgraded, or scoped out.
