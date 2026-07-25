@@ -177,35 +177,82 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
-- Handoff branch:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M4-005-provider-neutral-closeout`
 - Implementation commits:
+  `6c94dfaf654a26f04eb6060f98b008dfafff8334`
 
 ### Implementation summary
 
-- Pending.
+- Replaced the active M4 workflow with a `workflow_dispatch`-only,
+  credential-free deterministic orchestration smoke. Quality and advisory jobs
+  remain separate; the advisory job is timeout-bounded, non-blocking, and
+  uploads only the three managed artifacts under a run/attempt-qualified name.
+- Forwarded safe workflow revision and run-attempt metadata through the
+  deterministic smoke helper, verified the resulting
+  `completed_no_findings` status, and retained the accepted generic runner
+  contract unchanged.
+- Added a provider-neutral GitHub Actions example that reads an explicit JSON
+  argv Host command from protected configuration, confines the optional
+  credential to the Host step, and documents the Host-owned MCP child
+  sanitization boundary.
+- Reframed the CI guide around the caller-supplied Host architecture while
+  keeping the rejected OpenCode/GitHub Models path and manual quality spike
+  clearly historical.
 
 ### Changed areas
 
-- Pending.
+- `.github/workflows/m4-advisory-review.yml` — manual deterministic workflow,
+  job separation, safe metadata, exact artifact upload, and bounded summary.
+- `scripts/ci/smoke-advisory-ci.mjs` — forwarded and verified revision/attempt
+  metadata without changing the runner.
+- `docs/ci/README.md` and `docs/ci/github-actions.example.yml` — selected
+  architecture, GitHub/GitLab credential ownership, copyable Host example, and
+  historical-path boundary.
+- `tests/integration/provider-neutral-ci.test.ts`,
+  `tests/integration/advisory-host.test.ts`, and
+  `tests/integration/gpt41-quality-spike.test.ts` — active workflow,
+  deterministic smoke, provider neutrality, exact artifacts, and obsolete
+  historical assertion coverage.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| Pending | Pending | Pending |
+| `npx vitest run tests/integration/advisory-host.test.ts tests/integration/provider-neutral-ci.test.ts` | PASS | 2 files, 8 tests passed. |
+| `npm run smoke:ci` | PASS | Produced and verified `completed_no_findings` plus all three artifacts. |
+| `npm run check` | PASS | TypeScript check passed. |
+| `npx vitest run tests/integration/advisory-ci.test.ts` | PASS | Existing generic runner suite passed, 22 tests. |
+| `npm test` | PASS | Final run passed 20 files and 185 tests. Two earlier full runs reproduced the previously recorded 200 ms parallel-load fixture timeout in `advisory-ci.test.ts`; the focused runner suite and final full run passed without changes to that protected test or runner. |
+| `npm run smoke:stdio` | PASS | Existing stdio tool smoke passed. |
+| `npm run pack:check` | PASS | Package dry-run passed. |
+| `git diff --check d786521ee47c69ac166064374ad2f883134a1836..HEAD` | PASS | No whitespace errors after the implementation commit. |
+| `git status --short` | PASS | Clean after the implementation commit. |
 
 ### Public contract and documentation impact
 
-- Pending.
+- Added internal CI deployment guidance and a copyable provider-neutral
+  workflow example. No MCP tool, Report/Finding/ReviewBundle schema, generic
+  runner contract, production source, dependency, lockfile, package version,
+  export, npm state, or semantic compatibility claim changed.
 
 ### Deviations from assignment
 
-- None.
+- The full suite exposed one obsolete M4-004 assertion that required the
+  active workflow to retain the rejected OpenCode inference switch. The
+  coordinator expanded the task allowlist in `aa97e43` and authorized only
+  replacing that assertion with the new manual/no-model boundary; all other
+  historical quality-spike assertions remain unchanged.
 
 ### Known limitations and risks
 
-- None.
+- A coordinator-owned live manual dispatch and rerun are still required to
+  record GitHub orchestration evidence. The deterministic fixture proves
+  orchestration, artifacts, advisory containment, and rerun metadata only; it
+  makes no semantic Host/model compatibility claim.
+- The existing 200 ms generic-runner fixture can time out under full-suite
+  parallel load. Its focused 22-test run and the final 185-test suite passed;
+  this task did not change that protected runner/test contract.
 
 ### Decisions or questions for coordinator
 
@@ -213,9 +260,10 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified by the worker.
+- [x] No version, dependency, tag, publish, model call, live workflow, or
+      release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
