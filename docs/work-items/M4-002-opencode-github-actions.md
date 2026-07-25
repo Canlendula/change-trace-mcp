@@ -234,27 +234,57 @@ the exact offline Host smoke command and record that explicit deviation.
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
-- Handoff branch:
-- Implementation commits:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M4-002-opencode-github-actions`
+- Implementation commits: `a5abcad472c9e71f5b8d7c1accbef7959e70e738`, `bd6b2290b0c558d50b8e73f6616e4e9f32768f7f`
 
 ### Implementation summary
 
-- `<what was implemented>`
+- Added a non-blocking GitHub Actions advisory workflow with distinct quality
+  and advisory jobs, trusted base/subject-head checkouts (including fork PR
+  subjects), full action pins, bounded revisions, exact OpenCode package pin,
+  direct CLI path/version verification, and uniquely named three-file uploads.
+- Added an isolated OpenCode 1.18.5 GitHub Models Host, fixed trusted prompt,
+  credential-clearing MCP configuration, import-before-sanitization wrapper,
+  bounded Host child timeout, and an allowlisted status summary.
+- Added a provider-neutral GitLab-compatible template, trusted-boundary usage
+  documentation, deterministic offline Host smoke, and offline integration
+  coverage for configuration, prompt, environment, timeout, workflow, summary,
+  and artifact behavior.
 
 ### Changed areas
 
-- `<path or component and reason>`
+- `.github/workflows/m4-advisory-review.yml` — least-privilege, advisory
+  quality/Host/artifact workflow.
+- `scripts/ci/opencode-advisory-host.mjs`, `start-sanitized-mcp.mjs`,
+  `summarize-advisory-status.mjs`, and prompt/smoke helpers — trusted Host,
+  environment boundary, bounded output, status rendering, and offline smoke.
+- `tests/fixtures/ci/opencode-host-fixture.mjs` and
+  `tests/integration/advisory-host.test.ts` — deterministic isolation and
+  workflow contract tests.
+- `docs/ci/README.md` and `docs/ci/gitlab-ci.example.yml` — provider-neutral
+  deployment guidance and GitLab example.
+- `package.json` — added `smoke:ci:host` only.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npx vitest run tests/integration/advisory-host.test.ts` | PASS | 5 offline Host/configuration tests passed. |
+| `npm run smoke:ci` | PASS | Existing generic runner smoke passed. |
+| `npm run smoke:ci:host` | PASS | Deterministic isolated Host smoke passed. |
+| `npm run check` | PASS | TypeScript check passed. |
+| `npm test` | PASS | 18 files, 176 tests passed. One earlier full-run attempt exposed a pre-existing 200 ms M4-001 fixture timeout under parallel load; a focused rerun and final `npm test` passed without changes to protected existing tests. |
+| `npm run smoke:stdio` | PASS | Existing stdio smoke passed. |
+| `npm run pack:check` | PASS | Dry-run package check passed. |
+| `git diff --check 2d4bcbf5610ba742aa5d3256a3544b13ef60b3a0..HEAD` | PASS | No whitespace errors before handoff update. |
+| `git status --short` | PASS | Clean before handoff staging. |
 
 ### Public contract and documentation impact
 
-- `<impact, or None>`
+- Adds internal CI Host/configuration and advisory workflow usage documentation.
+  No MCP schema, production source, dependency, lockfile, version, or package
+  export changed.
 
 ### Deviations from assignment
 
@@ -262,7 +292,9 @@ the exact offline Host smoke command and record that explicit deviation.
 
 ### Known limitations and risks
 
-- None.
+- A real GitHub Actions run remains coordinator-owned. The reference workflow
+  intentionally keeps review advisory and makes no compatibility or release
+  claim.
 
 ### Decisions or questions for coordinator
 
@@ -270,9 +302,9 @@ the exact offline Host smoke command and record that explicit deviation.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
