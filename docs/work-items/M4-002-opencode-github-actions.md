@@ -236,7 +236,7 @@ the exact offline Host smoke command and record that explicit deviation.
 
 - Status: `ready_for_review`
 - Handoff branch: `codex/M4-002-opencode-github-actions`
-- Implementation commits: `a5abcad472c9e71f5b8d7c1accbef7959e70e738`, `bd6b2290b0c558d50b8e73f6616e4e9f32768f7f`, `1f9715dd27dd8eceae9ac9568f84588c96d09d3a`
+- Implementation commits: `a5abcad472c9e71f5b8d7c1accbef7959e70e738`, `bd6b2290b0c558d50b8e73f6616e4e9f32768f7f`, `1f9715dd27dd8eceae9ac9568f84588c96d09d3a`, `69ae5966bfa3e78a605dd293a306842ac433f76c`
 
 ### Implementation summary
 
@@ -286,8 +286,8 @@ the exact offline Host smoke command and record that explicit deviation.
 | `npm test` | PASS | 18 files, 176 tests passed. One earlier full-run attempt exposed a pre-existing 200 ms M4-001 fixture timeout under parallel load; a focused rerun and final `npm test` passed without changes to protected existing tests. |
 | `npm run smoke:stdio` | PASS | Existing stdio smoke passed. |
 | `npm run pack:check` | PASS | Dry-run package check passed. |
-| `git diff --check 2d4bcbf5610ba742aa5d3256a3544b13ef60b3a0..HEAD` | Pending final handoff commit | Re-run after this handoff is committed. |
-| `git status --short` | Pending final handoff commit | Re-run after this handoff is committed. |
+| `git diff --check 2d4bcbf5610ba742aa5d3256a3544b13ef60b3a0..HEAD` | PASS | No whitespace errors after the review-follow-up handoff. |
+| `git status --short` | PASS | Clean after the review-follow-up handoff. |
 
 ### Public contract and documentation impact
 
