@@ -42,7 +42,11 @@ for (const name of ["release-review.md", "release-review.json", "release-review-
   if (!stat.isFile() || stat.size === 0) throw new Error("advisory runner smoke artifact missing");
 }
 const status = JSON.parse(await readFile(join(outputDirectory, "release-review-status.json"), "utf8"));
+const report = JSON.parse(await readFile(join(outputDirectory, "release-review.json"), "utf8"));
 if (status.outcome !== "completed_no_findings") throw new Error("advisory runner smoke outcome invalid");
+if (!Array.isArray(report.evidenceSources) || report.evidenceSources.length !== 0) {
+  throw new Error("advisory runner smoke evidence source catalog invalid");
+}
 if (status.run?.baseRevision !== (baseRevision || null) || status.run?.headRevision !== (headRevision || null)) {
   throw new Error("advisory runner smoke revision metadata invalid");
 }

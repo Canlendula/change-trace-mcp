@@ -8,6 +8,8 @@ import { promisify } from "node:util";
 
 import { describe, expect, it } from "vitest";
 
+import { reportSchema } from "../../src/schemas/index.js";
+
 const execFileAsync = promisify(execFile);
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const runner = join(root, "scripts", "ci", "advisory-runner.mjs");
@@ -48,7 +50,79 @@ function readStatus(output: string): Record<string, any> {
   return JSON.parse(readFileSync(join(output, "release-review-status.json"), "utf8"));
 }
 
+function readReport(output: string): Record<string, any> {
+  return JSON.parse(readFileSync(join(output, "release-review.json"), "utf8"));
+}
+
 describe("advisory CI runner", () => {
+  it("emits a clean fixture report accepted by the public Report schema", async () => {
+    const repositoryRoot = await tempRepository();
+    try {
+      const output = join(repositoryRoot, "artifacts/review");
+      await run(repositoryRoot, "artifacts/review", "clean");
+      const report = readReport(output);
+      expect(reportSchema.parse(report)).toEqual(report);
+      expect(report.evidenceSources).toEqual([]);
+    } finally {
+      await rm(repositoryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    ["evidence-source-core", false, "trusted_repository"],
+    ["evidence-source-external", true, "untrusted_external"],
+  ])(
+    "accepts a schema-valid %s catalog entry",
+    async (behavior, hasExternalProvenance, trustLevel) => {
+      const repositoryRoot = await tempRepository();
+      try {
+        const output = join(repositoryRoot, "artifacts/review");
+        await run(repositoryRoot, "artifacts/review", behavior);
+        const report = readReport(output);
+        expect(readStatus(output).outcome).toBe("completed_no_findings");
+        expect(reportSchema.parse(report)).toEqual(report);
+        expect(report.evidenceSources).toHaveLength(1);
+        expect("externalProvenance" in report.evidenceSources[0]).toBe(hasExternalProvenance);
+        expect(report.evidenceSources[0].trustLevel).toBe(trustLevel);
+      } finally {
+        await rm(repositoryRoot, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.each([
+    "missing-evidence-sources",
+    "malformed-evidence-source",
+    "invalid-evidence-id",
+    "invalid-retrieved-at",
+    "invalid-content-hash",
+    "invalid-related-change-id",
+    "invalid-trust-level",
+    "invalid-source-reference",
+    "invalid-redaction",
+    "invalid-external-provenance",
+    "unknown-evidence-source-field",
+    "unknown-evidence-source-source-field",
+    "unknown-redaction-field",
+    "unknown-adapter-field",
+    "unknown-provenance-field",
+    "too-many-evidence-sources",
+    "too-many-related-change-ids",
+    "too-many-redactions",
+    "evidence-coverage-count-mismatch",
+  ])("rejects an invalid evidence source catalog for %s", async (behavior) => {
+    const repositoryRoot = await tempRepository();
+    try {
+      const output = join(repositoryRoot, "artifacts/review");
+      await run(repositoryRoot, "artifacts/review", behavior);
+      const status = readStatus(output);
+      expect(status.outcome).toBe("infrastructure_failure");
+      expect(status.error.code).toBe("report_inconsistent");
+    } finally {
+      await rm(repositoryRoot, { recursive: true, force: true });
+    }
+  });
+
   it.each([
     ["clean", "completed_no_findings"],
     ["findings", "completed_with_findings"],

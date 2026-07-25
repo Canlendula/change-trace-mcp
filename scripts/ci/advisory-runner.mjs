@@ -17,11 +17,32 @@ const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
 const MAX_CAPTURE_BYTES = 64 * 1024;
 const MAX_REPORT_BYTES = 10 * 1024 * 1024;
 const MAX_FAILURE_ARTIFACT_BYTES = 8 * 1024;
+const MAX_EVIDENCE_SOURCES = 10_000;
+const MAX_RELATED_CHANGE_IDS = 1_000;
+const MAX_REDACTIONS = 100;
 const TERMINATION_GRACE_MS = 250;
 const SAFE_HOST_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/;
 const SAFE_REVISION = /^(?:HEAD|[a-f0-9]{7,64}|refs\/(?:heads|tags|remotes)\/[A-Za-z0-9][A-Za-z0-9._/-]{0,127})$/;
 const SAFE_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+const SAFE_SHA256 = /^sha256:[a-f0-9]{64}$/;
+const EVIDENCE_TYPES = new Set([
+  "git_diff",
+  "commit",
+  "document",
+  "test_result",
+  "runtime_observation",
+  "configuration",
+  "other",
+]);
+const TRUST_LEVELS = new Set([
+  "trusted_repository",
+  "trusted_configured_source",
+  "untrusted_external",
+  "observed_runtime",
+]);
+const REDACTION_KINDS = new Set(["secret", "personal_data", "policy", "other"]);
+const EXTERNAL_SOURCE_TYPES = new Set(["document", "project_item", "comment", "linked_page", "other"]);
 
 class RunnerError extends Error {
   constructor(code) {
@@ -205,6 +226,91 @@ function isNonEmptyString(value) {
   return typeof value === "string" && value.length > 0;
 }
 
+function isBoundedString(value, maximum) {
+  return typeof value === "string" && value.length >= 1 && value.length <= maximum;
+}
+
+function isStableId(value) {
+  return typeof value === "string" && SAFE_ID.test(value);
+}
+
+function isTimestamp(value) {
+  return typeof value === "string" && SAFE_TIMESTAMP.test(value) && !Number.isNaN(Date.parse(value));
+}
+
+function hasExactKeys(value, required, optional = []) {
+  if (!isObject(value) || !required.every((key) => Object.hasOwn(value, key))) return false;
+  const allowed = new Set([...required, ...optional]);
+  return Object.keys(value).every((key) => allowed.has(key));
+}
+
+function validSourceReference(source) {
+  return hasExactKeys(source, ["system", "locator", "uri"])
+    && isBoundedString(source.system, 80)
+    && isBoundedString(source.locator, 4_096)
+    && (source.uri === null || isBoundedString(source.uri, 8_192));
+}
+
+function validRedaction(redaction) {
+  return hasExactKeys(redaction, ["kind", "count", "note"])
+    && REDACTION_KINDS.has(redaction.kind)
+    && Number.isInteger(redaction.count)
+    && redaction.count > 0
+    && (redaction.note === null || isBoundedString(redaction.note, 500));
+}
+
+function validExternalAdapter(adapter) {
+  return hasExactKeys(adapter, ["id", "name", "version"])
+    && isStableId(adapter.id)
+    && isBoundedString(adapter.name, 160)
+    && isBoundedString(adapter.version, 160);
+}
+
+function validExternalProvenance(provenance) {
+  return hasExactKeys(provenance, ["adapter", "sourceType", "title", "sourceUpdatedAt"])
+    && validExternalAdapter(provenance.adapter)
+    && EXTERNAL_SOURCE_TYPES.has(provenance.sourceType)
+    && isBoundedString(provenance.title, 1_000)
+    && (provenance.sourceUpdatedAt === null || isTimestamp(provenance.sourceUpdatedAt));
+}
+
+function validEvidenceSource(evidence) {
+  if (!hasExactKeys(
+    evidence,
+    [
+      "evidenceId",
+      "type",
+      "source",
+      "retrievedAt",
+      "contentHash",
+      "relatedChangeIds",
+      "trustLevel",
+      "redactions",
+    ],
+    ["externalProvenance"],
+  )) return false;
+  if (!isStableId(evidence.evidenceId)
+    || !EVIDENCE_TYPES.has(evidence.type)
+    || !validSourceReference(evidence.source)
+    || !isTimestamp(evidence.retrievedAt)
+    || (evidence.contentHash !== null && (typeof evidence.contentHash !== "string" || !SAFE_SHA256.test(evidence.contentHash)))
+    || !Array.isArray(evidence.relatedChangeIds)
+    || evidence.relatedChangeIds.length > MAX_RELATED_CHANGE_IDS
+    || !evidence.relatedChangeIds.every(isStableId)
+    || !TRUST_LEVELS.has(evidence.trustLevel)
+    || !Array.isArray(evidence.redactions)
+    || evidence.redactions.length > MAX_REDACTIONS
+    || !evidence.redactions.every(validRedaction)) return false;
+  return !Object.hasOwn(evidence, "externalProvenance")
+    || validExternalProvenance(evidence.externalProvenance);
+}
+
+function validEvidenceSources(evidenceSources) {
+  return Array.isArray(evidenceSources)
+    && evidenceSources.length <= MAX_EVIDENCE_SOURCES
+    && evidenceSources.every(validEvidenceSource);
+}
+
 function validFindingArray(value, status) {
   return Array.isArray(value) && value.every((finding) => isObject(finding) && typeof finding.id === "string" && SAFE_ID.test(finding.id) && finding.status === status);
 }
@@ -215,7 +321,9 @@ function validateReport(report) {
   if (!isObject(report.findings) || !validFindingArray(report.findings.confirmed, "confirmed") || !validFindingArray(report.findings.suspected, "suspected") || !validFindingArray(report.findings.inconclusive, "inconclusive")) return false;
   if (!Array.isArray(report.rejectedFindings) || !report.rejectedFindings.every((finding) => isObject(finding) && isCount(finding.index) && (finding.findingId === null || (typeof finding.findingId === "string" && SAFE_ID.test(finding.findingId))) && Array.isArray(finding.issues) && finding.issues.length > 0 && finding.issues.every((issue) => isObject(issue) && isNonEmptyString(issue.code) && isNonEmptyString(issue.path) && isNonEmptyString(issue.message)))) return false;
   if (!Array.isArray(report.missingEvidence) || !report.missingEvidence.every((evidence) => isObject(evidence) && isObject(evidence.source) && isNonEmptyString(evidence.source.system) && isNonEmptyString(evidence.source.locator) && (evidence.source.uri === null || typeof evidence.source.uri === "string") && isNonEmptyString(evidence.reason) && ["not_found", "inaccessible", "unsupported", "truncated"].includes(evidence.status))) return false;
+  if (!validEvidenceSources(report.evidenceSources)) return false;
   if (!isObject(report.evidenceCoverage) || !isCount(report.evidenceCoverage.totalEvidenceItems) || !Array.isArray(report.evidenceCoverage.referencedEvidenceIds) || !Array.isArray(report.evidenceCoverage.unreferencedEvidenceIds)) return false;
+  if (report.evidenceCoverage.totalEvidenceItems !== report.evidenceSources.length) return false;
   if (!isObject(report.validationSummary) || !["submitted", "valid", "rejected", "warnings"].every((key) => isCount(report.validationSummary[key]))) return false;
   if (!isObject(report.bundleLimits) || !Number.isInteger(report.bundleLimits.maxEvidenceItems) || report.bundleLimits.maxEvidenceItems < 1 || !Number.isInteger(report.bundleLimits.maxTotalExcerptCharacters) || report.bundleLimits.maxTotalExcerptCharacters < 1) return false;
   if (!isObject(report.bundleTruncation) || typeof report.bundleTruncation.isTruncated !== "boolean" || !["omittedEvidenceItems", "omittedExcerptCharacters", "omittedMissingEvidence"].every((key) => isCount(report.bundleTruncation[key]))) return false;

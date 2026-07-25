@@ -79,13 +79,23 @@ describe("provider-neutral CI references", () => {
     const status = JSON.parse(
       await readFile(join(root, "artifacts", "advisory-ci-smoke", "release-review-status.json"), "utf8"),
     );
+    const report = JSON.parse(
+      await readFile(join(root, "artifacts", "advisory-ci-smoke", "release-review.json"), "utf8"),
+    );
     expect(status.outcome).toBe("completed_no_findings");
+    expect(report.evidenceSources).toEqual([]);
     expect(status.run.baseRevision).toBe(baseRevision);
     expect(status.run.headRevision).toBe(headRevision);
     expect(status.run.runAttempt).toBe(23);
     expect(Object.values(status.artifacts).map((artifact: unknown) => (artifact as { name: string }).name)).toEqual(
       managedNames,
     );
+  });
+
+  it("keeps an explicit zero-evidence catalog guard in the deterministic smoke", async () => {
+    const smoke = await readLf(smokePath);
+    expect(smoke).toContain("report.evidenceSources");
+    expect(smoke).toContain("evidence source catalog invalid");
   });
 
   it("provides a bounded provider-neutral GitHub template with explicit JSON argv", async () => {
