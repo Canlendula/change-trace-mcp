@@ -296,11 +296,18 @@ git status --short
   child, making normal process startup exceed that test-only budget and become
   `infrastructure_failure`. Raise only the default non-timeout fixture budget;
   keep the explicit 100 ms timeout/termination case unchanged.
+- The first post-merge Windows validation exposed a second test-only issue:
+  `provider-neutral-ci.test.ts` assumes LF when matching YAML. Git's CRLF
+  checkout leaves the valid workflow unchanged but causes two assertions to
+  fail. Normalize read text to LF inside the focused test before parsing or
+  matching it; do not change the workflow/example bytes or their behavior.
 
 ### Required follow-up
 
 - Run the focused CI suites, then two consecutive unchanged full-suite runs,
   and update the worker handoff with every result.
+- After the line-ending follow-up, verify the focused test from both the task
+  worktree and the coordinator's CRLF main worktree.
 
 ### Roadmap and release impact
 
