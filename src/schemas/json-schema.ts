@@ -3,6 +3,10 @@ import { z } from "zod";
 import { changeScopeSchema } from "./change-scope.js";
 import { CORE_SCHEMA_VERSION } from "./common.js";
 import { evidenceItemSchema } from "./evidence.js";
+import {
+  externalAdapterRequestSchema,
+  externalAdapterResponseSchema,
+} from "./external-adapter.js";
 import { findingSchema } from "./finding.js";
 import { findingValidationResultSchema } from "./finding-validation.js";
 import { localEvidenceCollectionSchema } from "./local-evidence.js";
@@ -22,6 +26,8 @@ export type CoreJsonSchemas = {
   readonly findingValidationResult: JsonSchemaDocument;
   readonly localEvidenceCollection: JsonSchemaDocument;
   readonly report: JsonSchemaDocument;
+  readonly externalAdapterRequest: JsonSchemaDocument;
+  readonly externalAdapterResponse: JsonSchemaDocument;
 };
 
 export function exportCoreJsonSchemas(): CoreJsonSchemas {
@@ -59,6 +65,14 @@ export function exportCoreJsonSchemas(): CoreJsonSchemas {
     report: {
       $id: `urn:change-trace-mcp:schema:report:${CORE_SCHEMA_VERSION}`,
       ...z.toJSONSchema(reportSchema, options),
+    },
+    externalAdapterRequest: {
+      $id: `urn:change-trace-mcp:schema:external-adapter-request:${CORE_SCHEMA_VERSION}`,
+      ...z.toJSONSchema(externalAdapterRequestSchema, options),
+    },
+    externalAdapterResponse: {
+      $id: `urn:change-trace-mcp:schema:external-adapter-response:${CORE_SCHEMA_VERSION}`,
+      ...z.toJSONSchema(externalAdapterResponseSchema, options),
     },
   };
 }

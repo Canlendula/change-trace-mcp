@@ -22,6 +22,26 @@ export {
   type TrustLevel,
 } from "./evidence.js";
 export {
+  explicitExternalReferenceSchema,
+  externalAccessStatusSchema,
+  externalAdapterIdentitySchema,
+  externalAdapterRequestSchema,
+  externalAdapterResponseSchema,
+  externalAdapterResultSchema,
+  externalAvailableResultSchema,
+  externalSourceTypeSchema,
+  externalUnavailableResultSchema,
+  type ExplicitExternalReference,
+  type ExternalAccessStatus,
+  type ExternalAdapterIdentity,
+  type ExternalAdapterRequest,
+  type ExternalAdapterResponse,
+  type ExternalAdapterResult,
+  type ExternalAvailableResult,
+  type ExternalSourceType,
+  type ExternalUnavailableResult,
+} from "./external-adapter.js";
+export {
   findingCategorySchema,
   findingRecommendationSchema,
   findingSchema,
