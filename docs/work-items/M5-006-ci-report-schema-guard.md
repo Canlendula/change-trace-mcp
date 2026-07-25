@@ -170,21 +170,78 @@ and the catalog cases exercised. Do not omit transient failures.
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress`
+- Status: `ready_for_review`
 - Implementation commit(s):
-- Branch head:
+  - `3ab269321db69ccacfb92292e128c19ace0147fc`
+- Branch head: resolve the current
+  `codex/M5-006-ci-report-schema-guard` head after the handoff commit; the
+  handoff commit is intentionally not self-referenced.
 
 ### Implementation summary
 
-- Pending.
+- Added the required empty `evidenceSources` catalog to the deterministic
+  report fixture and schema-valid core/external catalog behaviors.
+- Extended the dependency-free advisory runner with exact, bounded validation
+  for catalog entries, source references, redactions, optional external
+  provenance, and catalog/coverage count agreement.
+- Added deterministic invalid fixture behaviors and integration coverage for
+  missing/malformed catalogs, primitive/nested validation, unknown fields, all
+  three catalog array bounds, and mismatched coverage.
+- Extended the deterministic smoke to parse `release-review.json` and require
+  the zero-evidence fixture's catalog to be exactly `[]`.
 
 ### Validation
 
-- Pending.
+- Test-first expected failure:
+  - the first focused command could not start because this isolated worktree
+    had no `node_modules`; it exited 1 while resolving `vitest/config`;
+  - an ignored local junction to the coordinator worktree's installed
+    dependencies restored the test prerequisite;
+  - `npx vitest run tests/integration/advisory-ci.test.ts
+    tests/integration/provider-neutral-ci.test.ts` then exited 1 with 16 failed
+    / 24 passed: the clean report failed the real `reportSchema`, invalid
+    catalog cases were accepted, and the smoke lacked the catalog guard.
+- Transitional failures, all fixed:
+  - after the first implementation, the same two-file command had 11 failures
+    / 29 passes because the new tests looked for `status.reasonCode`; the
+    existing bounded failure sidecar correctly stores the stable code at
+    `status.error.code`, so the assertions were corrected without changing the
+    runner output contract;
+  - the first five-file required run had 1 failure / 88 passes because
+    `dist/cli.js` had not been built in the isolated worktree; `npm run build`
+    restored the documented prerequisite and the rerun passed 89/89.
+- Final required focused command: 5 files, 97 tests passed.
+- `npm run check`: passed.
+- Final first consecutive `npm test`: 27 files, 265 tests passed.
+- Final second consecutive `npm test`: 27 files, 265 tests passed.
+- `npm run smoke:stdio`: passed; all eight tools and the unchanged M1
+  compatibility fixture were reported.
+- `npm run smoke:ci`: passed with
+  `outcome=completed_no_findings code=ok` and `smoke=ok`.
+- `npm run pack:check`: passed; dry-run tarball contained 157 files.
+- `git diff --check
+  54e609e03b486f9e75267aa04cdbaaf65c7105f5..HEAD`: passed after the
+  handoff commit.
+- `git status --short`: clean after the handoff commit.
 
 ### Catalog validation and cloud-failure closure
 
-- Pending.
+- The clean fixture now contains `evidenceSources: []`, parses with the current
+  public `reportSchema`, and retains `completed_no_findings`.
+- Positive cases cover a redacted core Git diff with
+  `trusted_repository` and an external document with exact adapter/provenance
+  fields and `untrusted_external`.
+- Negative cases cover invalid evidence/type/trust enums, stable IDs,
+  timestamps, SHA-256 hashes, source references, related change IDs,
+  redaction values, and external provenance values.
+- Exact-key rejection is exercised at catalog-entry, source, redaction,
+  adapter, and provenance levels.
+- Bounds are exercised at 10,001 catalog entries, 1,001 related change IDs,
+  and 101 redactions. A catalog/coverage count mismatch is also rejected.
+- Omitting the catalog now produces the existing bounded infrastructure
+  artifact and sidecar with `outcome: infrastructure_failure` and
+  `error.code: report_inconsistent`. This directly closes the validation gap
+  that allowed GitHub run `30171504267` to upload an invalid success report.
 
 ### Deviations from assignment
 
@@ -192,7 +249,11 @@ and the catalog cases exercised. Do not omit transient failures.
 
 ### Known limitations and risks
 
-- Pending.
+- The standalone runner intentionally validates the Decision 26 projection and
+  coverage count within its existing portable boundary; it remains a manual
+  validator rather than a duplicate full Zod Report implementation.
+- No GitHub Actions rerun or cloud artifact audit was performed. The
+  coordinator owns that final evidence.
 
 ### Decisions or questions for coordinator
 
@@ -200,10 +261,10 @@ and the catalog cases exercised. Do not omit transient failures.
 
 ### Protected-file confirmation
 
-- [ ] Only allowed paths changed.
-- [ ] No source, schema, workflow, dependency, version, governance, release, or
+- [x] Only allowed paths changed.
+- [x] No source, schema, workflow, dependency, version, governance, release, or
       npm-state change was performed.
-- [ ] All intended handoff changes are committed and the worktree is clean.
+- [x] All intended handoff changes are committed and the worktree is clean.
 
 ## Coordinator review — coordinator owned
 
