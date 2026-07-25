@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M2 in progress
+> Status: M3 complete
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -119,10 +119,14 @@ The technical spike may revise this choice if Host compatibility or package star
   pass unit and MCP stdio integration tests. Required rename, deletion, binary,
   submodule, oversized, confinement, symlink, UTF-8 truncation, and secret
   redaction cases pass.
-- M3 has started. `validate_findings` now performs per-finding schema checks,
-  safe enum normalization, evidence/source cross-reference validation, and
-  duplicate-ID rejection. Unit tests and the full stdio scope → evidence →
-  bundle → validation chain pass. Bounded Markdown/JSON report writing is next.
+- M3 completed on 2026-07-25. Finding validation, bounded Markdown/JSON report
+  writing, nine review fixtures, a deterministic replay/scorer workflow, and
+  the compact Host-neutral review instruction are implemented.
+- The final instruction `1.4.0` replay passed 9 of 9 fixtures on Codex Desktop,
+  Claude Code, and OpenCode. Each Host produced 6 valid findings with zero
+  rejected or warned findings; all no-finding and missing-evidence controls
+  passed. Exact scores and reproducibility hashes are recorded in
+  [`docs/evaluation/M3_RESULTS.md`](evaluation/M3_RESULTS.md).
 
 ## 6. M0 — Project foundation
 
@@ -374,9 +378,28 @@ Create fixtures containing known examples of:
 - known refactors do not routinely create documentation findings;
 - missing evidence results in `inconclusive`, not fabricated certainty.
 
+Completed on 2026-07-25:
+
+- all three target Hosts passed the final nine-fixture replay at 9 of 9;
+- all 18 submitted findings across the three Hosts were schema-valid and
+  evidence-valid, with zero rejected or warned findings;
+- identical ordered bundle digests were scored across all Hosts;
+- the conforming implementation, intentional refactor, and malicious-content
+  controls returned no findings on every Host;
+- both materially missing-evidence controls returned bounded
+  `other` / `inconclusive` / `investigate` findings on every Host;
+- final prepared packets ranged from 10,876 to 12,417 bytes and produced no
+  scorer input errors.
+
 ### Go/No-Go gate
 
 Continue to external integrations only if the local fixture set reaches an acceptable precision threshold and review bundles remain small enough for routine use.
+
+The quality gate recorded in
+[`docs/PROJECT_DECISIONS.md`](PROJECT_DECISIONS.md#19-m3-cross-host-replay-quality-gate)
+is satisfied. M4 advisory CI work may proceed. M5 remains eligible to proceed
+in parallel after M3, while the user-selected milestone sequence continues
+with M4.
 
 ## 10. M4 — Advisory CI integration
 
@@ -642,7 +665,7 @@ M4 and M5 may proceed in parallel after M3. Runtime evidence should wait until s
 
 ## 18. Immediate backlog
 
-The next implementation session should begin with these tasks:
+The initial backlog and current progress are:
 
 1. Choose package name and license.
 2. Scaffold TypeScript package and test runner.
@@ -653,7 +676,7 @@ The next implementation session should begin with these tasks:
 7. Add the first Git fixtures before implementing Git collection.
 8. Record M1 compatibility results in the roadmap and memory.
 
-Progress as of 2026-07-22:
+Progress as of 2026-07-25:
 
 | Item | Status |
 |---|---|
@@ -668,9 +691,14 @@ Progress as of 2026-07-22:
 | Local evidence | Initial confined scanner, provenance, hashing, truncation, and secret redaction complete |
 | Review bundle | Deterministic indexing, Git facts, missing evidence, and context limits complete |
 | M2 exit gate | Complete; 39 tests plus stdio and package dry-run pass |
-| Finding validation | Initial schema normalization and bundle-reference enforcement complete |
+| Finding validation | Complete; schema normalization and bundle-reference enforcement pass unit and stdio integration tests |
+| Report writing | Complete; confined deterministic Markdown/JSON output passes unit and stdio integration tests |
+| M3 evaluation fixtures and scorer | Complete; nine fixtures, deterministic replay preparation, capture scoring, and summaries are tracked |
+| M3 cross-Host exit gate | Complete; Codex Desktop, Claude Code, and OpenCode each pass 9 of 9 on instruction `1.4.0` |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
 prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 `0.0.0-dev.0` until the next preview release is explicitly published.
+
+The next milestone in the selected sequence is M4 advisory CI integration.

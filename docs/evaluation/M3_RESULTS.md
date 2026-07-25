@@ -15,6 +15,9 @@ does not declare a milestone, release, or general compatibility outcome.
   fixture.
 - Execution policy: all Host tools and permissions were disabled. The three
   run records report zero tool calls/uses for all recorded fixture executions.
+- Prepared packet size: the nine serialized review packets ranged from 10,876
+  to 12,417 bytes (average 11,497 bytes). Every bundle stayed within the
+  existing evidence limits and the scorer reported no input errors.
 
 The final prepared manifest and Host run records remain ignored local audit
 materials. Raw prompts, capture files, response streams, and fixture evidence
@@ -85,8 +88,11 @@ score file and was compared across all three files.
 | `m3/claude-code.score.json` | `6e8f09a2c67a95b8931fe1c84dae6a26860586e2df443c2f16589cea284eddef` |
 | `m3/opencode.score.json` | `88d74e5bb69c74933fd13f9b64b5bf9f1d16ccf2eff906b30ad8c4de75cc107c` |
 
-Reproduction uses SHA-256 over the exact UTF-8 files. The committed score
-hashes are also the hashes of their corresponding final v5 sources.
+Reproduction uses SHA-256 over the exact UTF-8 source files and committed Git
+blob bytes. The committed score hashes are also the hashes of their
+corresponding final v5 sources. A checkout configured for automatic line-ending
+conversion may rewrite the final newline in its working-tree copy; compare the
+committed blob or archive bytes when verifying these hashes.
 
 ## Prompt-development history (not the final gate)
 

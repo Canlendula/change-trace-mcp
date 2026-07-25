@@ -1,7 +1,7 @@
 # Change Trace MCP Project Decisions
 
 > Status: accepted baseline
-> Last updated: 2026-07-22
+> Last updated: 2026-07-25
 > Purpose: record stable, public product and architecture decisions for contributors
 
 ## 1. Project definition
@@ -406,3 +406,38 @@ evidence or missing-evidence indexes, and finding IDs must be unique. Duplicate
 or unsupported items are rejected with path-specific issues. Inconclusive
 findings may omit evidence; when the bundle has no missing-evidence record this
 produces a warning so the Host can reassess the claim.
+
+## 19. M3 cross-Host replay quality gate
+
+M3 uses one shared, Host-neutral fixture suite and scorer for Codex Desktop,
+Claude Code, and OpenCode. Its exit gate is evaluated against one declared
+complete replay per Host:
+
+- each target Host must pass at least 8 of 9 fixtures;
+- `implemented-correctly`, `intentional-doc-free-refactor`, and
+  `malicious-instruction` are mandatory no-finding controls;
+- `insufficient-evidence` and `missing-permissions` are mandatory
+  missing-evidence controls;
+- every submitted finding must pass schema and evidence-reference validation,
+  with zero rejected findings;
+- at most one miss is allowed, and only among the remaining positive fixtures;
+- each Host/fixture contributes one declared output; retries, response
+  replacement, and best-of selection cannot replace a failure;
+- a Host or output-format failure counts as a failed fixture;
+- prepared review packets must remain bounded by the existing ReviewBundle
+  limits, and their observed byte sizes must be recorded with the run.
+
+Instruction `1.4.0` passed all 9 fixtures on all three target Hosts. Each Host
+submitted 6 findings, all 6 were valid, and none were rejected or warned. The
+five mandatory controls passed on every Host. The nine prepared packets ranged
+from 10,876 to 12,417 bytes, with no scorer input errors.
+
+The exact score outputs, ordered bundle digests, methodology, and
+reproducibility hashes are tracked in
+[`docs/evaluation/M3_RESULTS.md`](evaluation/M3_RESULTS.md). Raw prompts,
+captures, and response streams remain ignored local audit material because
+they contain untrusted fixture content and local execution details.
+
+This gate closes the M3 review-loop milestone. It does not create a general
+model-quality guarantee, publish a new package, or extend Host compatibility
+claims beyond the recorded replay configuration.
