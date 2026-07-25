@@ -405,7 +405,10 @@ export async function runExternalAdapter(
   const processOutput = await runAdapterProcess(registration, request);
   let responseInput: unknown;
   try {
-    responseInput = JSON.parse(processOutput.stdout.toString("utf8"));
+    const responseText = new TextDecoder("utf-8", { fatal: true }).decode(
+      processOutput.stdout,
+    );
+    responseInput = JSON.parse(responseText);
   } catch {
     throw new ExternalAdapterRunnerError("invalid_response");
   }

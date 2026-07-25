@@ -212,6 +212,37 @@ if (mode === "hang") {
       );
       process.exit(0);
       break;
+    case "invalid-utf8-json-string": {
+      const marker = "INVALID_UTF8_BYTES";
+      const lossyExcerpt =
+        "binary-secret-before \uFFFD( binary-secret-after";
+      const serialized = Buffer.from(
+        JSON.stringify(
+          response(request, [
+            available(first, {
+              excerpt: `binary-secret-before ${marker} binary-secret-after`,
+              truncation: {
+                isTruncated: false,
+                originalCharacters: lossyExcerpt.length,
+                retainedCharacters: lossyExcerpt.length,
+              },
+            }),
+          ]),
+        ),
+        "utf8",
+      );
+      const markerBytes = Buffer.from(marker, "utf8");
+      const markerStart = serialized.indexOf(markerBytes);
+      process.stdout.write(
+        Buffer.concat([
+          serialized.subarray(0, markerStart),
+          Buffer.from([0xc3, 0x28]),
+          serialized.subarray(markerStart + markerBytes.length),
+        ]),
+      );
+      process.exit(0);
+      break;
+    }
     default:
       output = response(request, [available(first)]);
   }

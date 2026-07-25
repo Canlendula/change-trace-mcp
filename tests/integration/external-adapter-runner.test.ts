@@ -397,6 +397,14 @@ describe("external adapter runner", () => {
     }
   });
 
+  it("rejects invalid UTF-8 inside an otherwise valid JSON string without exposing content", async () => {
+    await expectRunnerError(
+      runExternalAdapter(registration("invalid-utf8-json-string"), request()),
+      "invalid_response",
+      ["binary-secret-before", "binary-secret-after"],
+    );
+  });
+
   it("returns bounded safe nonzero and spawn errors without raw process data", async () => {
     const previousCredential = process.env.M5_ALLOWED_CREDENTIAL;
     process.env.M5_ALLOWED_CREDENTIAL = "credential-value-sentinel";
