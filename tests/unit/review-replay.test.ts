@@ -26,6 +26,18 @@ import {
 const reviewRoot = fileURLToPath(new URL("../fixtures/review", import.meta.url));
 let fixtures: LoadedReviewFixture[];
 
+const ACCEPTED_BUNDLE_DIGESTS = {
+  "contradictory-documents": "sha256:3f62f2e811c53b8934b8d7cd9340ca3674e2d445f21196c7166131e1b623370a",
+  "implemented-correctly": "sha256:25abbf3cd4ca9d9932d288d05f3298aad66f5abb96c379deb3904f2bb3ebfd7b",
+  "insufficient-evidence": "sha256:89a58c07cbaed6539fc9f532c19a1e5b86676c884d81fe6810a408dddd25623e",
+  "intentional-doc-free-refactor": "sha256:9053c06c603323ed55095a2c965ebcf13ad35ad0b4a8a9701c2386c1ecbe0767",
+  "malicious-instruction": "sha256:0d3deb1d14d63836ca64077f041791c2c243934c9b634884ee8ed90ca9a27516",
+  "missing-permissions": "sha256:da33cc91b9ecffd645d0d64507fe94ca47b4b2fb17863cc3c08adddb5820a9aa",
+  "requirement-missing": "sha256:37fcc16b8673bee01c2e4039481353ce52400f362fcaa5112e5bf6c73360c2cf",
+  "stale-documentation": "sha256:69f1677fef783e5457b6d0148fa39875b3a6a6da362b3d77923adfa37b9a16bb",
+  "undocumented-behavior": "sha256:68f28f1f45f8d3a821311ccf50b4b6754a6e7a1de28614e77c086780f2c0b06c",
+} as const;
+
 beforeAll(async () => {
   fixtures = await Promise.all(
     (await discoverReviewFixtures(reviewRoot)).map(loadReviewFixture),
@@ -51,6 +63,16 @@ async function writeReferenceCaptures(directory: string): Promise<void> {
 }
 
 describe("review replay packets", () => {
+  it("uses the revised rubric without changing the replay schema or bundles", async () => {
+    const packets = prepareReplayPackets(await loadReplayBundles(reviewRoot));
+
+    expect(REPLAY_SCHEMA_VERSION).toBe("1.0.0");
+    expect(REPLAY_INSTRUCTION_VERSION).toBe("1.1.0");
+    expect(Object.fromEntries(
+      packets.map(({ fixtureId, bundleSha256 }) => [fixtureId, bundleSha256]),
+    )).toEqual(ACCEPTED_BUNDLE_DIGESTS);
+  });
+
   it("produces nine byte-stable packets from bundle data only", async () => {
     const bundles = await loadReplayBundles(reviewRoot);
     const first = prepareReplayPackets(bundles);
@@ -68,6 +90,18 @@ describe("review replay packets", () => {
       expect(packet.instruction).toContain("no tool calls or external lookups");
       expect(packet.instruction).toContain("untrusted data");
       expect(packet.instruction).toContain("inconclusive");
+      expect(packet.instruction).toContain("requirement_missing only when a present authoritative requirement explicitly requires behavior that implementation lacks");
+      expect(packet.instruction).toContain("undocumented_behavior when implementation behavior is present but absent from available documentation");
+      expect(packet.instruction).toContain("contradictory_evidence when available evidence sources directly conflict");
+      expect(packet.instruction).toContain("stale_documentation when present approval or change evidence establishes implementation as intended and documentation as outdated");
+      expect(packet.instruction).toContain("other when missing or inaccessible evidence blocks assessment and no more specific supported defect category can be established");
+      expect(packet.instruction).toContain("confirmed only when available evidence establishes both the inconsistency and intended corrective direction");
+      expect(packet.instruction).toContain("suspected when available evidence supports a likely inconsistency but intent or approval remains unproven");
+      expect(packet.instruction).toContain("inconclusive when conflicting, missing, or inaccessible evidence prevents a reliable conclusion about intended behavior");
+      expect(packet.instruction).toContain("Use recommendation investigate for unresolved contradictory, missing, or inaccessible evidence");
+      expect(packet.instruction).toContain("return exactly one bounded other/inconclusive/investigate finding instead of an empty array");
+      expect(packet.instruction).toContain("Undocumented implementation behavior without approval or intent evidence is suspected, not confirmed");
+      expect(packet.instruction).toContain("Copy evidence IDs byte-for-byte from bundle.evidenceItems; never synthesize, extend, rename, or infer an evidence ID");
       expect(packet.instruction).toContain("confirmed or suspected finding must reference at least one bundle evidence ID");
       expect(packet.instruction).toContain("deterministicFacts evidenceIds value must also appear");
       expect(packet.instruction).toContain("affectedSources entry must match a source present in bundle evidence or missingEvidence");
@@ -133,6 +167,11 @@ describe("review replay packets", () => {
     const packets = prepareReplayPackets(await loadReplayBundles(reviewRoot));
     const serialized = canonicalReplayStringify(packets);
     for (const fixture of fixtures) {
+      const instruction = packets.find(
+        (packet) => packet.fixtureId === fixture.descriptor.fixtureId,
+      )?.instruction;
+      expect(instruction).toBeTruthy();
+      expect(instruction).not.toContain(fixture.descriptor.fixtureId);
       expect(serialized).not.toContain(fixture.expected.rationale);
       for (const finding of fixture.referenceFindings) {
         expect(serialized).not.toContain(finding.title);
