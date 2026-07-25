@@ -94,23 +94,40 @@ Host and verifies all three artifacts below `artifacts/advisory-ci-smoke`.
 ## Trusted OpenCode reference Host
 
 `.github/workflows/m4-advisory-review.yml` keeps `quality` and
-`advisory-review` separate. The advisory job depends on quality but uses
-`if: always()` and job-level `continue-on-error: true`, so it cannot turn a
-test/build result into a merge gate. It has only `contents: read` and
-`models: read` permissions.
+`advisory-review` separate. A `pull_request` run executes only the
+least-privilege quality job from the PR merge commit. A separate
+`pull_request_target` run executes only the advisory job from the trusted base
+workflow definition. Push and manual-dispatch runs execute both jobs. The
+advisory job depends on quality where quality is present, uses `always()`, and
+has job-level `continue-on-error: true`, so it cannot turn a test/build result
+into a merge gate. This split ensures the repository's intended model-bearing
+advisory execution is sourced from the trusted base workflow definition; it
+does not stop a PR author from changing the separate `pull_request` workflow
+revision. Repository or organization workflow-approval and execution-protection
+policies remain necessary to govern arbitrary PR-controlled workflow changes.
 
-For a pull request, the workflow checks out trusted tooling from the base SHA
+For a pull request, the trusted advisory run checks out tooling from the base SHA
 into `trusted-tooling` and the review subject from the head repository/SHA into
 `subject`. This also supports fork pull requests. The trusted checkout supplies
 the runner, Host, prompt, configuration, build, and MCP executable. The subject
 is evidence only: the workflow never runs its npm scripts, dependencies, hooks,
 OpenCode configuration, or binaries.
 
-The workflow installs `opencode-ai@1.18.5` without lifecycle scripts in a
-trusted local prefix, validates its package metadata and its directly resolved
-binary's `--version`, then passes that absolute binary path to the Host. The
-pin refers to the npm package version and the CLI self-reports `1.18.5`; using
-`npm exec ... --version` is avoided because npm may consume that trailing flag.
+The subject checkout deliberately sets checkout v7's
+`allow-unsafe-pr-checkout: true`, which is required to fetch a fork head from a
+`pull_request_target` run. This opt-in is safe only under this workflow's
+boundary: no subject executable, dependency, hook, project configuration, or
+binary may run in the credential-bearing job. The trusted Host accesses it only
+through bounded MCP Git/evidence operations.
+
+The workflow installs `opencode-ai@1.18.5` in a trusted local prefix while no
+model credential is present. Its required `postinstall` selects, copies, and
+verifies the OS/architecture-specific binary, so lifecycle scripts must remain
+enabled for this exact installation. The workflow then validates package
+metadata and the directly resolved binary's `--version`, and passes that
+absolute binary path to the Host. The pin refers to the npm package version and
+the CLI self-reports `1.18.5`; using `npm exec ... --version` is avoided because
+npm may consume that trailing flag.
 The package metadata was verified for `opencode-ai@1.18.5` (integrity
 `sha512-Q0jlX4ihn7veMeYsLX3c4PYFAKIURU3GIpXt1FnhNxNn3v8+RpIZ8z9umG5D0r8g8Smp9fZLGjgLe/9mJ4NyYw==`).
 

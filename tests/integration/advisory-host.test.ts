@@ -167,6 +167,7 @@ describe("trusted OpenCode advisory Host", () => {
     const gitlab = await readFile(join(root, "docs", "ci", "gitlab-ci.example.yml"), "utf8");
     const docs = await readFile(join(root, "docs", "ci", "README.md"), "utf8");
     expect(workflow).toContain("pull_request:");
+    expect(workflow).toContain("pull_request_target:");
     expect(workflow).toContain("main");
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).toContain("continue-on-error: true");
@@ -177,6 +178,10 @@ describe("trusted OpenCode advisory Host", () => {
     expect(workflow).toContain("820762786026740c76f36085b0efc47a31fe5020");
     expect(workflow).toContain("ea165f8d65b6e75b540449e92b4886f43607fa02");
     expect(workflow).toContain("opencode-ai@1.18.5");
+    expect(workflow).toContain("npm install --prefix .opencode --no-save --no-package-lock --audit=false --fund=false opencode-ai@1.18.5");
+    expect(workflow).not.toContain("npm install --prefix .opencode --ignore-scripts");
+    expect(workflow).toContain('bin="$(realpath');
+    expect(workflow).toContain('test "$("$bin" --version)" = "1.18.5"');
     expect(workflow).toContain("github.event.pull_request.base.sha");
     expect(workflow).toContain("github.event.pull_request.head.sha");
     expect(workflow).toContain("github.event.pull_request.head.repo.full_name || github.repository");
@@ -187,6 +192,9 @@ describe("trusted OpenCode advisory Host", () => {
     expect(workflow).toContain("github.run_id");
     expect(workflow).toContain("github.run_attempt");
     expect(workflow).toContain("GITHUB_MODELS_TOKEN: ${{ secrets.GITHUB_TOKEN }}");
+    expect(workflow).toMatch(/quality:\s+if: \$\{\{ github\.event_name != 'pull_request_target' \}\}/);
+    expect(workflow).toMatch(/advisory-review:\s+needs: quality\s+if: \$\{\{ always\(\) && github\.event_name != 'pull_request' \}\}/);
+    expect(workflow).toContain("allow-unsafe-pr-checkout: true");
     expect(workflow).not.toMatch(/working-directory:\s*subject/);
     expect(workflow).not.toContain("subject/package.json");
     expect(gitlab).toContain("allow_failure: true");
@@ -196,6 +204,9 @@ describe("trusted OpenCode advisory Host", () => {
     expect(gitlab).toContain("masked");
     expect(docs).toContain("trusted tooling");
     expect(docs).toContain("subject");
+    expect(docs).toContain("pull_request_target");
+    expect(docs).toContain("workflow-approval");
+    expect(docs).toContain("postinstall");
   });
 
   it("renders only allowlisted advisory status fields", async () => {

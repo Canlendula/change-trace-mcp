@@ -2,6 +2,7 @@ name: M4 advisory release review
 
 on:
   pull_request:
+  pull_request_target:
   push:
     branches: [main]
   workflow_dispatch:
@@ -11,6 +12,7 @@ permissions:
 
 jobs:
   quality:
+    if: ${{ github.event_name != 'pull_request_target' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -28,7 +30,7 @@ jobs:
 
   advisory-review:
     needs: quality
-    if: always()
+    if: ${{ always() && github.event_name != 'pull_request' }}
     continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -40,7 +42,7 @@ jobs:
         id: revisions
         shell: bash
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          if [[ "${{ github.event_name }}" == "pull_request" || "${{ github.event_name }}" == "pull_request_target" ]]; then
             base="${{ github.event.pull_request.base.sha }}"
             head="${{ github.event.pull_request.head.sha }}"
           else
@@ -62,6 +64,9 @@ jobs:
           persist-credentials: false
 
       - name: Check out the read-only review subject
+        # checkout v7 requires this explicit opt-in for a fork head in a
+        # pull_request_target run. The subject is never executed: it is only
+        # passed as read-only evidence to trusted MCP Git operations.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
@@ -69,6 +74,7 @@ jobs:
           path: subject
           fetch-depth: 0
           persist-credentials: false
+          allow-unsafe-pr-checkout: true
 
       - name: Set up trusted Node.js tooling
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -86,7 +92,9 @@ jobs:
         working-directory: trusted-tooling
         shell: bash
         run: |
-          npm install --prefix .opencode --ignore-scripts --no-save --no-package-lock --audit=false --fund=false opencode-ai@1.18.5
+          # OpenCode's pinned package postinstall selects, copies, and verifies
+          # its platform binary. This no-credential step intentionally enables it.
+          npm install --prefix .opencode --no-save --no-package-lock --audit=false --fund=false opencode-ai@1.18.5
           package_json="$GITHUB_WORKSPACE/trusted-tooling/.opencode/node_modules/opencode-ai/package.json"
           test "$(node -p "require(process.argv[1]).version" "$package_json")" = "1.18.5"
           bin="$(realpath "$GITHUB_WORKSPACE/trusted-tooling/.opencode/node_modules/.bin/opencode")"
