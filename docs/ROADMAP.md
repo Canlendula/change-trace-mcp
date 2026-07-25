@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M4 in progress; provider-neutral closeout selected
+> Status: M4 complete; M5 ready to start
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -127,6 +127,12 @@ The technical spike may revise this choice if Host compatibility or package star
   rejected or warned findings; all no-finding and missing-evidence controls
   passed. Exact scores and reproducibility hashes are recorded in
   [`docs/evaluation/M3_RESULTS.md`](evaluation/M3_RESULTS.md).
+- M4 completed on 2026-07-26. The accepted provider-neutral path supplies a
+  generic advisory runner, generic CI template, caller-supplied Host example,
+  bounded artifacts, and a manual deterministic GitHub orchestration smoke.
+  Final GitHub run `30168292163` passed attempts 1 and 2 with no annotations;
+  the attempt-2 sidecar records the expected rerun identity and
+  `completed_no_findings`. No semantic model/Host claim was added.
 
 ## 6. M0 — Project foundation
 
@@ -439,7 +445,7 @@ Run the review after or alongside existing CI without changing the release path 
 
 ### Current status and decision gate
 
-M4 remains in progress with its reference architecture selected.
+M4 completed on 2026-07-26 with its provider-neutral reference architecture.
 
 - The Host-neutral advisory runner and generic CI path are implemented and
   tested.
@@ -467,12 +473,15 @@ M4 remains in progress with its reference architecture selected.
   gate. A deterministic CI Host may validate orchestration, artifacts,
   advisory isolation, and rerun metadata without creating a semantic
   compatibility claim.
-
-The remaining M4 closeout is bounded: retire the free GitHub Models path as a
-reference, provide a provider-neutral GitHub example alongside the generic
-template, preserve the historical failure evidence, and validate the
-deterministic GitHub orchestration path. M5 begins after that closeout passes
-coordinator review.
+- M4-005 replaced the active provider path with a manual, credential-free
+  deterministic smoke and added the copyable caller-supplied Host example.
+- Final run
+  `https://github.com/Canlendula/change-trace-mcp/actions/runs/30168292163`
+  passed attempts 1 and 2. Both attempts used the current full-SHA artifact
+  action, uploaded exactly the three managed artifacts, and produced no
+  annotations. The second downloaded sidecar records `runAttempt: 2`.
+- The revised exit gate is satisfied. M5 may proceed without purchasing or
+  certifying a model service.
 
 ## 11. M5 — External documentation adapters
 
@@ -733,7 +742,8 @@ Progress as of 2026-07-25:
 | Report writing | Complete; confined deterministic Markdown/JSON output passes unit and stdio integration tests |
 | M3 evaluation fixtures and scorer | Complete; nine fixtures, deterministic replay preparation, capture scoring, and summaries are tracked |
 | M3 cross-Host exit gate | Complete; Codex Desktop, Claude Code, and OpenCode each pass 9 of 9 on instruction `1.4.0` |
-| M4 advisory CI | In progress; caller-supplied Host selected, generic runner implemented, free GitHub GPT-4.1 path rejected, provider-neutral closeout pending |
+| M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
+| M5 external documents | Ready; bounded explicit-reference adapter boundary recorded in Decision 23 |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is

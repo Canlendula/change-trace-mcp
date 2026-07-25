@@ -81,6 +81,48 @@ validate a semantic review Host.
 This rejects the tested free provider/model/response path as an M4 reference
 reviewer. It does not reject the provider-neutral runner or MCP core.
 
+### Provider-neutral deterministic closeout
+
+- Run:
+  `https://github.com/Canlendula/change-trace-mcp/actions/runs/30168292163`
+- Workflow revision:
+  `750e1fae4e54a3eadb9c657b2c6e6df6dd43a6b8`
+- Attempt 1: success. Quality and advisory jobs passed with no annotations.
+  The advisory log confirms `completed_no_findings`, exactly three uploaded
+  files, artifact name
+  `change-trace-orchestration-smoke-30168292163-1`, artifact ID
+  `8622201189`, and archive SHA-256
+  `55bf5ec20b3d47ff74eae79488ca89a62bb1d17cf38d31d9425384476a0acbab`.
+- Attempt 2: success. Quality and advisory jobs passed again with no
+  annotations. The advisory log confirms the attempt-qualified artifact name
+  ending in `-2`, exactly three uploaded files, artifact ID `8622209665`, and
+  archive SHA-256
+  `cc187449854cf75b9f2a2f8d5e64b4a735ce4a7c91e866ec8fd1d362fc5cab72`.
+- The downloaded attempt-2 artifact contained only
+  `release-review.md`, `release-review.json`, and
+  `release-review-status.json`. The status sidecar recorded
+  `runAttempt: 2`, the exact workflow revision as both bounded fixture
+  revisions, the deterministic fixture Host, zero findings, and
+  `completed_no_findings`. The file SHA-256 values were respectively
+  `38b4a657b06fa22da5325f63d54a063c07936de7427a5673543d89029bd62b71`,
+  `7877667753bee67ff1e327658e56772e6cde2f9ac8a0be4d083dd5b63f2bbef1`,
+  and
+  `503ce3d074d146086be0b00e6c2d18ce21137ba5bbcd56214e3f5f7c0e0ee95a`.
+- Both attempts downloaded
+  `actions/upload-artifact` at the full v7.0.1 commit
+  `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a`.
+
+GitHub exposes only the current attempt's artifact after a rerun. Attempt 1 is
+therefore preserved by the immutable attempt-specific run log, including its
+artifact identity, three-file count, size, and digest; attempt 2 is preserved
+by both the run log and downloaded content hashes. This platform retention
+behavior does not weaken the run-attempt test because the second sidecar
+independently records `runAttempt: 2`.
+
+This is deterministic orchestration evidence. It proves the selected workflow,
+advisory containment, artifact allowlist, and rerun metadata. It does not
+certify a semantic Agent Host or model.
+
 ### Automatic-run state
 
 - Verification run:
@@ -128,7 +170,8 @@ project does not bundle, subsidize, or certify a free semantic reviewer.
 Specific Host/model compatibility may be documented only after that exact path
 passes the M3-derived quality gate. Platform-specific comments and checks stay
 outside the core and may be implemented by the platform's Action, CLI, MCP, or
-API.
+API. The deterministic closeout run satisfies the revised M4 orchestration,
+artifact, advisory, and rerun exit gate.
 
 ## Official sources
 
@@ -144,3 +187,4 @@ API.
 - [Gitee AI Teammates](https://gitee.com/ai-teammates)
 - [Alibaba Cloud DevOps AI code review](https://help.aliyun.com/zh/yunxiao/user-guide/ai-intelligent-code-review)
 - [Forgejo Actions](https://forgejo.org/docs/latest/user/actions/overview/)
+- [actions/upload-artifact v7.0.1](https://github.com/actions/upload-artifact/releases/tag/v7.0.1)

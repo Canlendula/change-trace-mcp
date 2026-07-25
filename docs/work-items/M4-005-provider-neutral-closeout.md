@@ -110,35 +110,35 @@
 
 ### Acceptance criteria
 
-- [ ] The live M4 reference workflow has only a manual trigger and cannot run
+- [x] The live M4 reference workflow has only a manual trigger and cannot run
       on push, pull request, `pull_request_target`, schedule, or reusable
       invocation.
-- [ ] It requests no model permission or model/provider credential and contains
+- [x] It requests no model permission or model/provider credential and contains
       no OpenCode installation or inference path.
-- [ ] Its quality and advisory responsibilities remain separate; the advisory
+- [x] Its quality and advisory responsibilities remain separate; the advisory
       job is bounded and non-blocking by default.
-- [ ] Its deterministic Host runs through the accepted generic runner and
+- [x] Its deterministic Host runs through the accepted generic runner and
       creates a valid `completed_no_findings` report pair plus status sidecar.
-- [ ] The workflow forwards safe base/head revisions and
+- [x] The workflow forwards safe base/head revisions and
       `github.run_attempt`, uploads exactly the three managed artifacts with a
       run/attempt-qualified name, and publishes only an allowlisted bounded
       summary.
-- [ ] The deterministic workflow and documentation state explicitly that this
+- [x] The deterministic workflow and documentation state explicitly that this
       proves orchestration, artifact, and rerun behavior only.
-- [ ] The GitHub example is provider-neutral, uses an explicit JSON argv Host
+- [x] The GitHub example is provider-neutral, uses an explicit JSON argv Host
       command, stays advisory, bounds runtime, and uploads exactly the three
       managed artifacts.
-- [ ] The GitHub and GitLab guidance assign provider credential sanitization to
+- [x] The GitHub and GitLab guidance assign provider credential sanitization to
       the configured Host and do not imply that environment masking alone
       prevents a credential from reaching an MCP child.
-- [ ] Existing manual GPT-4.1 evidence remains historical and automatic model
+- [x] Existing manual GPT-4.1 evidence remains historical and automatic model
       inference stays impossible.
-- [ ] The default successful/failure fixture Host budget remains bounded but
+- [x] The default successful/failure fixture Host budget remains bounded but
       does not misclassify normal child startup under full-suite parallel load;
       the explicit timeout fixture retains its short termination budget.
-- [ ] Focused tests, generic CI smoke, type checking, the full suite, stdio
+- [x] Focused tests, generic CI smoke, type checking, the full suite, stdio
       smoke, package dry-run, diff checks, and clean worktree checks pass.
-- [ ] No public MCP/schema/source/dependency/lockfile/version/governance/
+- [x] No public MCP/schema/source/dependency/lockfile/version/governance/
       release/npm state or compatibility claim changes.
 
 ### Required validation
@@ -311,9 +311,15 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `changes_requested`
-- Reviewed branch head: `6fae684393eb19d49183e9fd0caca8c8648ef69b`
-- Integration commit:
+- Outcome: `accepted`
+- Reviewed branch head:
+  `6b25338b486500ae677f7640fa3426fd2a3fc0ec`
+- Integration commits:
+  `25a3ab63047aa112b721443774eec1fd02533301`,
+  `31cdd53d1108e1c42786dcc2913ff3122c75aea8`,
+  `cc877da7a6ec90e195f27bc2932c76b60dc389a3`,
+  `2b6f1a06b2e4f2ccab57c778f1deedbc72dd5336`, and
+  `0a7b91397524b1062fc801cc71258c3bf82e8e81`
 
 ### Review findings
 
@@ -337,18 +343,26 @@ git status --short
   deprecated. Replace both workflow pins with the current official v7.0.1
   commit `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a`, update the focused
   assertion, and keep the full-SHA pinning policy.
+- All three review findings were resolved. The ordinary fixture Host budget is
+  now a bounded 2,000 ms while the explicit termination case remains 100 ms;
+  YAML assertions normalize CRLF/LF; and both upload steps use the official
+  v7.0.1 full commit.
+- Coordinator validation on the accepted main tree passed Actionlint v1.7.12
+  with no diagnostics, 30 focused tests, TypeScript checking, the deterministic
+  CI smoke, 185 full-suite tests, stdio smoke, and package dry-run.
+- Final live run
+  `https://github.com/Canlendula/change-trace-mcp/actions/runs/30168292163`
+  passed attempts 1 and 2 at
+  `750e1fae4e54a3eadb9c657b2c6e6df6dd43a6b8` with no annotations. Both
+  attempts uploaded exactly three managed files with attempt-qualified names.
+  The downloaded attempt-2 sidecar records `runAttempt: 2` and
+  `completed_no_findings`.
 
 ### Required follow-up
 
-- Run the focused CI suites, then two consecutive unchanged full-suite runs,
-  and update the worker handoff with every result.
-- After the line-ending follow-up, verify the focused test from both the task
-  worktree and the coordinator's CRLF main worktree.
-- Validate the v7.0.1 action pins with `actionlint`, then leave a clean,
-  committed handoff for a new coordinator-owned dispatch. Do not rerun the
-  old workflow run because reruns retain the original workflow revision.
+- None for M4-005.
 
 ### Roadmap and release impact
 
-- M4 remains in progress until this closeout passes review and its
-  coordinator-owned live orchestration evidence is recorded.
+- M4-005 is accepted and the revised M4 exit gate is satisfied. This creates
+  no semantic Host/model compatibility claim and performs no package release.
