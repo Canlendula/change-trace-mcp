@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createHash, randomUUID } from "node:crypto";
-import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath, unlink, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { isAbsolute, join, relative, resolve } from "node:path";
 
@@ -118,6 +118,24 @@ async function assertManagedFilesSafe(output) {
       if (error instanceof RunnerError) throw error;
       if (error && error.code === "ENOENT") continue;
       throw new RunnerError("managed_artifact_unreadable");
+    }
+  }
+}
+
+async function invalidateManagedArtifacts(output) {
+  // Publishers and readers must never mistake a prior status sidecar for this
+  // run. Remove it first, then invalidate the only two Host-owned report
+  // files. This function never scans or deletes any other directory entry.
+  for (const name of [ARTIFACT_NAMES.status, ARTIFACT_NAMES.markdown, ARTIFACT_NAMES.json]) {
+    const file = join(output, name);
+    try {
+      const stat = await lstat(file);
+      if (!stat.isFile() || stat.isSymbolicLink()) throw new RunnerError("unsafe_managed_artifact");
+      await unlink(file);
+    } catch (error) {
+      if (error instanceof RunnerError) throw error;
+      if (error && error.code === "ENOENT") continue;
+      throw new RunnerError("managed_artifact_invalidation_failed");
     }
   }
 }
@@ -326,6 +344,7 @@ async function main() {
     if (!SAFE_HOST_ID.test(hostId)) throw new RunnerError("invalid_host_id");
     const paths = await validateOutput(process.env.CHANGE_TRACE_CI_REPOSITORY_ROOT, process.env.CHANGE_TRACE_CI_OUTPUT_DIRECTORY);
     await assertManagedFilesSafe(paths.output);
+    await invalidateManagedArtifacts(paths.output);
     config = { command, timeoutMs, runAttempt, baseRevision, headRevision, hostId, ...paths };
   } catch (error) {
     summary("infrastructure_failure", error instanceof RunnerError ? error.code : "configuration_failed");

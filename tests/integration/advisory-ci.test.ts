@@ -240,4 +240,30 @@ describe("advisory CI runner", () => {
       await rm(repositoryRoot, { recursive: true, force: true });
     }
   });
+
+  it("invalidates prior managed artifacts before a no-output rerun", async () => {
+    const repositoryRoot = await tempRepository();
+    try {
+      const output = join(repositoryRoot, "artifacts/review");
+      await run(repositoryRoot, "artifacts/review", "clean");
+      const firstStatus = readStatus(output);
+      const firstReport = JSON.parse(readFileSync(join(output, "release-review.json"), "utf8"));
+      writeFileSync(join(output, "unmanaged.txt"), "keep");
+
+      await run(repositoryRoot, "artifacts/review", "missing-files", {
+        CHANGE_TRACE_CI_RUN_ATTEMPT: "2",
+      });
+
+      const secondStatus = readStatus(output);
+      const secondReport = JSON.parse(readFileSync(join(output, "release-review.json"), "utf8"));
+      expect(firstReport.artifactType).toBeUndefined();
+      expect(secondReport.artifactType).toBe("change-trace-advisory-infrastructure-failure");
+      expect(secondStatus.outcome).toBe("infrastructure_failure");
+      expect(secondStatus.run.runId).not.toBe(firstStatus.run.runId);
+      expect(secondStatus.run.runAttempt).toBe(2);
+      expect(readFileSync(join(output, "unmanaged.txt"), "utf8")).toBe("keep");
+    } finally {
+      await rm(repositoryRoot, { recursive: true, force: true });
+    }
+  });
 });

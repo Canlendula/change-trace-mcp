@@ -76,8 +76,11 @@ exit nonzero.
 
 Successful reports are snapshot-checked by size and SHA-256 immediately before
 and after status publication; the runner writes only the status sidecar on
-that path. Reruns replace only the three managed names; no directory deletion
-or process tree termination is performed. Failure placeholders publish
+that path. Before each Host start, a rerun safely invalidates the previous
+managed set by removing status first, then only the exact Markdown and JSON
+managed files. Each file must already be a regular non-symlink; `ENOENT` is
+acceptable, and any unlink failure stops before the Host starts. No directory
+deletion or process tree termination is performed. Failure placeholders publish
 Markdown, then JSON, then status last. If an intermediate write fails, the
 wrapper exits nonzero and the status sidecar is not treated as a fresh success
 record. Each run generates a fresh `runId` and records the supplied attempt
