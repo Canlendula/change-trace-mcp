@@ -251,18 +251,24 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending | accepted | changes_requested | rejected`
+- Outcome: `accepted`
 - Reviewed branch head:
-- Integration commit:
+  `e9f65a15194dd74cbb724118e6b3c8933e84bfb9`
+- Integration commit: fast-forwarded to `main`; acceptance record pending in this
+  commit.
 
 ### Review findings
 
-- `<finding, or None>`
+- None.
 
 ### Required follow-up
 
-- `<follow-up, or None>`
+- Run one unchanged nine-fixture replay through Codex, Claude Code, and
+  OpenCode with instruction `1.4.0`, without retry selection or ground-truth
+  changes, then apply the declared M3 quality gate.
 
 ### Roadmap and release impact
 
-- `<coordinator assessment>`
+- The generic conformance, adversarial-content, and output-confinement guards
+  are accepted. M3 completion still requires final cross-Host evidence,
+  threshold documentation, and Roadmap closure.
