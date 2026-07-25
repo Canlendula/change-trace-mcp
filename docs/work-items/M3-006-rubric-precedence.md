@@ -175,35 +175,63 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
-- Handoff branch:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M3-006-rubric-precedence`
 - Implementation commits:
+  - `9ea1303` — test: clarify review rubric precedence
 
 ### Implementation summary
 
-- `<what was implemented>`
+- Bumped only `REPLAY_INSTRUCTION_VERSION` to `1.2.0`; the replay schema,
+  packet and capture shapes, response contract, canonical serialization, and
+  bundle digests remain unchanged.
+- Replaced the implicit-priority prose with a compact ordered rubric: blocked
+  assessment precedes empty, confirmed, and suspected outcomes; unresolved
+  direct conflict maps to `contradictory_evidence` / `inconclusive` /
+  `investigate`; undocumented behavior without approval or intent maps to
+  `undocumented_behavior` / `suspected` / `update_documentation`.
+- Retained the established requirement-missing, stale-documentation,
+  evidence-ID, exact-source, fact/inference, untrusted-data, no-tool,
+  supported-no-finding, and strict-output rules.
+- Added regression coverage for instruction versioning, ordered precedence,
+  the three generic mappings, fixed bundle digests, byte-stable packet
+  preparation, and fixture/Host/model/ground-truth isolation.
 
 ### Changed areas
 
-- `<path or component and reason>`
+- `tests/helpers/review-replay.ts` — revised only the versioned generic review
+  instruction.
+- `tests/unit/review-replay.test.ts` — added precedence, mapping, version,
+  digest, and isolation regressions.
+- `docs/work-items/M3-006-rubric-precedence.md` — this Worker handoff only.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npx vitest run tests/unit/review-replay.test.ts tests/integration/review-replay-cli.test.ts tests/unit/review-score.test.ts tests/unit/review-fixture.test.ts` | Passed | 4 files, 55 tests passed. |
+| `npm run check` | Passed | TypeScript no-emit check. |
+| `npm test` | Passed | 16 files, 142 tests passed. |
+| `npm run smoke:stdio` | Passed | Existing stdio smoke check returned `ok: true`. |
+| `npm run pack:check` | Passed | Dry-run package build completed. |
+| `git diff --check b1769e34ebd25784799560ae0016892689f1bd8c..HEAD` | Passed | No whitespace errors. |
+| `git status --short` | Passed | Clean after implementation commit; rechecked after the handoff commit. |
 
 ### Public contract and documentation impact
 
-- `<impact, or None>`
+- None. The change is confined to test-only replay tooling and this work-item
+  handoff.
 
 ### Deviations from assignment
 
-- None.
+- The provided worktree was detached at assignment commit `9398f76`, so this
+  worker created `codex/M3-006-rubric-precedence` from that commit. No assigned
+  `work/` branch was modified.
 
 ### Known limitations and risks
 
-- None.
+- The rubric does not invoke or configure any Host or model; replay execution
+  and quality-threshold decisions remain outside this task.
 
 ### Decisions or questions for coordinator
 
@@ -211,9 +239,9 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
