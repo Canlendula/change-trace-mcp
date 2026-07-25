@@ -6,6 +6,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      run_opencode_advisory:
+        description: Run the currently paused OpenCode advisory model job
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -103,6 +109,7 @@ jobs:
           printf 'bin=%s\n' "$bin" >> "$GITHUB_OUTPUT"
 
       - name: Run trusted OpenCode Host with GitHub Models credential
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_opencode_advisory }}
         working-directory: trusted-tooling
         env:
           CHANGE_TRACE_CI_COMMAND: '["node","${{ github.workspace }}/trusted-tooling/scripts/ci/opencode-advisory-host.mjs"]'
@@ -130,6 +137,6 @@ jobs:
             subject/artifacts/advisory/release-review-status.json
 
       - name: Publish bounded advisory status summary
-        if: always()
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.run_opencode_advisory }}
         working-directory: trusted-tooling
         run: node scripts/ci/summarize-advisory-status.mjs "$GITHUB_WORKSPACE/subject/artifacts/advisory/release-review-status.json" >> "$GITHUB_STEP_SUMMARY"

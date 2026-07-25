@@ -170,6 +170,40 @@ uses allowlisted outcome, counts, revisions, attempt, names, sizes, and hashes.
 Run `npm run smoke:ci:host` for the offline deterministic Host/configuration
 smoke. It uses a trusted fixture binary and never contacts a model provider.
 
+## Manual GPT-4.1 quality spike
+
+`.github/workflows/m4-gpt41-quality-spike.yml` is intentionally restricted to
+`workflow_dispatch`. It evaluates the nine accepted M3 ReviewPackets directly
+against GitHub Models `openai/gpt-4.1`; it does not exercise MCP tool-schema
+capacity, a repository checkout, or any model Host.
+
+The workflow gives its direct inference process only the built-in
+`GITHUB_TOKEN` and `contents: read` plus `models: read`. It sends one
+non-streaming, bounded JSON-schema response request per attempted fixture.
+The fixed order runs the five mandatory controls first:
+`implemented-correctly`, `intentional-doc-free-refactor`,
+`malicious-instruction`, `insufficient-evidence`, and `missing-permissions`.
+It then runs the four remaining fixtures in their declared fixed order.
+
+There is no retry, repair, replacement, response selection, or best-of step.
+The run stops immediately on a mandatory-fixture failure, a rejected finding,
+two failures, or a request/response/scoring failure. A complete run passes
+only with at least eight passed fixtures, all mandatory controls passing, and
+zero rejected findings. A stability rerun remains a coordinator action and is
+allowed only after a complete first-run pass.
+
+The direct process keeps prompts, API bodies, model content, and temporary
+captures in memory or a private temporary directory that it removes before
+writing the result. It uploads only `score.json`, which contains fixed model
+configuration, request count, stop reason, packet digests, fixture pass/fail
+and bounded failure codes, validation counts, and aggregate gate metadata.
+The score summary applies an allowlist and does not print raw responses.
+
+The existing OpenCode advisory workflow and all ordinary quality checks remain
+intact on pull requests and pushes. Its credential-bearing model invocation
+and summary are paused unless a maintainer explicitly invokes
+`workflow_dispatch` with the `run_opencode_advisory` input enabled.
+
 ## Generic GitLab-compatible example
 
 [`gitlab-ci.example.yml`](gitlab-ci.example.yml) is provider-neutral and
