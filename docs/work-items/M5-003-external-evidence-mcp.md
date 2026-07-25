@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `assigned`
+- Status: `accepted`
 - Milestone: `M5 — External documentation adapters`
 - Base commit: `e4b2fd1c8b677596578c8ef3e84c525137c69eea`
 - Branch: `codex/M5-003-external-evidence-mcp`
@@ -185,25 +185,25 @@ The builder:
 
 ### Acceptance criteria
 
-- [ ] The optional Host-owned file is bounded, strict, fatal-UTF-8, regular,
+- [x] The optional Host-owned file is bounded, strict, fatal-UTF-8, regular,
       non-symlink, duplicate-free, and loaded only at startup.
-- [ ] Loader and startup errors are stable and contain no path, config, argv,
+- [x] Loader and startup errors are stable and contain no path, config, argv,
       environment, credential, or document content.
-- [ ] No credential value, registration, argv, environment field, config path,
+- [x] No credential value, registration, argv, environment field, config path,
       search query, or trust value appears in MCP tool input/output.
-- [ ] `collect_external_evidence` is always discoverable with the required
+- [x] `collect_external_evidence` is always discoverable with the required
       annotations and executes only an exact configured adapter ID.
-- [ ] Unknown adapter and runner failures return only bounded safe codes.
-- [ ] Successful stdio collection returns the accepted normalized external
+- [x] Unknown adapter and runner failures return only bounded safe codes.
+- [x] Successful stdio collection returns the accepted normalized external
       collection with forced untrusted provenance and redaction.
-- [ ] Review bundles preserve external items and missing evidence, reject
+- [x] Review bundles preserve external items and missing evidence, reject
       unknown related change IDs, and apply existing bounds deterministically.
-- [ ] Existing non-external bundle IDs/replay hashes and the M1 compatibility
+- [x] Existing non-external bundle IDs/replay hashes and the M1 compatibility
       fixture remain unchanged.
-- [ ] External provenance changes affect external bundle identity.
-- [ ] Focused tests, type checking, two consecutive full-suite runs, stdio
+- [x] External provenance changes affect external bundle identity.
+- [x] Focused tests, type checking, two consecutive full-suite runs, stdio
       smoke, package dry-run, diff checks, and clean worktree checks pass.
-- [ ] No report, source-specific/live adapter, search, runner, dependency,
+- [x] No report, source-specific/live adapter, search, runner, dependency,
       version, Roadmap, decision, CI, release, or npm state change occurs.
 
 ### Required validation
@@ -370,18 +370,39 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
+- Outcome: `accepted`
 - Reviewed branch head:
-- Integration commit:
+  `df84a44634c98aaa6078837c9b0fc45f10aefdcd`
+- Integration commits:
+  `a78982e7c827fd15d92c6d9a965cdf3ed01e32c9`,
+  `cac92479e0d6a94652c9dbb764f94230a966a6e9`
 
 ### Review findings
 
-- Pending.
+- The reviewed `base..head` diff stayed within the assigned implementation,
+  test, and worker-owned handoff paths. Commit identities and the clean worker
+  state were independently confirmed.
+- The coordinator reproduced all 39 focused checks, TypeScript checking, two
+  consecutive full suites of 25 files / 235 tests, the eight-tool stdio smoke,
+  the byte-identical M1 fixture, and the npm package dry-run.
+- Loader failures expose only static codes/messages. File reads are byte
+  bounded, fatal-UTF-8, regular-file-only, non-symlink, and guarded by
+  pre/open/post identity checks.
+- Tool discovery, exact adapter selection, runner-error projection, external
+  evidence ordering, missing-evidence limits, provenance-sensitive identity,
+  and legacy replay/hash stability satisfy the accepted contracts.
+- No blocking review finding remains.
 
 ### Required follow-up
 
-- Pending review.
+- Track the pre-existing M5-002 100-millisecond timeout-fixture startup race as
+  test-reliability debt; it did not reproduce in either coordinator full-suite
+  run and does not affect the accepted M5-003 runtime path.
+- Validate the POSIX `O_NOFOLLOW` and child-environment paths in the final M5
+  Ubuntu workflow before declaring the milestone complete.
 
 ### Roadmap and release impact
 
-- M5 remains in progress until all milestone exit criteria pass.
+- M5-003 is accepted and integrated. M5 remains in progress pending
+  source-specific fixtures, final-report provenance presentation,
+  documentation, and the milestone exit run.
