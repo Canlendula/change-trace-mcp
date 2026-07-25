@@ -112,7 +112,7 @@ if (!outputDirectory) {
     report.evidenceSources = [{ ...coreEvidenceSource(), evidenceId: "invalid id" }];
   }
   if (behavior === "invalid-retrieved-at") {
-    report.evidenceSources = [{ ...coreEvidenceSource(), retrievedAt: "not-a-timestamp" }];
+    report.evidenceSources = [{ ...coreEvidenceSource(), retrievedAt: "2026-02-30T00:00:00.000Z" }];
   }
   if (behavior === "invalid-content-hash") {
     report.evidenceSources = [{ ...coreEvidenceSource(), contentHash: "sha256:invalid" }];
@@ -130,7 +130,11 @@ if (!outputDirectory) {
   }
   if (behavior === "invalid-redaction") {
     const evidence = coreEvidenceSource();
-    evidence.redactions = [{ kind: "secret", count: 0, note: null }];
+    evidence.redactions = [{
+      kind: "secret",
+      count: Number.MAX_SAFE_INTEGER + 1,
+      note: null,
+    }];
     report.evidenceSources = [evidence];
   }
   if (behavior === "invalid-external-provenance") {

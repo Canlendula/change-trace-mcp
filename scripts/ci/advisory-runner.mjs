@@ -25,6 +25,7 @@ const SAFE_HOST_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/;
 const SAFE_REVISION = /^(?:HEAD|[a-f0-9]{7,64}|refs\/(?:heads|tags|remotes)\/[A-Za-z0-9][A-Za-z0-9._/-]{0,127})$/;
 const SAFE_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+const TIMESTAMP_PARTS = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-](\d{2}):(\d{2}))$/;
 const SAFE_SHA256 = /^sha256:[a-f0-9]{64}$/;
 const EVIDENCE_TYPES = new Set([
   "git_diff",
@@ -235,7 +236,23 @@ function isStableId(value) {
 }
 
 function isTimestamp(value) {
-  return typeof value === "string" && SAFE_TIMESTAMP.test(value) && !Number.isNaN(Date.parse(value));
+  if (typeof value !== "string") return false;
+  const match = TIMESTAMP_PARTS.exec(value);
+  if (match === null) return false;
+  const [year, month, day, hour, minute, second, offsetHour, offsetMinute] = match
+    .slice(1)
+    .map((part) => Number(part ?? 0));
+  const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const monthDays = [0, 31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return month >= 1
+    && month <= 12
+    && day >= 1
+    && day <= monthDays[month]
+    && hour <= 23
+    && minute <= 59
+    && second <= 59
+    && offsetHour <= 23
+    && offsetMinute <= 59;
 }
 
 function hasExactKeys(value, required, optional = []) {
@@ -254,7 +271,7 @@ function validSourceReference(source) {
 function validRedaction(redaction) {
   return hasExactKeys(redaction, ["kind", "count", "note"])
     && REDACTION_KINDS.has(redaction.kind)
-    && Number.isInteger(redaction.count)
+    && Number.isSafeInteger(redaction.count)
     && redaction.count > 0
     && (redaction.note === null || isBoundedString(redaction.note, 500));
 }
