@@ -80,6 +80,10 @@
 - `docs/ci/github-actions.example.yml`
 - `scripts/ci/smoke-advisory-ci.mjs`
 - `tests/integration/advisory-host.test.ts`
+- `tests/integration/gpt41-quality-spike.test.ts` — update only the obsolete
+  assertion that required the active M4 workflow to retain the rejected
+  OpenCode inference switch; preserve all historical quality-spike behavior
+  and evidence assertions
 - `tests/integration/provider-neutral-ci.test.ts`
 - `docs/work-items/M4-005-provider-neutral-closeout.md` — Worker handoff only
 
