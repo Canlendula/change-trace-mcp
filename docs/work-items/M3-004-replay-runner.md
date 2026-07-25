@@ -189,35 +189,64 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
-- Handoff branch:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M3-004-replay-runner`
 - Implementation commits:
+  - `5e6cf3662b0bc518b15670101b5cc68af9a3315e` — deterministic replay helper, CLI, and focused tests
+  - `709aa840d8583505390c56f4f6de630ba79b47dd` — root-scoped response JSON Schema references and validation coverage
+  - `b671b80a8bda229b3eb0f65b9b7fa31b13831629` — prompt constraints aligned with finding-validator cross-record rules
 
 ### Implementation summary
 
-- `<what was implemented>`
+- Added a versioned, deterministic replay helper that prepares the exact nine
+  bundle-only packets, hashes canonical bundle JSON, embeds a complete strict
+  response-object JSON Schema, parses bounded exact capture sets as
+  `unknown[]`, scores via the accepted M3-003 scorer, and renders bounded JSON
+  and Markdown results without Agent finding prose.
+- Added a test-only `prepare` / `score` CLI with confined empty-directory
+  output, symlink rejection, strict arguments, deterministic prompt/manifest
+  output, and non-zero invalid-input or failed-suite behavior.
 
 ### Changed areas
 
-- `<path or component and reason>`
+- `tests/helpers/review-replay.ts` — replay contract, packet preparation,
+  capture parsing, scoring output, and summary rendering.
+- `tests/evaluation/review-replay-cli.ts` — thin test-only prepare/score CLI.
+- `tests/unit/review-replay.test.ts` — contract isolation, schema-reference,
+  capture safety, scoring, determinism, and output tests.
+- `tests/integration/review-replay-cli.test.ts` — CLI preparation, scoring,
+  output confinement, symlink, and failed-suite exit tests.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npx vitest run tests/unit/review-replay.test.ts tests/integration/review-replay-cli.test.ts tests/unit/review-score.test.ts tests/unit/review-fixture.test.ts` | Passed | 4 files, 53 tests passed. |
+| `npm run check` | Passed | TypeScript no-emit check. |
+| `npm test` | Passed | 16 files, 140 tests passed. |
+| `npm run smoke:stdio` | Passed | Existing stdio smoke result `ok: true`. |
+| `npm run pack:check` | Passed | Dry-run package build succeeded. |
+| `git diff --check 3298a45ef5b9b9821c4449b5f3aef0790c60bd26..HEAD` | Passed | No whitespace errors. |
+| `git status --short` | Passed before handoff commit | Only the intended Worker handoff change remained after implementation commits. |
 
 ### Public contract and documentation impact
 
-- `<impact, or None>`
+- None. All additions are test-only and do not alter production exports,
+  schemas, package metadata, or Host compatibility claims.
 
 ### Deviations from assignment
 
-- None.
+- The provided worktree started at detached `c053384`. Per delegation
+  instruction, implementation used `codex/M3-004-replay-runner` rather than
+  the assigned `work/M3-004-replay-runner`; no formal `work/` branch was
+  changed.
 
 ### Known limitations and risks
 
-- None.
+- The CLI intentionally performs no Host/model invocation. Host-specific
+  execution remains out of scope.
+- Capture files are capped at 8,000,000 bytes before read; over-limit captures
+  are rejected predictably.
 
 ### Decisions or questions for coordinator
 
@@ -225,9 +254,9 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
