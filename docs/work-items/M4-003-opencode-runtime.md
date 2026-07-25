@@ -271,19 +271,33 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
-- Reviewed branch head:
-- Integration commit:
+- Outcome: `rejected`
+- Reviewed branch head: `710d683820682dd471e9137f022a18290008ae89`
+- Handoff-record integration commits: `c65ff30`, `b86c24e`, `548b2de`
 
 ### Review findings
 
-- Pending.
+- The branch correctly bounded the OpenCode child and measured the blocking
+  capacity condition: the five required MCP tool definitions consume 14,014
+  input tokens before the system prompt or evidence. This exceeds the tested
+  free GitHub Models High-tier input allowance.
+- The implementation cannot satisfy the assigned objective under the accepted
+  credential and direct-tool contract. Its implementation commits
+  `0744569` and `b12b694` were therefore not integrated into `main`; only the
+  worker's committed handoff record was preserved.
+- M4-004 independently removed the MCP schemas and tested the exact M3 packets.
+  That provider/model/response path also failed its frozen first-run gate.
+  Together, the two bounded results reject the free GitHub Models/OpenCode path
+  as the M4 reference without making a broader claim about the MCP core.
 
 ### Required follow-up
 
-- Pending.
+- Decision 21 selects the provider-neutral runner and caller-supplied Host.
+  Complete M4 through a separate provider-neutral closeout task. Do not resume,
+  compact, or silently retry this provider-specific path.
 
 ### Roadmap and release impact
 
-- M4 remains in progress until a successful live run and rerun produce valid
-  advisory artifacts with distinct attempt metadata.
+- M4 remains in progress under the provider-neutral closeout recorded in the
+  Roadmap. This rejected task creates no Host compatibility, milestone,
+  package, or release claim.
