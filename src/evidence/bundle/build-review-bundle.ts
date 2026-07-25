@@ -7,11 +7,13 @@ import {
   CORE_SCHEMA_VERSION,
   changeScopeSchema,
   evidenceItemSchema,
+  externalEvidenceCollectionSchema,
   localEvidenceCollectionSchema,
   reviewBundleSchema,
   type ChangeScope,
   type DeterministicFact,
   type EvidenceItem,
+  type ExternalEvidenceCollection,
   type LocalEvidenceCollection,
   type MissingEvidence,
   type ReviewBundle,
@@ -30,6 +32,10 @@ const HARD_LIMITS = {
 export const buildReviewBundleInputSchema = z.strictObject({
   changeScope: changeScopeSchema,
   localEvidence: localEvidenceCollectionSchema,
+  externalEvidenceCollections: z
+    .array(externalEvidenceCollectionSchema)
+    .max(16)
+    .default([]),
   additionalEvidenceItems: z.array(evidenceItemSchema).max(10_000).default([]),
   maxEvidenceItems: z
     .number()
@@ -166,6 +172,7 @@ function createGitEvidence(
 function missingEvidenceFromInputs(
   scope: ChangeScope,
   localEvidence: LocalEvidenceCollection,
+  externalEvidenceCollections: readonly ExternalEvidenceCollection[],
 ): MissingEvidence[] {
   const missing: MissingEvidence[] = [];
 
@@ -234,6 +241,10 @@ function missingEvidenceFromInputs(
     });
   }
 
+  for (const collection of externalEvidenceCollections) {
+    missing.push(...collection.missingEvidence);
+  }
+
   return missing;
 }
 
@@ -281,6 +292,9 @@ function bundleId(
       source: item.source.locator,
       contentHash: item.contentHash,
       excerptHash: sha256(item.excerpt),
+      ...(item.externalProvenance === undefined
+        ? {}
+        : { externalProvenance: item.externalProvenance }),
     })),
   });
   return `bundle:${sha256(identity).slice(0, 32)}`;
@@ -300,9 +314,30 @@ export function buildReviewBundle(
     );
   }
 
+  const relatedChangeIds = new Set([
+    ...input.changeScope.commits.map(({ id }) => id),
+    ...input.changeScope.files.map(({ id }) => id),
+  ]);
+  for (const collection of input.externalEvidenceCollections) {
+    for (const item of collection.evidenceItems) {
+      if (
+        item.relatedChangeIds.some(
+          (relatedChangeId) => !relatedChangeIds.has(relatedChangeId),
+        )
+      ) {
+        throw new Error(
+          "External evidence contains an unknown related change ID.",
+        );
+      }
+    }
+  }
+
   const createdAt = (options.now?.() ?? new Date()).toISOString();
   const candidates: EvidenceCandidate[] = [
     ...input.localEvidence.evidenceItems.map((item) => ({ item, fact: null })),
+    ...input.externalEvidenceCollections.flatMap((collection) =>
+      collection.evidenceItems.map((item) => ({ item, fact: null })),
+    ),
     ...input.additionalEvidenceItems.map((item) => ({ item, fact: null })),
     ...createGitEvidence(input.changeScope, createdAt),
   ];
@@ -349,6 +384,7 @@ export function buildReviewBundle(
   const allMissingEvidence = missingEvidenceFromInputs(
     input.changeScope,
     input.localEvidence,
+    input.externalEvidenceCollections,
   );
   const missingEvidence = allMissingEvidence.slice(0, 10_000);
   const omittedMissingEvidence =

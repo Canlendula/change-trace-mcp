@@ -31,6 +31,7 @@ describe("stdio MCP server", () => {
 
       const { tools } = await client.listTools();
       expect(tools.map((tool) => tool.name).sort()).toEqual([
+        "collect_external_evidence",
         "collect_local_evidence",
         "get_change_scope",
         "get_compatibility_fixture",
@@ -41,7 +42,11 @@ describe("stdio MCP server", () => {
       ]);
       expect(
         tools
-          .filter((t) => t.name !== "write_report")
+          .filter(
+            (t) =>
+              t.name !== "write_report" &&
+              t.name !== "collect_external_evidence",
+          )
           .every(
             (tool) =>
               tool.annotations?.readOnlyHint === true &&
@@ -50,6 +55,15 @@ describe("stdio MCP server", () => {
               tool.annotations.openWorldHint === false,
           ),
       ).toBe(true);
+      expect(
+        tools.find((t) => t.name === "collect_external_evidence")
+          ?.annotations,
+      ).toMatchObject({
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      });
       const writeTool = tools.find((t) => t.name === "write_report");
       expect(writeTool?.annotations).toMatchObject({
         readOnlyHint: false,

@@ -22,6 +22,11 @@ export {
   type TrustLevel,
 } from "./evidence.js";
 export {
+  externalAdapterConfigurationSchema,
+  MAX_EXTERNAL_ADAPTER_REGISTRATIONS,
+  type ExternalAdapterConfiguration,
+} from "./external-adapter-config.js";
+export {
   explicitExternalReferenceSchema,
   externalAccessStatusSchema,
   externalAdapterRegistrationSchema,

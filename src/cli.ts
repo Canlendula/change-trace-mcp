@@ -5,9 +5,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { SERVER_NAME, SERVER_VERSION } from "./constants.js";
 import { writeLog } from "./logger.js";
 import { createServer } from "./server.js";
+import { loadExternalAdaptersFromEnvironment } from "./evidence/external/load-external-adapters.js";
 
 async function main(): Promise<void> {
-  const server = createServer();
+  const externalAdapters =
+    await loadExternalAdaptersFromEnvironment();
+  const server = createServer({ externalAdapters });
   const transport = new StdioServerTransport();
 
   const shutdown = async (signal: NodeJS.Signals): Promise<void> => {

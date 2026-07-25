@@ -7,6 +7,11 @@ import {
   buildReviewBundleInputSchema,
 } from "./evidence/bundle/build-review-bundle.js";
 import {
+  ExternalAdapterRunnerError,
+  runExternalAdapter,
+} from "./evidence/external/run-external-adapter.js";
+import { validateExternalAdapterRegistrations } from "./evidence/external/load-external-adapters.js";
+import {
   collectLocalEvidence,
   collectLocalEvidenceInputSchema,
 } from "./evidence/local/collect-local-evidence.js";
@@ -31,6 +36,11 @@ import {
   writeReportOutputSchema,
 } from "./schemas/report.js";
 import { reviewBundleSchema } from "./schemas/review-bundle.js";
+import {
+  externalAdapterRequestSchema,
+  type ExternalAdapterRegistration,
+} from "./schemas/external-adapter.js";
+import { externalEvidenceCollectionSchema } from "./schemas/external-evidence.js";
 
 const serverInfoSchema = z.object({
   name: z.string(),
@@ -53,7 +63,22 @@ const compatibilityFixtureSchema = z.object({
   }),
 });
 
-export function createServer(): McpServer {
+export type CreateServerOptions = {
+  externalAdapters?: readonly ExternalAdapterRegistration[];
+};
+
+export function createServer(
+  options: CreateServerOptions = {},
+): McpServer {
+  const externalAdapters = validateExternalAdapterRegistrations(
+    options.externalAdapters ?? [],
+  );
+  const externalAdaptersById = new Map(
+    externalAdapters.map((registration) => [
+      registration.adapter.id,
+      registration,
+    ]),
+  );
   const server = new McpServer({
     name: SERVER_NAME,
     version: SERVER_VERSION,
@@ -88,6 +113,56 @@ export function createServer(): McpServer {
         content: [{ type: "text", text: JSON.stringify(result) }],
         structuredContent: result,
       };
+    },
+  );
+
+  server.registerTool(
+    "collect_external_evidence",
+    {
+      title: "Collect external evidence",
+      description:
+        "Collect normalized untrusted evidence for explicit references through one exact Host-configured adapter. External content remains untrusted and this tool does not provide source discovery.",
+      inputSchema: externalAdapterRequestSchema,
+      outputSchema: externalEvidenceCollectionSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async (input) => {
+      const registration = externalAdaptersById.get(input.adapterId);
+      if (registration === undefined) {
+        const result = {
+          error: "collect_external_evidence_failed",
+          code: "adapter_not_configured",
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          isError: true,
+        };
+      }
+
+      try {
+        const result = await runExternalAdapter(registration, input);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          structuredContent: result,
+        };
+      } catch (error) {
+        const result = {
+          error: "collect_external_evidence_failed",
+          code:
+            error instanceof ExternalAdapterRunnerError
+              ? error.code
+              : "normalization_failed",
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          isError: true,
+        };
+      }
     },
   );
 
