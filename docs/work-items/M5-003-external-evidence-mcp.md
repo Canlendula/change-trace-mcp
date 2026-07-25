@@ -251,33 +251,111 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `not_started`
-- Handoff branch:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M5-003-external-evidence-mcp`
 - Implementation commits:
+  - `e91a687f6543e5ad2bb6496db7de1ca64f4884c3` —
+    `feat(evidence): add external evidence MCP path`
 
 ### Implementation summary
 
-- Pending.
+- Added the strict, bounded Host-owned external-adapter configuration schema
+  and startup loader, with fatal UTF-8, regular non-symbolic-link checks,
+  pre/open/post file-identity checks, a 262,144-byte read cap, duplicate
+  rejection, and static safe error codes.
+- Added validated programmatic registrations to `createServer`, optional
+  startup discovery through `CHANGE_TRACE_EXTERNAL_ADAPTERS_FILE`, and the
+  always-discoverable read-only `collect_external_evidence` tool. The tool
+  selects one exact configured adapter, delegates to the accepted M5-002
+  runner, and projects only bounded safe failure codes.
+- Added external collections to review-bundle input, with related-change
+  validation, deterministic local/external/additional/Git ordering, structured
+  missing evidence, existing bounds, and external provenance in bundle
+  identity while retaining the prior non-external identity.
 
 ### Changed areas
 
-- Pending.
+- `src/schemas/external-adapter-config.ts` and `src/schemas/index.ts` — strict
+  configuration contract, registration count and uniqueness bounds, types,
+  and public exports.
+- `src/evidence/external/load-external-adapters.ts`,
+  `src/evidence/external/index.ts`, and `src/evidence/index.ts`'s existing
+  barrel chain — bounded safe file loading, programmatic validation, typed
+  errors, and root-package exports.
+- `src/server.ts` and `src/cli.ts` — validated Host registration, one-time CLI
+  loading, exact adapter selection, safe MCP error projection, and the new
+  read-only open-world tool.
+- `src/evidence/bundle/build-review-bundle.ts` — external collection input,
+  ordering, change linkage, missing evidence, and provenance-sensitive
+  external bundle identity.
+- `tests/unit/external-adapter-config.test.ts`,
+  `tests/integration/external-evidence-stdio.test.ts`,
+  `tests/unit/review-bundle.test.ts`, and
+  `tests/integration/stdio.test.ts` — loader, startup, secrecy, tool,
+  normalization, non-execution, bundle, identity, bound, replay, tool-list,
+  and M1 compatibility coverage.
 
 ### Validation
 
-- Pending.
+- Test-first confirmation:
+  `npx vitest run tests/unit/external-adapter-config.test.ts
+  tests/unit/review-bundle.test.ts` failed before implementation because the
+  loader module did not exist and five external-bundle cases were rejected as
+  unknown input.
+- `npx vitest run tests/unit/external-adapter-config.test.ts
+  tests/integration/external-evidence-stdio.test.ts
+  tests/unit/review-bundle.test.ts tests/integration/stdio.test.ts
+  tests/unit/review-replay.test.ts` — passed, 5 files / 39 tests.
+- `npm run check` — passed.
+- First final consecutive `npm test` — passed, 25 files / 235 tests.
+- Second final consecutive `npm test` — passed, 25 files / 235 tests.
+- Before the final consecutive pair, two full-suite attempts hit the existing
+  M5-002 100-millisecond timeout-fixture race: the adapter process timed out
+  before `pid.txt` was created, so
+  `tests/integration/external-adapter-runner.test.ts` raised `ENOENT`. No
+  M5-003 assertion failed; no protected M5-002 runner or test path was changed.
+- `npm run smoke:stdio` — passed; the eight-tool list includes
+  `collect_external_evidence`, and the M1 fixture remained byte-identical:
+  `{"schemaVersion":"1.0.0","fixtureId":"m1-host-compatibility","ok":true,"scalar":"change-trace","values":[1,2,3],"nested":{"alpha":"A","beta":"B"}}`.
+- `npm run pack:check` — passed; the dry-run package contains the new compiled
+  configuration schema/loader declarations and JavaScript.
+- `git diff --check
+  e4b2fd1c8b677596578c8ef3e84c525137c69eea..HEAD` — passed with no
+  output before this handoff-only commit.
+- `git status --short` — clean before this handoff update.
+- Protected-path and disclosure scans found no runner, report, dependency,
+  lockfile, version, Roadmap, decision, governance, CI, release, or npm-state
+  change and no config path/content, argv, environment name/value, credential,
+  stdout, or stderr projection through the new MCP error boundary.
 
 ### Public contract and documentation impact
 
-- Pending.
+- Adds public configuration schema, limits, loader functions, validation
+  function, safe error vocabulary, and types through the existing schema and
+  evidence export barrels.
+- `createServer` accepts an optional validated `externalAdapters` list.
+- Adds the always-discoverable `collect_external_evidence` MCP tool using the
+  accepted M5-001 input and M5-002 output contracts.
+- `get_review_bundle` accepts up to 16
+  `externalEvidenceCollections`, defaulting to `[]`.
+- Existing callers that omit external registrations/collections, existing
+  non-external bundle IDs, replay hashes, and the M1 fixture remain unchanged.
 
 ### Deviations from assignment
 
-- None recorded.
+- None.
 
 ### Known limitations and risks
 
-- Pending.
+- Validation ran on Windows/NTFS. POSIX uses `O_NOFOLLOW` plus the same
+  pre/open/post identity and size checks; that path was type-checked but was not
+  executed live in this task.
+- Filesystems that cannot provide a nonzero stable inode are rejected with
+  `configuration_file_unsafe`, favoring a safe startup failure.
+- The accepted M5-002 direct-child termination limitation is unchanged.
+- The existing 100-millisecond M5-002 timeout fixture showed the transient
+  full-suite startup race disclosed above; the required final two consecutive
+  full suites passed without modifying that protected scope.
 
 ### Decisions or questions for coordinator
 
@@ -285,10 +363,10 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified by the worker.
-- [ ] No version, dependency, tag, publish, live external-system, CI, or
+- [x] Coordinator-only files were not modified by the worker.
+- [x] No version, dependency, tag, publish, live external-system, CI, or
       release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
