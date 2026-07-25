@@ -90,119 +90,64 @@ and revisions.
 
 Run `npm run smoke:ci`. It uses the repository's deterministic generic fixture
 Host and verifies all three artifacts below `artifacts/advisory-ci-smoke`.
+Optional `CHANGE_TRACE_CI_BASE_REVISION`, `CHANGE_TRACE_CI_HEAD_REVISION`, and
+`CHANGE_TRACE_CI_RUN_ATTEMPT` values are forwarded through the runner and
+verified against the status sidecar.
 
-## Trusted OpenCode reference Host
+## Selected M4 architecture
 
-`.github/workflows/m4-advisory-review.yml` keeps `quality` and
-`advisory-review` separate. A `pull_request` run executes only the
-least-privilege quality job from the PR merge commit. A separate
-`pull_request_target` run executes only the advisory job from the trusted base
-workflow definition. Push and manual-dispatch runs execute both jobs. The
-advisory job depends on quality where quality is present, uses `always()`, and
-has job-level `continue-on-error: true`, so it cannot turn a test/build result
-into a merge gate. This split ensures the repository's intended model-bearing
-advisory execution is sourced from the trusted base workflow definition; it
-does not stop a PR author from changing the separate `pull_request` workflow
-revision. Repository or organization workflow-approval and execution-protection
-policies remain necessary to govern arbitrary PR-controlled workflow changes.
+Change Trace supplies the deterministic runner, bounded evidence, validation,
+outcome classification, and the three-file artifact contract. The consumer
+supplies an Agent Host and model that it has quality-qualified for its own
+review policy. Repository platforms own triggers, trusted execution,
+credentials, retention, comments or checks, and merge-policy wiring.
 
-For a pull request, the trusted advisory run checks out tooling from the base SHA
-into `trusted-tooling` and the review subject from the head repository/SHA into
-`subject`. This also supports fork pull requests. The trusted checkout supplies
-the runner, Host, prompt, configuration, build, and MCP executable. The subject
-is evidence only: the workflow never runs its npm scripts, dependencies, hooks,
-OpenCode configuration, or binaries.
+The live `.github/workflows/m4-advisory-review.yml` is `workflow_dispatch`
+only. It keeps normal quality checks in one job and a non-blocking deterministic
+advisory smoke in another. The smoke runs the fixture Host through the accepted
+generic runner, produces a valid `completed_no_findings` report pair and status
+sidecar, forwards the selected revision plus `github.run_attempt`, uploads the
+three exact managed files under a run/attempt-qualified artifact name, and
+renders a summary from allowlisted status fields.
 
-The subject checkout deliberately sets checkout v7's
-`allow-unsafe-pr-checkout: true`, which is required to fetch a fork head from a
-`pull_request_target` run. This opt-in is safe only under this workflow's
-boundary: no subject executable, dependency, hook, project configuration, or
-binary may run in the credential-bearing job. The trusted Host accesses it only
-through bounded MCP Git/evidence operations.
+The smoke proves orchestration, artifact, and rerun behavior only.
+It does not establish semantic Host/model compatibility. It has no model
+permission, provider credential, inference step, or switch that can enable
+inference.
 
-The workflow installs `opencode-ai@1.18.5` in a trusted local prefix while no
-model credential is present. Its required `postinstall` selects, copies, and
-verifies the OS/architecture-specific binary, so lifecycle scripts must remain
-enabled for this exact installation. The workflow then validates package
-metadata and the directly resolved binary's `--version`, and passes that
-absolute binary path to the Host. The pin refers to the npm package version and
-the CLI self-reports `1.18.5`; using `npm exec ... --version` is avoided because
-npm may consume that trailing flag.
-The package metadata was verified for `opencode-ai@1.18.5` (integrity
-`sha512-Q0jlX4ihn7veMeYsLX3c4PYFAKIURU3GIpXt1FnhNxNn3v8+RpIZ8z9umG5D0r8g8Smp9fZLGjgLe/9mJ4NyYw==`).
+## Caller-supplied Host on GitHub
 
-`scripts/ci/opencode-advisory-host.mjs` creates a new private temporary state
-directory for each invocation and removes only that directory. It starts from
-the trusted checkout with an inline `OPENCODE_CONFIG`, isolated home/config/
-data/cache paths, `--pure`, sharing/snapshots/autoupdate disabled, no plugins
-or instructions, provider allowlist `github_models`, and `subagent_depth: 0`.
-The configuration selects `openai/gpt-4.1` at
-`https://models.github.ai/inference`, denies every built-in tool, and allows
-only `change_trace_*` tools. The selected
-`@ai-sdk/openai-compatible` provider is bundled by OpenCode v1.18.5 (official
-tag `v1.18.5`, commit `e5cc278dec9294a627a7b05f47ce6a564408c1a2`), so this
-provider does not dynamically install an adapter during the credential-bearing
-step.
+[`github-actions.example.yml`](github-actions.example.yml) is a copyable,
+provider-neutral starting point. Configure a protected GitHub environment
+named `change-trace-advisory` with required reviewers where appropriate. Store:
 
-The GitHub Models token is introduced only in the credential-bearing trusted
-Host workflow step. The generic runner and trusted Host helper inherit it so
-the OpenCode CLI can consume it; it is never passed in argv, prompts, reports,
-logs, or artifacts. The MCP configuration first overrides
-`GITHUB_MODELS_TOKEN` and `GITHUB_TOKEN` to empty values. Then
-`scripts/ci/start-sanitized-mcp.mjs` validates the trusted built entry before
-importing it and reconstructs the MCP environment from this exact allowlist:
-`PATH`, platform runtime variables (`SystemRoot`, `SYSTEMROOT`,
-`ComSpec`, `WINDIR`, `SYSTEMDRIVE`, Windows home/user-domain variables,
-locale/timezone and temp variables when present), the five
-`CHANGE_TRACE_CI_*` run-context values, and `GIT_CONFIG_NOSYSTEM`,
-`GIT_CONFIG_GLOBAL`, and `GIT_TERMINAL_PROMPT`. No credential or provider
-variable is retained.
+- `CHANGE_TRACE_TOOLING_REF` as an immutable trusted Change Trace commit in an
+  environment variable;
+- `CHANGE_TRACE_HOST_COMMAND` as explicit JSON argv in an environment variable,
+  for example `["trusted-host","review"]`;
+- an optional `CHANGE_TRACE_HOST_CREDENTIAL` environment secret, mapped to the
+  credential name expected by the selected Host.
 
-The fixed prompt treats subject text as untrusted evidence and calls the five
-M3 tools in order. It gives `write_report` an absolute `repositoryRoot`, a
-subject-relative `outputDirectory`, `reportName: release-review`, and
-`overwrite: true`. Host streams are bounded, drained, and discarded; neither
-raw OpenCode JSON events nor stderr are logged or uploaded. The Host has a
-twelve-minute direct-child timeout, shorter than the runner's fourteen-minute
-timeout. Only the three managed report artifacts are uploaded. The job summary
-uses allowlisted outcome, counts, revisions, attempt, names, sizes, and hashes.
+The Host command must be installed by a pinned trusted step or already exist on
+the runner. Do not construct the argv with shell parsing, put credentials in
+argv, or execute scripts, dependencies, hooks, configuration, or binaries from
+the subject checkout. Adapt the manual trigger to a protected repository event
+only after defining the platform-specific trusted-tooling and subject-revision
+policy.
 
-Run `npm run smoke:ci:host` for the offline deterministic Host/configuration
-smoke. It uses a trusted fixture binary and never contacts a model provider.
+The runner starts the configured Host with the credential-bearing step
+environment. GitHub environment masking redacts matching log text; environment
+masking does not remove a credential from inherited child-process
+environments. The configured Host owns the critical boundary: before launching
+the Change Trace MCP child, it must build a sanitized allowlist environment
+that excludes every provider credential. The Host must also keep credentials
+out of child arguments, logs, prompts, reports, status, and uploaded artifacts.
 
-## Manual GPT-4.1 quality spike
-
-`.github/workflows/m4-gpt41-quality-spike.yml` is intentionally restricted to
-`workflow_dispatch`. It evaluates the nine accepted M3 ReviewPackets directly
-against GitHub Models `openai/gpt-4.1`; it does not exercise MCP tool-schema
-capacity, a repository checkout, or any model Host.
-
-The workflow gives its direct inference process only the built-in
-`GITHUB_TOKEN` and `contents: read` plus `models: read`. It sends one
-non-streaming, bounded JSON-schema response request per attempted fixture.
-The fixed order runs the five mandatory controls first:
-`implemented-correctly`, `intentional-doc-free-refactor`,
-`malicious-instruction`, `insufficient-evidence`, and `missing-permissions`.
-It then runs the four remaining fixtures in their declared fixed order.
-
-There is no retry, repair, replacement, response selection, or best-of step.
-The run stops immediately on a mandatory-fixture failure, a rejected finding,
-two failures, or a request/response/scoring failure. A complete run passes
-only with at least eight passed fixtures, all mandatory controls passing, and
-zero rejected findings. A stability rerun remains a coordinator action and is
-allowed only after a complete first-run pass.
-
-The direct process keeps prompts, API bodies, model content, and temporary
-captures in memory or a private temporary directory that it removes before
-writing the result. It uploads only `score.json`, which contains fixed model
-configuration, request count, stop reason, packet digests, fixture pass/fail
-and bounded failure codes, validation counts, and aggregate gate metadata.
-The score summary applies an allowlist and does not print raw responses.
-
-The existing OpenCode advisory workflow and all ordinary quality checks remain
-intact on pull requests and pushes. Its credential-bearing model invocation
-and summary are paused unless a maintainer explicitly invokes
-`workflow_dispatch` with the `run_opencode_advisory` input enabled.
+The example remains advisory with `continue-on-error: true`, a fifteen-minute
+job limit, a fourteen-minute runner limit, exactly three uploaded artifacts,
+and the bounded status renderer. Vendor Actions, platform-native Agents, and
+PR comments or checks may wrap this flow, but they are outer integration
+options and are not implemented or certified here.
 
 ## Generic GitLab-compatible example
 
@@ -212,4 +157,23 @@ trusted tooling checkout at a protected revision, verify that directory is not
 a symlink, and provide a distinct read-only subject worktree. Supply safe
 base/head revisions and a unique attempt number through the listed variables.
 Keep a Host/provider credential protected and masked; pass it only to the Host
-process and never to MCP configuration or artifacts.
+process and never to MCP configuration or artifacts. GitLab masking likewise
+does not remove variables from a child environment. The caller-supplied Host
+must sanitize the MCP child environment and keep the credential out of
+arguments, logs, prompts, reports, and artifacts.
+
+## Historical rejected provider path
+
+The OpenCode/GitHub Models Host helpers and `npm run smoke:ci:host` remain as
+historical engineering evidence. The pinned free path first exceeded its
+request capacity with the five MCP tool definitions. The separate manual
+GPT-4.1 quality spike then failed its frozen quality gate after the second
+fixture returned an invalid response. The evidence is preserved in
+`docs/evaluation/M4_GPT41_RESULTS.md` and
+`docs/evaluation/M4_CI_AGENT_LANDSCAPE.md`.
+
+`.github/workflows/m4-gpt41-quality-spike.yml` remains a historical,
+manual-only harness. It cannot run on push, pull request, schedule, or reusable
+invocation. The active M4 reference workflow does not install OpenCode, request
+model permissions, expose a provider credential, or provide an inference
+switch. No semantic compatibility claim is made for the rejected path.

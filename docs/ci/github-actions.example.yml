@@ -1,0 +1,83 @@
+# Copy this workflow into a consumer repository after configuring the protected
+# `change-trace-advisory` GitHub environment described in docs/ci/README.md.
+name: Change Trace caller-supplied Host
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  advisory-review:
+    environment: change-trace-advisory
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the read-only review subject
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: subject
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out trusted Change Trace tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Canlendula/change-trace-mcp
+          ref: ${{ vars.CHANGE_TRACE_TOOLING_REF }}
+          path: trusted-tooling
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: Install trusted tooling without a Host credential
+        working-directory: trusted-tooling
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+
+      # Add a pinned, trusted Host installation step here when the selected
+      # executable is not already present on the runner. Keep that step free of
+      # the Host credential and do not run code from the subject checkout.
+      - name: Run caller-supplied Host through Change Trace
+        working-directory: trusted-tooling
+        env:
+          CHANGE_TRACE_CI_COMMAND: ${{ vars.CHANGE_TRACE_HOST_COMMAND }}
+          CHANGE_TRACE_CI_REPOSITORY_ROOT: ${{ github.workspace }}/subject
+          CHANGE_TRACE_CI_OUTPUT_DIRECTORY: artifacts/advisory
+          CHANGE_TRACE_CI_BASE_REVISION: ${{ github.sha }}
+          CHANGE_TRACE_CI_HEAD_REVISION: ${{ github.sha }}
+          CHANGE_TRACE_CI_RUN_ATTEMPT: ${{ github.run_attempt }}
+          CHANGE_TRACE_CI_HOST_ID: caller-supplied-host
+          CHANGE_TRACE_CI_TIMEOUT_MS: '840000'
+          CHANGE_TRACE_HOST_CREDENTIAL: ${{ secrets.CHANGE_TRACE_HOST_CREDENTIAL }}
+        run: node scripts/ci/advisory-runner.mjs
+
+      - name: Upload advisory artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: change-trace-advisory-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          path: |
+            subject/artifacts/advisory/release-review.md
+            subject/artifacts/advisory/release-review.json
+            subject/artifacts/advisory/release-review-status.json
+
+      - name: Publish bounded advisory status summary
+        if: always()
+        working-directory: trusted-tooling
+        shell: bash
+        run: |
+          status="$GITHUB_WORKSPACE/subject/artifacts/advisory/release-review-status.json"
+          if [[ -f "$status" ]]; then
+            node scripts/ci/summarize-advisory-status.mjs "$status" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf 'Change Trace advisory status unavailable.\n' >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -104,7 +104,10 @@ describe("GPT-4.1 quality spike", () => {
     expect(spike).toContain("contents: read");
     expect(spike).toContain("models: read");
     expect(spike).toContain("artifacts/gpt41-quality-spike/score.json");
-    expect(advisory).toMatch(/Run trusted OpenCode Host with GitHub Models credential\s+if: \$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.run_opencode_advisory \}\}/);
+    expect(advisory).toMatch(/^on:\r?\n  workflow_dispatch:\s*$/mu);
+    expect(advisory).not.toMatch(/^\s{2}(?:push|pull_request|pull_request_target|schedule|workflow_call):/mu);
+    expect(advisory).not.toContain("models: read");
+    expect(advisory).not.toMatch(/opencode|inference|run_opencode_advisory/iu);
     expect(source).toContain("const MAX_TOKENS = 4_000");
     expect(source).toContain("const EVALUATOR_TIMEOUT_MS");
     expect(source).not.toContain("debug ");
