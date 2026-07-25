@@ -616,3 +616,30 @@ provenance, but it cannot choose a core evidence ID or elevate trust.
 The core schema remains provisional before v1 stabilization. This additive
 field keeps the current schema version during M5; M8 will freeze the complete
 v1 schema snapshot and compatibility policy before the stable release.
+
+## 25. CLI adapter registration uses one Host-owned JSON file
+
+The `npx`/stdio entry point discovers external adapters only through the
+Host-set `CHANGE_TRACE_EXTERNAL_ADAPTERS_FILE` environment variable. Its value
+names one bounded JSON file read once before the MCP server starts.
+
+The file contains:
+
+- the current core schema version;
+- a bounded list of strict M5-002 registrations;
+- no credential values, document content, search queries, or tool input.
+
+The loader accepts only a regular non-symbolic-link file under a hard byte
+limit, uses fatal UTF-8 and strict JSON/schema validation, and rejects duplicate
+adapter IDs. Loader failures use stable codes and cannot log file content,
+argv, environment names/values, or credentials. When the environment variable
+is absent, the server starts with zero configured adapters.
+
+Library callers may pass the same validated registrations directly to
+`createServer`. The `collect_external_evidence` MCP tool is always discoverable
+so Hosts have a stable tool contract, but an unknown or unconfigured adapter ID
+returns a bounded safe error without process execution.
+
+The tool is read-only, non-destructive, and idempotent for a stable upstream
+source. Its MCP `openWorldHint` is true because it reads an external system.
+All other M5-002 process and credential boundaries remain unchanged.
