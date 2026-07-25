@@ -24,23 +24,33 @@ export {
 export {
   explicitExternalReferenceSchema,
   externalAccessStatusSchema,
-  externalAdapterIdentitySchema,
+  externalAdapterRegistrationSchema,
   externalAdapterRequestSchema,
   externalAdapterResponseSchema,
   externalAdapterResultSchema,
   externalAvailableResultSchema,
-  externalSourceTypeSchema,
   externalUnavailableResultSchema,
   type ExplicitExternalReference,
   type ExternalAccessStatus,
-  type ExternalAdapterIdentity,
+  type ExternalAdapterRegistration,
   type ExternalAdapterRequest,
   type ExternalAdapterResponse,
   type ExternalAdapterResult,
   type ExternalAvailableResult,
-  type ExternalSourceType,
   type ExternalUnavailableResult,
 } from "./external-adapter.js";
+export {
+  externalAdapterIdentitySchema,
+  externalProvenanceSchema,
+  externalSourceTypeSchema,
+  type ExternalAdapterIdentity,
+  type ExternalProvenance,
+  type ExternalSourceType,
+} from "./external-provenance.js";
+export {
+  externalEvidenceCollectionSchema,
+  type ExternalEvidenceCollection,
+} from "./external-evidence.js";
 export {
   findingCategorySchema,
   findingRecommendationSchema,

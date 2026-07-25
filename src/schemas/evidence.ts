@@ -8,6 +8,7 @@ import {
   stableIdSchema,
   timestampSchema,
 } from "./common.js";
+import { externalProvenanceSchema } from "./external-provenance.js";
 
 export const evidenceTypeSchema = z.enum([
   "git_diff",
@@ -52,6 +53,7 @@ export const evidenceItemSchema = z
     trustLevel: trustLevelSchema,
     truncation: evidenceTruncationSchema,
     redactions: z.array(redactionSchema).max(100),
+    externalProvenance: externalProvenanceSchema.optional(),
   })
   .meta({
     id: `urn:change-trace-mcp:schema:evidence-item:${CORE_SCHEMA_VERSION}`,

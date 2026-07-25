@@ -8,21 +8,44 @@ import {
   timestampSchema,
 } from "./common.js";
 import { evidenceTruncationSchema } from "./evidence.js";
+import {
+  externalAdapterIdentitySchema,
+  externalSourceTypeSchema,
+} from "./external-provenance.js";
+export {
+  externalAdapterIdentitySchema,
+  externalSourceTypeSchema,
+  type ExternalAdapterIdentity,
+  type ExternalSourceType,
+} from "./external-provenance.js";
 
 const MAX_EXTERNAL_REFERENCES = 100;
 const MAX_RELATED_CHANGE_IDS = 1_000;
 const MAX_RELATION_REASON_CHARACTERS = 1_000;
-const MAX_ADAPTER_IDENTITY_CHARACTERS = 160;
 const MAX_EXTERNAL_TITLE_CHARACTERS = 1_000;
 const MAX_EXTERNAL_DIAGNOSTIC_CHARACTERS = 2_000;
+const MAX_ADAPTER_ARGV_ENTRIES = 64;
+const MAX_ADAPTER_ARGUMENT_CHARACTERS = 8_192;
+const MAX_ADAPTER_SOURCE_SYSTEMS = 100;
+const MAX_ADAPTER_CREDENTIAL_ENVIRONMENT_NAMES = 100;
+const MAX_ADAPTER_TIMEOUT_MILLISECONDS = 300_000;
+const MAX_ADAPTER_STDOUT_BYTES = 16 * 1024 * 1024;
+const MAX_ADAPTER_STDERR_BYTES = 1024 * 1024;
 
-export const externalSourceTypeSchema = z.enum([
-  "document",
-  "project_item",
-  "comment",
-  "linked_page",
-  "other",
-]);
+const adapterArgumentSchema = z
+  .string()
+  .min(1)
+  .max(MAX_ADAPTER_ARGUMENT_CHARACTERS)
+  .refine((value) => !/[\u0000-\u001f\u007f]/u.test(value), {
+    message: "Adapter arguments cannot contain control characters",
+  });
+
+const adapterSourceSystemSchema = z.string().min(1).max(80);
+
+const credentialEnvironmentNameSchema = z
+  .string()
+  .max(160)
+  .regex(/^[A-Za-z_][A-Za-z0-9_]*$/u);
 
 export const externalAccessStatusSchema = z.enum([
   "available",
@@ -43,11 +66,65 @@ export const explicitExternalReferenceSchema = z.strictObject({
     .max(MAX_RELATION_REASON_CHARACTERS),
 });
 
-export const externalAdapterIdentitySchema = z.strictObject({
-  id: stableIdSchema,
-  name: z.string().min(1).max(MAX_ADAPTER_IDENTITY_CHARACTERS),
-  version: z.string().min(1).max(MAX_ADAPTER_IDENTITY_CHARACTERS),
-});
+export const externalAdapterRegistrationSchema = z
+  .strictObject({
+    adapter: externalAdapterIdentitySchema,
+    argv: z
+      .array(adapterArgumentSchema)
+      .min(1)
+      .max(MAX_ADAPTER_ARGV_ENTRIES),
+    sourceSystems: z
+      .array(adapterSourceSystemSchema)
+      .min(1)
+      .max(MAX_ADAPTER_SOURCE_SYSTEMS),
+    credentialEnvironmentNames: z
+      .array(credentialEnvironmentNameSchema)
+      .max(MAX_ADAPTER_CREDENTIAL_ENVIRONMENT_NAMES),
+    limits: z.strictObject({
+      timeoutMilliseconds: z
+        .number()
+        .int()
+        .positive()
+        .max(MAX_ADAPTER_TIMEOUT_MILLISECONDS),
+      stdoutBytes: z
+        .number()
+        .int()
+        .positive()
+        .max(MAX_ADAPTER_STDOUT_BYTES),
+      stderrBytes: z
+        .number()
+        .int()
+        .positive()
+        .max(MAX_ADAPTER_STDERR_BYTES),
+    }),
+  })
+  .superRefine(
+    ({ sourceSystems, credentialEnvironmentNames }, context) => {
+      const uniqueSourceSystems = new Set(sourceSystems);
+      if (uniqueSourceSystems.size !== sourceSystems.length) {
+        context.addIssue({
+          code: "custom",
+          message: "Source-system allowlist entries must be unique",
+          path: ["sourceSystems"],
+        });
+      }
+
+      const normalizedEnvironmentNames = credentialEnvironmentNames.map(
+        (name) => name.toUpperCase(),
+      );
+      if (
+        new Set(normalizedEnvironmentNames).size !==
+        normalizedEnvironmentNames.length
+      ) {
+        context.addIssue({
+          code: "custom",
+          message:
+            "Credential environment-variable allowlist entries must be unique",
+          path: ["credentialEnvironmentNames"],
+        });
+      }
+    },
+  );
 
 export const externalAvailableResultSchema = z
   .strictObject({
@@ -173,13 +250,12 @@ export const externalAdapterResponseSchema = z
     title: "ExternalAdapterResponse",
   });
 
-export type ExternalSourceType = z.infer<typeof externalSourceTypeSchema>;
 export type ExternalAccessStatus = z.infer<typeof externalAccessStatusSchema>;
 export type ExplicitExternalReference = z.infer<
   typeof explicitExternalReferenceSchema
 >;
-export type ExternalAdapterIdentity = z.infer<
-  typeof externalAdapterIdentitySchema
+export type ExternalAdapterRegistration = z.infer<
+  typeof externalAdapterRegistrationSchema
 >;
 export type ExternalAvailableResult = z.infer<
   typeof externalAvailableResultSchema

@@ -7,6 +7,7 @@ import {
   externalAdapterRequestSchema,
   externalAdapterResponseSchema,
 } from "./external-adapter.js";
+import { externalEvidenceCollectionSchema } from "./external-evidence.js";
 import { findingSchema } from "./finding.js";
 import { findingValidationResultSchema } from "./finding-validation.js";
 import { localEvidenceCollectionSchema } from "./local-evidence.js";
@@ -28,6 +29,7 @@ export type CoreJsonSchemas = {
   readonly report: JsonSchemaDocument;
   readonly externalAdapterRequest: JsonSchemaDocument;
   readonly externalAdapterResponse: JsonSchemaDocument;
+  readonly externalEvidenceCollection: JsonSchemaDocument;
 };
 
 export function exportCoreJsonSchemas(): CoreJsonSchemas {
@@ -73,6 +75,10 @@ export function exportCoreJsonSchemas(): CoreJsonSchemas {
     externalAdapterResponse: {
       $id: `urn:change-trace-mcp:schema:external-adapter-response:${CORE_SCHEMA_VERSION}`,
       ...z.toJSONSchema(externalAdapterResponseSchema, options),
+    },
+    externalEvidenceCollection: {
+      $id: `urn:change-trace-mcp:schema:external-evidence-collection:${CORE_SCHEMA_VERSION}`,
+      ...z.toJSONSchema(externalEvidenceCollectionSchema, options),
     },
   };
 }
