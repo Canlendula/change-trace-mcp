@@ -186,27 +186,51 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
-- Handoff branch:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M3-005-review-rubric`
 - Implementation commits:
+  - `c7fc7846cc97e1b9a6954e80ade727df01a9b71a` — harden the
+    Host-neutral replay review rubric and add regression coverage
 
 ### Implementation summary
 
-- `<what was implemented>`
+- Bumped only `REPLAY_INSTRUCTION_VERSION` to `1.1.0`; the replay schema
+  version, packet shape, response schema, canonical packet construction, and
+  bundle hashing remain unchanged.
+- Added a compact Host/model-neutral rubric defining the assigned category,
+  status, recommendation, evidence-ID, and blocked-assessment semantics while
+  retaining the existing untrusted-evidence, no-tool, cross-reference,
+  deterministic-fact, supported no-finding, and strict-JSON rules.
+- Added regression coverage for the revised instruction version, fixed bundle
+  digests, complete rubric requirements, packet byte stability, and prompt
+  isolation from fixture IDs and accepted expected/reference/rationale data.
+- Coordinator base-record correction `dc80cf4` was fast-forwarded under prior
+  explicit authorization. It only corrects the coordinator-owned assigned base
+  SHA and required diff command; this worker made no Assignment changes.
 
 ### Changed areas
 
-- `<path or component and reason>`
+- `tests/helpers/review-replay.ts` — versioned generic review rubric only.
+- `tests/unit/review-replay.test.ts` — rubric, version/schema, digest,
+  deterministic packet, and isolation regression tests.
+- `docs/work-items/M3-005-review-rubric.md` — this Worker handoff only.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npx vitest run tests/unit/review-replay.test.ts tests/integration/review-replay-cli.test.ts tests/unit/review-score.test.ts tests/unit/review-fixture.test.ts` | Passed | 4 files, 54 tests. |
+| `npm run check` | Passed | TypeScript no-emit check. |
+| `npm test` | Passed | 16 files, 141 tests. |
+| `npm run smoke:stdio` | Passed | stdio tool smoke check returned `ok: true`. |
+| `npm run pack:check` | Passed | `npm pack --dry-run` completed. |
+| `git diff --check 969dc26d4e2eb54df14d8782f6d6408d63ddd584..HEAD` | Passed | No whitespace errors. |
+| `git status --short` | Passed | Clean after the final handoff commit. |
 
 ### Public contract and documentation impact
 
-- `<impact, or None>`
+- None. The change is confined to test-only replay tooling and its work-item
+  handoff.
 
 ### Deviations from assignment
 
@@ -214,7 +238,8 @@ git status --short
 
 ### Known limitations and risks
 
-- None.
+- The rubric does not invoke or configure any Host or model; cross-Host replay
+  execution remains outside this task.
 
 ### Decisions or questions for coordinator
 
@@ -222,9 +247,9 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified by this worker.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
