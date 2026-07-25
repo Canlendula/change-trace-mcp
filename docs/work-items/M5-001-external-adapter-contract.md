@@ -192,25 +192,62 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `not_started`
-- Handoff branch:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M5-001-external-adapter-contract`
 - Implementation commits:
+  - `9cda0b784e9b2e935b5fa9b3b4257c505d4b55a3` —
+    `feat(schema): add external adapter contract`
 
 ### Implementation summary
 
-- Pending.
+- Added a strict provider-neutral protocol for explicit external references,
+  adapter identity, available results, structured unavailable results, and
+  versioned request/response envelopes.
+- Reused the core stable ID, `SourceReference`, timestamp, evidence excerpt
+  limit, and evidence truncation contracts.
+- Enforced independent request/result ID uniqueness and runtime truncation
+  consistency, including exact retained excerpt length.
+- Added deterministic Draft 2020-12 request and response exports without
+  changing existing export IDs.
 
 ### Changed areas
 
-- Pending.
+- `src/schemas/external-adapter.ts` — additive protocol schemas, inferred
+  types, bounds, discriminated results, uniqueness checks, and truncation
+  checks.
+- `src/schemas/index.ts` — public exports for the new schemas and types.
+- `src/schemas/json-schema.ts` — deterministic `externalAdapterRequest` and
+  `externalAdapterResponse` exports.
+- `tests/unit/external-adapter-schema.test.ts` — positive, negative, bounds,
+  strictness, forbidden-field, union, uniqueness, truncation,
+  injection-shaped-data, and JSON Schema identity coverage.
 
 ### Validation
 
-- Pending.
+- Test-first confirmation after installing the lockfile dependencies:
+  `npx vitest run tests/unit/external-adapter-schema.test.ts` failed all 11
+  initial tests because the new schemas and exports did not exist.
+- `npx vitest run tests/unit/external-adapter-schema.test.ts
+  tests/unit/core-schemas.test.ts` — passed, 2 files / 16 tests.
+- `npm run check` — passed.
+- First `npm test` — passed, 21 files / 196 tests.
+- Second consecutive `npm test` — passed, 21 files / 196 tests.
+- `npm run smoke:stdio` — passed; the unchanged seven-tool list and M1
+  compatibility fixture were returned.
+- `npm run pack:check` — passed; dry-run package contained the new compiled
+  schema declarations and JavaScript.
+- `git diff --check
+  3cab00154ff5b1856d5553d620d64f89d5f68c9a..HEAD` — passed with no output.
+- `git status --short` — clean before this handoff update.
 
 ### Public contract and documentation impact
 
-- Pending.
+- Adds TypeScript schema/type exports and two Draft 2020-12 export keys:
+  `externalAdapterRequest` and `externalAdapterResponse`.
+- Existing public schema identities and the core schema version remain
+  unchanged.
+- No MCP tool, server registration, process runner, credential boundary,
+  package version, or user-facing compatibility claim changed.
 
 ### Deviations from assignment
 
@@ -218,7 +255,13 @@ git status --short
 
 ### Known limitations and risks
 
-- Pending.
+- This schema-only slice intentionally does not compare a request with a
+  response. Exact adapter identity matching and one-result-per-request
+  coverage remain for the later Host runner/normalizer boundary identified in
+  the assignment.
+- JSON Schema represents the structural and size bounds. Runtime-only
+  cross-item uniqueness and excerpt/truncation consistency are enforced by the
+  Zod schemas because Draft 2020-12 cannot express those relations directly.
 
 ### Decisions or questions for coordinator
 
@@ -226,10 +269,10 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified by the worker.
-- [ ] No version, dependency, tag, publish, live external-system, CI, or
+- [x] Coordinator-only files were not modified by the worker.
+- [x] No version, dependency, tag, publish, live external-system, CI, or
       release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
