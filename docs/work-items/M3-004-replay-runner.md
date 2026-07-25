@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `assigned`
+- Status: `accepted`
 - Milestone: `M3 — Agent review loop`
 - Base commit: `3298a45ef5b9b9821c4449b5f3aef0790c60bd26`
 - Branch: `work/M3-004-replay-runner`
@@ -260,18 +260,30 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending | accepted | changes_requested | rejected`
-- Reviewed branch head:
-- Integration commit:
+- Outcome: `accepted`
+- Reviewed branch head: `fcca54155e2d8e16d04634126d9e7cac1f81f18c`
+- Integration commit: `fcca54155e2d8e16d04634126d9e7cac1f81f18c`
 
 ### Review findings
 
-- `<finding, or None>`
+- None. The final Terra/high implementation passed the complete required
+  validation suite plus coordinator review of prompt isolation, strict capture
+  handling, bounded untrusted input, CLI confinement, scorer integration, and
+  every root-scoped JSON Schema reference.
 
 ### Required follow-up
 
-- `<follow-up, or None>`
+- Execute the same nine prompt packets through Codex, Claude Code, and OpenCode,
+  normalize their response captures, and score each Host without exposing the
+  accepted ground truth.
+- Record the accepted initial precision threshold before using replay scores to
+  decide the M3 go/no-go gate.
 
 ### Roadmap and release impact
 
-- `<coordinator assessment>`
+- The Host-neutral replay/capture layer is integrated, completing this work
+  item.
+- M3 remains in progress until real cross-Host replay evidence meets the agreed
+  precision, schema, reference, no-fabrication, and inconclusive gates.
+- No Host compatibility, milestone completion, version, publication, or
+  release claim is authorized by this acceptance.
