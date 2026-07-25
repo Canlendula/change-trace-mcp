@@ -266,48 +266,171 @@ failure. A command that fails is not omitted from the handoff.
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress`
+- Status: `ready_for_review`
 - Implementation commit(s):
-- Branch head:
+  - `26276609f3f9b50da8b7bae0cdc7a63414eab0b9`
+- Branch head: resolve the current
+  `codex/M5-004-source-fixtures-and-report` head after the handoff commit; the
+  handoff commit is intentionally not self-referenced.
 
 ### Implementation summary
 
-- Pending.
+- Added the required strict, 10,000-entry `Report.evidenceSources` catalog and
+  public schema/type exports. The writer derives it from retained bundle
+  evidence in bundle order and deliberately omits excerpts and selection
+  reasons.
+- Added deterministic Markdown rendering for every retained evidence source.
+  Locators and nullable URIs use dynamic code spans, titles and other dynamic
+  prose use existing containment helpers, and missing evidence now includes a
+  nullable URI code literal.
+- Added deterministic Lark/Feishu and Jira/Confluence command fixtures plus a
+  built-stdio end-to-end test covering collection, bundle construction, empty
+  finding validation, final report writes, secret containment, and repeated
+  byte identity.
+- Added the packaged external-adapter guide/configuration example and updated
+  the README and package file list without changing version, dependency,
+  script, engine, or release state.
 
 ### Changed areas
 
-- Pending.
+- `src/schemas/report.ts`, `src/schemas/index.ts`: report source schema, required
+  catalog field, type, and public export.
+- `src/reports/write-report.ts`: deterministic catalog projection, Markdown
+  `Evidence Sources`, and missing-source URI rendering.
+- `tests/unit/report-schema.test.ts`, `tests/unit/report-write.test.ts`,
+  `tests/unit/json-schema.test.ts`: required/strict/bounded schema, JSON Schema,
+  source ordering/content exclusion, arbitrary locator/URI containment, and
+  report determinism. The unchanged replay test remains a required validation
+  gate for accepted M3 digests.
+- `tests/fixtures/external-adapter/m5-*.mjs`,
+  `tests/integration/external-source-fixtures.test.ts`: source-specific generic
+  command fixtures and complete public MCP proof.
+- `docs/external-adapters/**`, `README.md`, `package.json`: Host configuration,
+  fixed protocol, bounds, security model, call flow, schema/tool inventory, and
+  package inclusion.
 
 ### Validation
 
-- Pending.
+- Test-first expected failures, before production implementation:
+  - `npx vitest run tests/unit/report-schema.test.ts
+    tests/unit/report-write.test.ts tests/unit/json-schema.test.ts`:
+    exit 1, 8 failed / 41 passed because the catalog/schema/docs did not exist.
+  - `npm run build; npx vitest run
+    tests/integration/external-source-fixtures.test.ts`: build passed; test exit
+    1, 1 failed because the final report had no `evidenceSources`.
+- Transitional failures, all fixed:
+  - the same three-unit-file command: exit 1, 3 failed / 46 passed due two JSON
+    Schema `$ref` test expectations and one over-escaped title expectation;
+    assertions were corrected to the actual safe reused-schema/code-span
+    contract.
+  - the required focused command followed by `npm run check`: focused 73/73
+    passed; check exited 1 with two TS2352 test-only casts. Both were changed to
+    explicit `unknown` narrowing.
+- Final focused gates:
+  - `npx vitest run tests/unit/report-schema.test.ts
+    tests/unit/report-write.test.ts tests/unit/json-schema.test.ts
+    tests/unit/review-replay.test.ts
+    tests/integration/external-source-fixtures.test.ts
+    tests/integration/external-evidence-stdio.test.ts
+    tests/integration/stdio.test.ts`: 7 files, 74 tests passed.
+  - `npm run check`: passed.
+- Full-suite attempts:
+  - `npm test`: exit 1, 240/241 passed; existing Windows 100 ms runner timeout
+    test could not read `pid.txt` before process startup.
+  - `npm test`: exit 1, 240/241 passed; same existing `pid.txt` race.
+  - after removing unnecessary Git subprocesses from the new E2E,
+    `npm test`: 27 files, 241/241 passed.
+  - `npm test`: exit 1, 240/241 passed; same existing `pid.txt` race.
+  - after adding the final arbitrary locator/URI containment test,
+    `npm test`: 27 files, 242/242 passed.
+  - `npm test`: exit 1, 241/242 passed; same existing `pid.txt` race.
+  - Two consecutive full-suite passes were therefore not obtained. Per
+    coordinator direction, the worker did not modify the out-of-scope runner
+    or its test and stopped retrying; a separate reliability work item is
+    planned before the integration gate.
+- Remaining required commands:
+  - `npm run smoke:stdio`: passed; all eight tools were listed and the exact M1
+    compatibility fixture payload was preserved.
+  - `npm run smoke:ci`: passed with
+    `outcome=completed_no_findings code=ok` and `smoke=ok`.
+  - `npm run pack:check`: passed; dry-run tarball contained
+    `docs/external-adapters/README.md` and `config.json.example`.
+  - `git diff --check
+    13167b918017c9be37488e1d9472ffa0907beeac..HEAD`: passed after the
+    handoff commit.
+  - `git status --short`: clean after the handoff commit.
 
 ### Fixture and final-report evidence
 
-- Pending.
+- Lark/Feishu:
+  - explicit `document:doc-release-42:block:block-7` with canonical HTTPS URI;
+  - retrieval `2026-07-26T11:00:00.000Z`, update
+    `2026-07-25T09:30:00.000Z`, contained untrusted Markdown-shaped title, and
+    adapter identity/version survive JSON and Markdown;
+  - injection-shaped excerpt remains `untrusted_external` in collection/bundle,
+    its secret sentinel is redacted, and neither excerpt nor selection reason
+    is duplicated into the zero-finding report.
+- Jira/Confluence:
+  - explicit Jira `issue:TRACE-42` and Confluence
+    `page:release-requirements-42` results retain distinct URIs, titles,
+    retrieval/update timestamps, source types, and adapter identity;
+  - explicit denied comment
+    `page:release-requirements-42:comment:denied-7` becomes inaccessible
+    missing evidence with its URI and redacted reason.
+- Both successful tool results parse with the same
+  `ExternalEvidenceCollection` schema. The test confirms there is no search,
+  discovery, command, environment, credential, or trust input field.
+- `lark-fixture-secret-sentinel` and
+  `confluence-permission-secret-sentinel` are absent from MCP results, bundle,
+  final JSON, final Markdown, and captured server stderr.
+- The report catalog IDs exactly match all retained bundle evidence IDs in
+  order. Repeating the identical `write_report` input after deleting the first
+  pair produces byte-identical JSON and Markdown.
 
 ### Public contract and documentation impact
 
-- Pending.
+- `Report.evidenceSources` is now required under provisional schema version
+  `1.0.0`, as frozen by Decision 26. Each strict entry exposes only evidence
+  identity, type, source, timestamps/hash, change links, trust, redactions, and
+  optional external provenance.
+- README documents the M5 pre-stable implementation state, the
+  `collect_external_evidence` tool, optional external branch in the call flow,
+  the expanded schema set, and the packaged guide.
+- The guide defines the Host-owned configuration, all hard field/process
+  bounds, `shell: false`, credential-name allowlisting, fixed JSON protocol,
+  stderr containment, explicit-reference-only behavior, missing permissions,
+  and the distinction between contract fixtures and live vendor compatibility.
 
 ### Deviations from assignment
 
-- None reported.
+- The required two consecutive full-suite passes were not achieved because the
+  existing out-of-scope Windows runner timeout test intermittently checks for
+  its PID file before the fixture process starts. Two individual final full
+  suites did pass. The coordinator explicitly directed this worker not to
+  modify the protected runner/test and to hand off the implementation with the
+  transient evidence recorded.
 
 ### Known limitations and risks
 
-- Pending.
+- Deterministic fixtures prove the shared command/MCP/report contract only; no
+  live Lark, Feishu, Jira, or Confluence compatibility is claimed.
+- A denied adapter response includes `retrievedAt`, while the accepted
+  normalized `MissingEvidence` contract carries source, reason, and status.
+  The denied comment locator and URI survive the final report; changing that
+  public missing-evidence contract was out of scope.
+- The existing Windows 100 ms PID-file race must be hardened in a separate
+  task before the coordinator can certify the consecutive integration gate.
 
 ### Decisions or questions for coordinator
 
-- None reported.
+- None. No public contract beyond Decisions 23–26 was required.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified by the worker.
-- [ ] No dependency, lockfile, version, live external-system, CI, release, or
+- [x] Coordinator-only files were not modified by the worker.
+- [x] No dependency, lockfile, version, live external-system, CI, release, or
       npm-state change was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
