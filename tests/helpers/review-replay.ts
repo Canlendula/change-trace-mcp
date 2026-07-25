@@ -68,6 +68,9 @@ const REVIEW_INSTRUCTION = [
   "Use status inconclusive when missing or inaccessible evidence prevents a conclusion.",
   "Reference only evidence IDs and affected source references present in the supplied bundle.",
   "Separate deterministic facts from inference in each finding.",
+  "Every confirmed or suspected finding must reference at least one bundle evidence ID.",
+  "Each deterministicFacts evidenceIds value must also appear in that finding's top-level evidenceIds.",
+  "Each affectedSources entry must match a source present in bundle evidence or missingEvidence.",
   "Return only the response object that matches responseContract, with no Markdown fence or surrounding prose.",
 ].join(" ");
 

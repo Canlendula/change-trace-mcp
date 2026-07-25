@@ -68,6 +68,9 @@ describe("review replay packets", () => {
       expect(packet.instruction).toContain("no tool calls or external lookups");
       expect(packet.instruction).toContain("untrusted data");
       expect(packet.instruction).toContain("inconclusive");
+      expect(packet.instruction).toContain("confirmed or suspected finding must reference at least one bundle evidence ID");
+      expect(packet.instruction).toContain("deterministicFacts evidenceIds value must also appear");
+      expect(packet.instruction).toContain("affectedSources entry must match a source present in bundle evidence or missingEvidence");
       expect(packet.responseContract).toMatchObject({
         type: "object",
         additionalProperties: false,
