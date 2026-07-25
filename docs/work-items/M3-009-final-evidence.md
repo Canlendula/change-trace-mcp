@@ -165,35 +165,65 @@ and shares the same ordered bundle digest list.
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
-- Handoff branch:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M3-009-final-evidence`
 - Implementation commits:
+  - `2eec8c618c62bdc0eb44036ac2bd6de4ede8c606` — docs: record M3 final replay evidence
 
 ### Implementation summary
 
-- `<what was implemented>`
+- Added a compact, tracked v5 evidence record with replay provenance,
+  configurations, aggregate outcomes, mandatory-control outcomes, ordered
+  bundle digests, and reproducibility hashes.
+- Copied the final Codex Desktop, Claude Code, and OpenCode score files
+  byte-for-byte from the coordinator-supplied v5 sources. The record excludes
+  raw prompts, captures, response streams, untrusted evidence bodies, local
+  execution paths, and credentials.
+- Recorded v1–v4 only as locally verifiable aggregate prompt-development
+  history. The record identifies v5 / instruction `1.4.0` as the final gate
+  replay without declaring a milestone or release result.
 
 ### Changed areas
 
-- `<path or component and reason>`
+- `docs/evaluation/M3_RESULTS.md` — durable, bounded v5 replay evidence and
+  integrity record.
+- `docs/evaluation/m3/codex-desktop.score.json` — exact final v5 Codex Desktop
+  score copy.
+- `docs/evaluation/m3/claude-code.score.json` — exact final v5 Claude Code
+  score copy.
+- `docs/evaluation/m3/opencode.score.json` — exact final v5 OpenCode score
+  copy.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npm ci` | PASS | Installed the lockfile dependencies in this isolated worktree; no tracked package file changed. |
+| `npm run check` | PASS | TypeScript no-emit check passed. |
+| `npm test` | PASS | 16 files and 149 tests passed. |
+| `npm run smoke:stdio` | PASS | Build and stdio smoke check passed. |
+| `npm run pack:check` | PASS | Dry-run package check passed. |
+| `[System.Linq.Enumerable]::SequenceEqual([byte[]]$source, [byte[]]$target)` for each v5 score source/target pair | PASS | Three exact byte comparisons passed; each target also parsed as JSON. |
+| PowerShell v5 schema/Host/aggregate/control/digest/run-record audit | PASS | Verified schema `1.0.0`, instruction `1.4.0`, Host identity, 9 / 9, 6 / 6 valid, zero rejected/warned, mandatory controls, identical ordered digests, manifest shape, and zero recorded tool use. |
+| `git diff --check 674034778e085eedd355e711553ff57e87898b0f..HEAD` | PASS | No whitespace errors before handoff commit; repeated after handoff commit. |
+| `rg -n --glob '*.md' --glob '*.json' 'D:\\\\|C:\\\\Users|threadIds|executable|api[_-]?key|secret|password' docs/evaluation` | PASS | No matched private-path, execution-detail, or credential patterns. |
 
 ### Public contract and documentation impact
 
-- `<impact, or None>`
+- Adds internal evaluation evidence only. No public API, schema, release,
+  compatibility, or milestone-completion claim was changed.
 
 ### Deviations from assignment
 
-- None.
+- None. Commit `37cc9ae` is the coordinator-authored task-contract correction
+  explicitly authorized for cherry-pick; it corrects the Assignment base SHA
+  and required diff command and is not a worker scope deviation.
 
 ### Known limitations and risks
 
-- None.
+- The evidence record intentionally omits raw local replay materials. Their
+  source hashes and the exact committed score copies provide the review trail;
+  milestone and gate ownership remain with the coordinator.
 
 ### Decisions or questions for coordinator
 
@@ -201,9 +231,10 @@ and shares the same ordered bundle digest list.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] No coordinator-only file was edited by the worker; the coordinator's
+      authorized contract correction was cherry-picked unchanged.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
