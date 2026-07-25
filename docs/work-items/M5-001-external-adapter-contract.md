@@ -122,26 +122,26 @@ content, verify request/result coverage, and convert results into
 
 ### Acceptance criteria
 
-- [ ] Request and response schemas are strict, versioned, bounded, and
+- [x] Request and response schemas are strict, versioned, bounded, and
       exported as TypeScript and deterministic Draft 2020-12 contracts.
-- [ ] Request input can select only a preconfigured adapter ID and explicit
+- [x] Request input can select only a preconfigured adapter ID and explicit
       references; no command, environment, credential, or discovery field is
       accepted.
-- [ ] Reference and result request IDs are unique within their respective
+- [x] Reference and result request IDs are unique within their respective
       arrays.
-- [ ] Available results preserve adapter/source identity, source type, title,
+- [x] Available results preserve adapter/source identity, source type, title,
       nullable update time, retrieval time, bounded excerpt, and consistent
       truncation metadata.
-- [ ] Missing, denied, unsupported, and error results are structured and
+- [x] Missing, denied, unsupported, and error results are structured and
       cannot carry excerpts or other available-document fields.
-- [ ] Adapter output cannot self-declare `trustLevel`.
-- [ ] Prompt-injection-shaped text remains inert string data accepted only in
+- [x] Adapter output cannot self-declare `trustLevel`.
+- [x] Prompt-injection-shaped text remains inert string data accepted only in
       the bounded excerpt field.
-- [ ] Existing public schemas and their JSON export identities remain
+- [x] Existing public schemas and their JSON export identities remain
       unchanged.
-- [ ] Focused tests, type checking, two consecutive full-suite runs, stdio
+- [x] Focused tests, type checking, two consecutive full-suite runs, stdio
       smoke, package dry-run, diff checks, and clean worktree checks pass.
-- [ ] No runtime execution, credential access, network access, MCP change,
+- [x] No runtime execution, credential access, network access, MCP change,
       dependency, version, Roadmap, decision, CI, release, or npm state change
       occurs.
 
@@ -276,18 +276,32 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
+- Outcome: `accepted`
 - Reviewed branch head:
+  `0b5ae9b607a7ae2b5395c192f5fb022cfb8c1bdc`
 - Integration commit:
+  `411ad21f87fa5076d782acf8de3db61a49269aad`
 
 ### Review findings
 
-- Pending.
+- No blocking findings.
+- The implementation stays within the schema-only boundary. Strict objects
+  reject command, environment, credential, discovery, log, and trust
+  self-declaration fields; unavailable variants cannot carry content.
+- Source and result vocabularies, request/result uniqueness, bounds, and
+  truncation consistency match the assignment. The runtime-only refinements
+  that Draft 2020-12 cannot represent are called out accurately in the
+  handoff.
+- Existing schema IDs and the core schema version remain unchanged.
+- Coordinator validation on the merged Windows main tree passed 16 focused
+  tests, TypeScript checking, and the complete 21-file/196-test suite.
 
 ### Required follow-up
 
-- Pending review.
+- None for M5-001. M5-002 must enforce request/response identity and coverage
+  when it adds the preconfigured command runner and normalizer.
 
 ### Roadmap and release impact
 
-- M5 remains in progress until all milestone exit criteria pass.
+- M5-001 is accepted. M5 remains in progress; no package version or release
+  state changed.
