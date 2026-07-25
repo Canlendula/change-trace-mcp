@@ -99,6 +99,19 @@ function buildReport(input: WriteReportInput): Report {
     findings: { confirmed: v.validFindings.filter((f) => f.status === "confirmed").map(toF) as Report["findings"]["confirmed"], suspected: v.validFindings.filter((f) => f.status === "suspected").map(toF) as Report["findings"]["suspected"], inconclusive: v.validFindings.filter((f) => f.status === "inconclusive").map(toF) as Report["findings"]["inconclusive"] },
     rejectedFindings: v.rejectedFindings.map((rf) => ({ index: rf.index, findingId: rf.findingId, issues: rf.issues.map((i) => ({ code: i.code, path: i.path, message: i.message.slice(0, 2_000) })) })),
     missingEvidence: b.missingEvidence.map((me) => ({ source: me.source, reason: me.reason, status: me.status })),
+    evidenceSources: b.evidenceItems.map((item) => ({
+      evidenceId: item.id,
+      type: item.type,
+      source: item.source,
+      retrievedAt: item.retrievedAt,
+      contentHash: item.contentHash,
+      relatedChangeIds: item.relatedChangeIds,
+      trustLevel: item.trustLevel,
+      redactions: item.redactions,
+      ...(item.externalProvenance === undefined
+        ? {}
+        : { externalProvenance: item.externalProvenance }),
+    })),
     evidenceCoverage: { totalEvidenceItems: b.evidenceItems.length, referencedEvidenceIds: [...ref].sort(), unreferencedEvidenceIds: unref.sort() },
     validationSummary: { submitted: v.summary.submitted, valid: v.summary.valid, rejected: v.summary.rejected, warnings: v.summary.warnings },
     bundleLimits: { maxEvidenceItems: b.limits.maxEvidenceItems, maxTotalExcerptCharacters: b.limits.maxTotalExcerptCharacters },
@@ -155,7 +168,59 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
   L.push("## Bundle Information", "", `- **Change scope:** ${safeLit(bundle.changeScope.resolvedBase.slice(0, 8) + "...")} -> ${safeLit(bundle.changeScope.resolvedHead.slice(0, 8) + "...")}`, `- **Evidence items:** ${bundle.evidenceItems.length}`, `- **Deterministic facts:** ${bundle.deterministicFacts.length}`, `- **Missing evidence:** ${bundle.missingEvidence.length}`, "");
   L.push("### Bundle Limits", "", `- Max evidence items: ${report.bundleLimits.maxEvidenceItems}`, `- Max excerpt characters: ${report.bundleLimits.maxTotalExcerptCharacters}`, "");
   if (report.bundleTruncation.isTruncated) { L.push("### Bundle Truncation", "", `- **Omitted evidence items:** ${report.bundleTruncation.omittedEvidenceItems}`, `- **Omitted excerpt characters:** ${report.bundleTruncation.omittedExcerptCharacters}`, `- **Omitted missing evidence:** ${report.bundleTruncation.omittedMissingEvidence}`, ""); }
-  if (report.missingEvidence.length > 0) { L.push("## Missing Evidence", ""); for (const me of report.missingEvidence) L.push(`- **${safeLit(me.status)}** ${safeLit(me.source.system + ":" + me.source.locator)}: ${safeInline(me.reason)}`); L.push(""); }
+  L.push("## Evidence Sources", "");
+  if (report.evidenceSources.length === 0) {
+    L.push("No retained evidence sources.", "");
+  } else {
+    for (const source of report.evidenceSources) {
+      L.push(`### ${safeLit(source.evidenceId)}`, "");
+      L.push(`- **Type:** ${safeLit(source.type)}`);
+      L.push(`- **System:** ${safeLit(source.source.system)}`);
+      L.push(`- **Locator:** ${safeLit(source.source.locator)}`);
+      L.push(`- **URI:** ${safeLit(source.source.uri ?? "null")}`);
+      L.push(`- **Retrieved:** ${safeLit(source.retrievedAt)}`);
+      L.push(`- **Content hash:** ${safeLit(source.contentHash ?? "null")}`);
+      L.push(`- **Trust:** ${safeLit(source.trustLevel)}`);
+      L.push(
+        `- **Related changes:** ${
+          source.relatedChangeIds.length === 0
+            ? "none"
+            : source.relatedChangeIds.map((id) => safeLit(id)).join(", ")
+        }`,
+      );
+      if (source.redactions.length === 0) {
+        L.push("- **Redactions:** none");
+      } else {
+        L.push("- **Redactions:**");
+        for (const redaction of source.redactions) {
+          L.push(
+            `  - ${safeLit(redaction.kind)} x${redaction.count}${
+              redaction.note === null
+                ? ""
+                : `: ${inlineNoNewlines(redaction.note)}`
+            }`,
+          );
+        }
+      }
+      if (source.externalProvenance !== undefined) {
+        const provenance = source.externalProvenance;
+        L.push(
+          `- **Adapter:** ${safeLit(provenance.adapter.id)} / ${inlineNoNewlines(provenance.adapter.name)} / ${safeLit(provenance.adapter.version)}`,
+        );
+        L.push(
+          `- **External source type:** ${safeLit(provenance.sourceType)}`,
+        );
+        L.push(
+          `- **Title:** ${inlineNoNewlines(provenance.title)}`,
+        );
+        L.push(
+          `- **Source updated:** ${safeLit(provenance.sourceUpdatedAt ?? "null")}`,
+        );
+      }
+      L.push("");
+    }
+  }
+  if (report.missingEvidence.length > 0) { L.push("## Missing Evidence", ""); for (const me of report.missingEvidence) L.push(`- **${safeLit(me.status)}** ${safeLit(me.source.system + ":" + me.source.locator)}${me.source.uri === null ? "" : ` (URI: ${safeLit(me.source.uri)})`}: ${safeInline(me.reason)}`); L.push(""); }
   if (report.warnings.length > 0) { L.push("## Global Warnings", ""); for (const w of report.warnings) L.push(`- **${safeLit(w.code)}** ${w.findingId ? safeLit(w.findingId) + ": " : ""}${safeInline(w.message)}`); L.push(""); }
   const section = (title: string, findings: ReportFinding[]) => {
     if (findings.length === 0) return;

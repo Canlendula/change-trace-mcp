@@ -118,6 +118,38 @@ const validReport: Report = {
       status: "not_found",
     },
   ],
+  evidenceSources: [
+    {
+      evidenceId: "evidence:1",
+      type: "document",
+      source: {
+        system: "lark",
+        locator: "document:release:block:requirements",
+        uri: "https://example.larksuite.com/docx/release?block=requirements",
+      },
+      retrievedAt: "2026-07-24T11:59:00.000Z",
+      contentHash: `sha256:${"a".repeat(64)}`,
+      relatedChangeIds: ["file:src/config.ts"],
+      trustLevel: "untrusted_external",
+      redactions: [
+        {
+          kind: "secret",
+          count: 1,
+          note: "A fixture secret was removed.",
+        },
+      ],
+      externalProvenance: {
+        adapter: {
+          id: "adapter:lark",
+          name: "Lark adapter",
+          version: "1.0.0",
+        },
+        sourceType: "document",
+        title: "Release requirement",
+        sourceUpdatedAt: "2026-07-24T11:00:00.000Z",
+      },
+    },
+  ],
   evidenceCoverage: {
     totalEvidenceItems: 5,
     referencedEvidenceIds: ["evidence:1", "evidence:2", "evidence:3"],
@@ -209,6 +241,34 @@ describe("reportSchema", () => {
     const { bundleId, ...withoutBundleId } = validReport;
     expect(
       reportSchema.safeParse(withoutBundleId as Report).success,
+    ).toBe(false);
+  });
+
+  it("requires a strict bounded evidence-source catalog without excerpts", () => {
+    const { evidenceSources: _evidenceSources, ...withoutEvidenceSources } =
+      validReport;
+    expect(reportSchema.safeParse(withoutEvidenceSources).success).toBe(false);
+
+    expect(
+      reportSchema.safeParse({
+        ...validReport,
+        evidenceSources: [
+          {
+            ...validReport.evidenceSources[0],
+            excerpt: "External document content must not be copied.",
+          },
+        ],
+      }).success,
+    ).toBe(false);
+
+    expect(
+      reportSchema.safeParse({
+        ...validReport,
+        evidenceSources: Array.from({ length: 10_001 }, (_, index) => ({
+          ...validReport.evidenceSources[0],
+          evidenceId: `evidence:${index}`,
+        })),
+      }).success,
     ).toBe(false);
   });
 });
@@ -337,6 +397,25 @@ describe("exportCoreJsonSchemas", () => {
     expect(schemas.report.$id).toBe(
       `urn:change-trace-mcp:schema:report:${CORE_SCHEMA_VERSION}`,
     );
+    expect(schemas.report).toMatchObject({
+      type: "object",
+      required: expect.arrayContaining(["evidenceSources"]),
+      properties: {
+        evidenceSources: {
+          $ref: expect.stringMatching(/^#\/\$defs\//u),
+        },
+      },
+    });
+    const reportJsonSchema = schemas.report as unknown as {
+      properties: { evidenceSources: { $ref: string } };
+      $defs: Record<string, unknown>;
+    };
+    const definitionKey = reportJsonSchema.properties.evidenceSources.$ref
+      .replace("#/$defs/", "");
+    expect(reportJsonSchema.$defs[definitionKey]).toMatchObject({
+      type: "array",
+      maxItems: 10_000,
+    });
   });
 
   it("produces deterministic JSON Schema exports including report", () => {

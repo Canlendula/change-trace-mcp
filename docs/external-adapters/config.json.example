@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0.0",
+  "adapters": [
+    {
+      "adapter": {
+        "id": "adapter:lark-readonly",
+        "name": "Lark read-only wrapper",
+        "version": "1.0.0"
+      },
+      "argv": [
+        "node",
+        "/opt/change-trace-adapters/lark-readonly.mjs"
+      ],
+      "sourceSystems": [
+        "lark"
+      ],
+      "credentialEnvironmentNames": [
+        "LARK_APP_ID",
+        "LARK_APP_SECRET"
+      ],
+      "limits": {
+        "timeoutMilliseconds": 10000,
+        "stdoutBytes": 1048576,
+        "stderrBytes": 65536
+      }
+    },
+    {
+      "adapter": {
+        "id": "adapter:jira-confluence-readonly",
+        "name": "Jira and Confluence read-only wrapper",
+        "version": "1.0.0"
+      },
+      "argv": [
+        "node",
+        "/opt/change-trace-adapters/jira-confluence-readonly.mjs"
+      ],
+      "sourceSystems": [
+        "jira",
+        "confluence"
+      ],
+      "credentialEnvironmentNames": [
+        "ATLASSIAN_API_TOKEN"
+      ],
+      "limits": {
+        "timeoutMilliseconds": 10000,
+        "stdoutBytes": 1048576,
+        "stderrBytes": 65536
+      }
+    }
+  ]
+}

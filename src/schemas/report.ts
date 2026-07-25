@@ -2,10 +2,17 @@ import { z } from "zod";
 
 import {
   CORE_SCHEMA_VERSION,
+  sha256HashSchema,
   sourceReferenceSchema,
   stableIdSchema,
   timestampSchema,
 } from "./common.js";
+import {
+  evidenceTypeSchema,
+  redactionSchema,
+  trustLevelSchema,
+} from "./evidence.js";
+import { externalProvenanceSchema } from "./external-provenance.js";
 import {
   findingCategorySchema,
   findingRecommendationSchema,
@@ -80,6 +87,18 @@ export const reportMissingEvidenceSchema = z.strictObject({
   status: z.enum(["not_found", "inaccessible", "unsupported", "truncated"]),
 });
 
+export const reportEvidenceSourceSchema = z.strictObject({
+  evidenceId: stableIdSchema,
+  type: evidenceTypeSchema,
+  source: sourceReferenceSchema,
+  retrievedAt: timestampSchema,
+  contentHash: sha256HashSchema.nullable(),
+  relatedChangeIds: z.array(stableIdSchema).max(1_000),
+  trustLevel: trustLevelSchema,
+  redactions: z.array(redactionSchema).max(100),
+  externalProvenance: externalProvenanceSchema.optional(),
+});
+
 export const reportSchema = z
   .strictObject({
     schemaVersion: z.literal(CORE_SCHEMA_VERSION),
@@ -102,6 +121,7 @@ export const reportSchema = z
     }),
     rejectedFindings: z.array(reportRejectedFindingSchema).max(1_000),
     missingEvidence: z.array(reportMissingEvidenceSchema).max(10_000),
+    evidenceSources: z.array(reportEvidenceSourceSchema).max(10_000),
     evidenceCoverage: z.strictObject({
       totalEvidenceItems: z.number().int().nonnegative(),
       referencedEvidenceIds: z.array(stableIdSchema).max(10_000),
@@ -136,6 +156,9 @@ export type ReportFinding = z.infer<typeof reportFindingSchema>;
 export type ReportValidationIssue = z.infer<typeof reportValidationIssueSchema>;
 export type ReportRejectedFinding = z.infer<typeof reportRejectedFindingSchema>;
 export type ReportMissingEvidence = z.infer<typeof reportMissingEvidenceSchema>;
+export type ReportEvidenceSource = z.infer<
+  typeof reportEvidenceSourceSchema
+>;
 export type Report = z.infer<typeof reportSchema>;
 
 export const DEFAULT_MAX_REPORT_SIZE_BYTES = 10 * 1024 * 1024;

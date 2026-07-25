@@ -5,9 +5,11 @@ and normalizing change-scoped release evidence. The user's existing Agent makes
 semantic judgments; this package keeps evidence preparation deterministic and
 reviewable.
 
-M1 Host and cloud-runner compatibility and the M2 deterministic evidence core
-are complete. M3 Agent review-contract work is in progress. The currently
-exposed MCP tools are:
+M1–M4 are complete. The M5 external-adapter path now accepts explicit
+references through bounded Host-configured commands and preserves normalized
+source provenance in final reports. M5 remains pre-stable until coordinator
+exit review; deterministic contract fixtures do not claim live vendor
+compatibility. The currently exposed MCP tools are:
 
 - `get_server_info` reports process and runtime metadata;
 - `get_compatibility_fixture` returns a byte-stable fixture for Host smoke tests;
@@ -15,12 +17,17 @@ exposed MCP tools are:
   explicit repository root and two refs;
 - `collect_local_evidence` returns bounded, provenance-rich excerpts from
   configured repository document roots;
+- `collect_external_evidence` returns normalized, redacted, and
+  `untrusted_external` evidence for explicit references through one exact
+  Host-configured adapter;
 - `get_review_bundle` combines change and document evidence into a bounded,
-  indexed bundle with deterministic facts and missing-evidence records;
+  indexed bundle with deterministic facts, external collections, and
+  missing-evidence records;
 - `validate_findings` validates Agent output against the shared schema and the
   bundle's evidence/source indexes;
-- `write_report` renders validated findings as a deterministic Markdown and JSON
-  report pair inside a repository-relative output directory.
+- `write_report` renders validated findings and a complete retained
+  evidence-source catalog as a deterministic Markdown and JSON report pair
+  inside a repository-relative output directory.
 
 ## Requirements
 
@@ -85,9 +92,16 @@ expose report content.
 Example MCP call flow:
 
 ```
-get_change_scope → collect_local_evidence → get_review_bundle →
-validate_findings → write_report
+get_change_scope ─┬→ collect_local_evidence ───────────────┐
+                  └→ collect_external_evidence (optional) ├→
+                     get_review_bundle → validate_findings → write_report
 ```
+
+External adapters are registered by the Host through
+`CHANGE_TRACE_EXTERNAL_ADAPTERS_FILE`; executable configuration and
+credentials are never MCP tool input. See the packaged
+[external-adapter guide](docs/external-adapters/README.md) and
+[copyable configuration](docs/external-adapters/config.json.example).
 
 ## Contribution workflow
 
@@ -100,7 +114,9 @@ starting delegated implementation work.
 
 The package exports strict Zod schemas and deterministic Draft 2020-12 JSON
 Schema documents for `EvidenceItem`, `ChangeScope`, `LocalEvidenceCollection`,
-`ReviewBundle`, `Finding`, `FindingValidationResult`, and `Report`:
+`ExternalAdapterRequest`, `ExternalAdapterResponse`,
+`ExternalEvidenceCollection`, `ReviewBundle`, `Finding`,
+`FindingValidationResult`, and `Report`:
 
 ```ts
 import {

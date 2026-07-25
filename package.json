@@ -16,6 +16,7 @@
     "dist",
     "docs/PROJECT_DECISIONS.md",
     "docs/ROADMAP.md",
+    "docs/external-adapters",
     "docs/smoke-tests",
     "LICENSE",
     "README.md"
