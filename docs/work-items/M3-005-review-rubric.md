@@ -253,18 +253,23 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending | accepted | changes_requested | rejected`
+- Outcome: `accepted`
 - Reviewed branch head:
-- Integration commit:
+  `4433419c3af76b49591d9d99d80395e48a11fb26`
+- Integration commit: fast-forwarded to `main`; acceptance record pending in this
+  commit.
 
 ### Review findings
 
-- `<finding, or None>`
+- None.
 
 ### Required follow-up
 
-- `<follow-up, or None>`
+- Re-run the unchanged nine-fixture suite through Codex, Claude Code, and
+  OpenCode with instruction version `1.1.0`, then score the captures without
+  changing accepted ground truth.
 
 ### Roadmap and release impact
 
-- `<coordinator assessment>`
+- The Host-neutral rubric hardening is accepted. This task alone does not
+  complete M3; the cross-Host replay and M3 exit-gate evidence remain pending.
