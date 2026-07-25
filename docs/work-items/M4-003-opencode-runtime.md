@@ -153,9 +153,9 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `ready_for_review`
+- Status: `needs_decision`
 - Handoff branch: `codex/M4-003-opencode-runtime`
-- Implementation commits: `07445695b07e054fd520cd3632480912889e800f`, `a519c3fcaa97a88227e9b30df1149034b82d91a4`
+- Implementation commits: `07445695b07e054fd520cd3632480912889e800f`, `a519c3fcaa97a88227e9b30df1149034b82d91a4`, `b12b6949dda89562fa600ec93e6bc049d74733f3`
 
 ### Implementation summary
 
@@ -171,27 +171,35 @@ git status --short
   session failures without a total-attempt cap, making this configuration a
   supported explanation for the timeout.
 - Declared the custom-model limit explicitly as `context: 12000`, `input:
-  8000`, and `output: 4000`, so OpenCode requests stay within the documented
-  free-tier request shape while retaining enough combined context for tool
-  calls.
+  8000`, and `output: 4000`, preventing the previous 32,000-output-token
+  request. This is a candidate repair for the observed timeout, subject to the
+  separate blocking input-capacity decision below.
 - Raised the direct OpenCode-child ceiling to thirteen minutes and derive its
   maximum from the inherited fourteen-minute runner timeout, reserving one
   minute for child termination and artifact publication. The outer generic
   runner, output policy, and non-blocking workflow remain unchanged.
+- Added fixed small result budgets for scope, local evidence, and review-bundle
+  calls, plus an explicit instruction not to make stronger conclusions from
+  truncated or missing evidence. These bounds reduce tool-result history; they
+  do not reduce the first-request function-definition payload.
 
 ### Changed areas
 
 - `scripts/ci/opencode-advisory-host.mjs` — bounded custom-model token limits
   and runner-aware direct-child timeout budget.
+- `scripts/ci/opencode-advisory-prompt.md` — bounded scope/evidence/bundle
+  requests and truncation-aware conclusion guidance.
 - `tests/integration/advisory-host.test.ts` — deterministic regression coverage
-  for the exact custom-model limits and 13-minute/14-minute timeout boundary.
-- `docs/ci/README.md` — documented the runtime limits and timeout budget.
+  for the exact custom-model limits, prompt budgets, and 13-minute/14-minute
+  timeout boundary.
+- `docs/ci/README.md` — documented the runtime limits, timeout budget, and
+  unresolved direct-tool input capacity.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| `npx vitest run tests/integration/advisory-host.test.ts` | PASS | 6 deterministic Host/workflow tests passed. |
+| `npx vitest run tests/integration/advisory-host.test.ts` | PASS | 6 deterministic Host/workflow tests passed after the prompt-budget regression. |
 | `npm run smoke:ci` | PASS | Existing generic runner smoke passed. |
 | `npm run smoke:ci:host` | PASS | Deterministic isolated Host smoke passed. |
 | `npm run check` | PASS | TypeScript check passed. |
@@ -209,28 +217,57 @@ git status --short
   contract, production source, dependency, lockfile, version, or package export
   changed.
 
+### Blocking capacity evidence
+
+- The coordinator counted the current `listTools` OpenAI function payload for
+  the five required active tools with `gpt-tokenizer@3.4.0` using model
+  `gpt-4.1`: 47,121 bytes / 14,014 tokens. The fixed prompt adds 318 tokens.
+  The per-tool counts are `get_change_scope` 312,
+  `collect_local_evidence` 1,927, `get_review_bundle` 3,188,
+  `validate_findings` 3,502, and `write_report` 5,088.
+- That total excludes the OpenCode system prompt, run context, and any evidence
+  history. It therefore exceeds the documented free High-tier 8,000-input-token
+  limit before the model can make its first tool call. The small prompt budgets
+  constrain later result history only and cannot make the current direct
+  five-tool schema safe for that tier.
+
 ### Deviations from assignment
 
-- None. No raw provider/Host output was retained or classified; the limit and
-  timeout repair is based on the exact pinned source, bounded live duration,
-  and an offline configuration regression.
+- No raw provider/Host output was retained or classified. The model limit and
+  timeout repair is based on exact pinned source, bounded live duration, and an
+  offline configuration regression. The task cannot proceed to a live-valid
+  report claim without resolving the direct-tool input-capacity boundary.
 
 ### Known limitations and risks
 
-- A coordinator-owned live GitHub Actions retry remains required to prove a
-  valid report pair with the current GitHub Models service. GitHub's free tier
-  limits are documented as subject to change; the explicit 8k/4k configuration
-  should be revisited if the credential tier changes.
+- A coordinator-owned live GitHub Actions retry remains required after a
+  capacity decision. GitHub's free-tier limits are documented as subject to
+  change; the explicit 8k/4k configuration should be revisited if the
+  credential tier changes.
+- The current direct five-tool configuration cannot guarantee a tool-capable
+  first request with the accepted free High-tier credential. It is intentionally
+  left unchanged because altering tool transport or credential tier exceeds this
+  worker's authority and the M4-003 scope.
 
 ### Decisions or questions for coordinator
 
-- None.
+- **A — trusted CI-only compact adapter/handle layer:** keep the public npm/MCP
+  contract and the fixed five-step semantics, but have trusted Host-side code
+  expose short schemas/handles to the model and invoke the existing tools. This
+  is an architecture and public-contract-adjacent decision; it is not
+  implemented here.
+- **B — higher-capacity credential:** retain the direct five-tool schemas and
+  authorize a paid or external credential tier that can carry more than 14,000
+  input tokens. This changes the accepted credential/service decision and is
+  not implemented here.
+- Until the coordinator selects A or B, this handoff remains `needs_decision`;
+  no live workflow rerun was attempted.
 
 ### Protected-file confirmation
 
 - [x] Coordinator-only files were not modified.
 - [x] No version, dependency, tag, publish, or release action was performed.
-- [x] All intended handoff changes are committed to the task branch.
+- [x] All intended implementation changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
