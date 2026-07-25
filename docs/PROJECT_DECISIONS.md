@@ -547,3 +547,46 @@ This decision raises the strategic priority of M5 external-document adapters
 and M6 runtime evidence. Repository-specific presentation remains an outer
 integration concern, while Change Trace stays focused on evidence collection,
 normalization, traceability, and report validation.
+
+## 23. M5 adapters use preconfigured commands and explicit references
+
+The generic external-document adapter is a bounded protocol boundary. MCP tool
+input may select a preconfigured adapter ID and supply explicit source
+references, but it cannot supply an executable, arguments, working directory,
+environment-variable names, shell text, or credentials.
+
+Adapter registration is owned by the user or CI Host outside Agent-controlled
+tool input. Each registration fixes:
+
+- an explicit argument vector executed without a shell;
+- a bounded timeout and stdout/stderr byte allowance;
+- the credential environment names that may reach that adapter process;
+- the source systems and read capabilities the adapter may use.
+
+The initial protocol is read-only and explicit-reference-first. Broad
+organization search and inferred discovery are disabled by default. A later
+adapter may expose discovery only as a separately configured, allowlisted
+capability with its own limits and evidence-selection record.
+
+The process protocol uses one strict JSON request on stdin and one strict JSON
+response on stdout. Diagnostics remain bounded on stderr. Available records
+must include adapter identity and version, source type, canonical source
+reference, title, nullable update time, retrieval time, bounded content, and
+change relation. Missing, denied, unsupported, and adapter-error results are
+structured records without document content. Credentials, command
+configuration, and free-form logs are not part of either protocol payload.
+
+Change Trace assigns external content the `untrusted_external` trust level
+during normalization regardless of adapter identity. An adapter cannot
+self-declare its content trusted. Permission failures become explicit missing
+evidence, and secret-like content is redacted before it enters a review bundle,
+report, log, or artifact.
+
+M5 will implement this in bounded slices:
+
+1. strict adapter request/response schemas and deterministic JSON Schema
+   exports;
+2. the preconfigured command runner and response normalizer;
+3. the `collect_external_evidence` MCP path and review-bundle integration;
+4. Lark and Jira/Confluence fixture adapters that prove the shared contract,
+   permission handling, provenance, and injection resistance.
