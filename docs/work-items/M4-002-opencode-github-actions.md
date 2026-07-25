@@ -324,18 +324,36 @@ the exact offline Host smoke command and record that explicit deviation.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
-- Reviewed branch head:
-- Integration commit:
+- Outcome: `accepted`
+- Reviewed branch head: `cbb406b445bf577a22f9abea829a7b682118eb66`
+- Integration commits: `a5abcad`, `bd6b229`, `cb608aa`, `1f9715d`,
+  `69ae596`, `cbb406b`
 
 ### Review findings
 
-- Pending.
+- Initial review found that the model-bearing job was defined by a
+  PR-controlled `pull_request` workflow revision. `1f9715d` separates the
+  intended PR advisory path onto trusted `pull_request_target` workflow code,
+  keeps ordinary PR quality work low-privilege, and documents the explicit
+  checkout-v7 opt-in and repository-level workflow-policy boundary.
+- Initial review also reproduced that `opencode-ai@1.18.5` leaves a failing
+  placeholder binary when installed with `--ignore-scripts`. `1f9715d` runs
+  the exact package's required postinstall in the no-model-credential step,
+  then verifies its manifest version, confined real path, and direct CLI
+  version before the credential-bearing step.
+- Coordinator validation passed: 5 focused Host/workflow tests, 176 full
+  tests, both CI smoke paths, type checking, stdio smoke, package dry-run,
+  actionlint 1.7.12, exact OpenCode install/version verification, diff/path
+  scope, clean worktree, and credential-pattern audit.
 
 ### Required follow-up
 
-- Pending.
+- Push the accepted workflow to `main`, observe a real GitHub Models run,
+  rerun it to prove distinct attempt metadata/artifacts, and record both
+  cloud evidence and the generic runner demonstration before closing M4.
 
 ### Roadmap and release impact
 
-- Pending coordinator review.
+- M4 remains in progress until the real cloud run and rerun pass. This task
+  changes no MCP/Report contract, dependency, package version, npm state, or
+  release claim.
