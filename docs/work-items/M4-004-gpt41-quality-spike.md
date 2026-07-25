@@ -190,6 +190,7 @@ git status --short
 - Handoff branch: `codex/M4-004-gpt41-quality-spike`
 - Implementation commits:
   - `eb6a0b7` — feat(ci): add manual GPT-4.1 quality spike
+  - `f2b2416` — docs: record M4-004 quality spike handoff
 
 ### Implementation summary
 
@@ -276,7 +277,7 @@ git status --short
 
 - [x] Coordinator-only files were not modified.
 - [x] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
