@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `assigned`
+- Status: `accepted`
 - Milestone: `M5 — External documentation adapters`
 - Base commit: `e5cab4ff482557edce911e346011a4079427fd89`
 - Branch: `codex/M5-005-runner-timeout-test-reliability`
@@ -74,17 +74,17 @@ Reading other files is allowed. Writing outside this list is not.
 
 ## Acceptance criteria
 
-- [ ] The timeout case allows 2,000 milliseconds for child startup and has a
+- [x] The timeout case allows 2,000 milliseconds for child startup and has a
       sufficient explicit Vitest timeout.
-- [ ] The exact safe `timeout` code, null exit code, forbidden-value checks,
+- [x] The exact safe `timeout` code, null exit code, forbidden-value checks,
       PID read, and direct-child exit assertion remain present.
-- [ ] No retry, skip, sleep-based suppression, platform conditional, or
+- [x] No retry, skip, sleep-based suppression, platform conditional, or
       production/fixture change is introduced.
-- [ ] Ten consecutive focused runner-file executions pass.
-- [ ] Type checking and two consecutive full suites pass with 27 files / 242
+- [x] Ten consecutive focused runner-file executions pass.
+- [x] Type checking and two consecutive full suites pass with 27 files / 242
       tests.
-- [ ] Diff checks and clean-worktree checks pass.
-- [ ] No file outside the allowlist changes.
+- [x] Diff checks and clean-worktree checks pass.
+- [x] No file outside the allowlist changes.
 
 ## Required validation
 
@@ -196,19 +196,32 @@ again or weakening assertions.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
+- Outcome: `accepted`
 - Reviewed branch head:
-- Integration commit:
+  `5c34c75e3e05729bfe5fea6399e17af1bd1a7d5b`
+- Integration commits:
+  `8e355a06b206700e22754fa21c1200e162c6a918`,
+  `e4755422583c23831a35270a67d9e5db200cfe72`
 
 ### Review findings
 
-- Pending.
+- The implementation diff changes only the assigned timeout test plus the
+  worker-owned handoff.
+- The exact safe timeout error, forbidden path values, null exit code, PID
+  read, and direct-child exit confirmation are unchanged.
+- No retry, skip, `ENOENT` suppression, platform conditional, production
+  source, or fixture change was introduced.
+- The coordinator independently passed the 15-test runner file and type
+  checking, then passed two consecutive full suites after integration.
+- No blocking review finding remains.
 
 ### Required follow-up
 
-- Pending review.
+- None for this test-only reliability task. The accepted direct-child-only
+  termination boundary remains documented for later hardening.
 
 ### Roadmap and release impact
 
-- This task removes test-reliability debt only. M5 completion still requires
-  the coordinator's final local/Ubuntu exit evidence and Roadmap update.
+- This task removes the observed test-reliability debt and is accepted. M5
+  completion still requires the coordinator's final Ubuntu exit evidence and
+  Roadmap update.

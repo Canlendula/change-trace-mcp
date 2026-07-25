@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `assigned`
+- Status: `accepted`
 - Milestone: `M5 — External documentation adapters`
 - Base commit: `13167b918017c9be37488e1d9472ffa0907beeac`
 - Branch: `codex/M5-004-source-fixtures-and-report`
@@ -186,34 +186,34 @@ allowed. Writing outside this list is not.
 
 ## Acceptance criteria
 
-- [ ] `Report.evidenceSources` is required, strict, bounded, deterministic, and
+- [x] `Report.evidenceSources` is required, strict, bounded, deterministic, and
       contains every retained bundle evidence source in bundle order.
-- [ ] Each catalog entry preserves the exact required core and optional
+- [x] Each catalog entry preserves the exact required core and optional
       external provenance fields, while excluding excerpt/document content.
-- [ ] JSON and Markdown preserve canonical source URIs, retrieval timestamps,
+- [x] JSON and Markdown preserve canonical source URIs, retrieval timestamps,
       external source update times, titles, source types, and adapter identity.
-- [ ] Markdown renders untrusted URIs as escaped code literals and safely
+- [x] Markdown renders untrusted URIs as escaped code literals and safely
       contains titles, locators, and other dynamic values.
-- [ ] Missing-evidence Markdown preserves nullable URIs without leaking an
+- [x] Missing-evidence Markdown preserves nullable URIs without leaking an
       unredacted permission message.
-- [ ] The deterministic Lark and Jira/Confluence command fixtures both satisfy
+- [x] The deterministic Lark and Jira/Confluence command fixtures both satisfy
       the shared adapter/collection schemas through the stdio MCP path.
-- [ ] Lark document/block, Jira issue, Confluence page, and denied-comment
+- [x] Lark document/block, Jira issue, Confluence page, and denied-comment
       source identities and timestamps survive the complete pipeline.
-- [ ] Permission denial is structured and all secret sentinels are absent from
+- [x] Permission denial is structured and all secret sentinels are absent from
       tool output, bundle, reports, and stderr.
-- [ ] Injection-shaped fixture text remains redacted, external, and untrusted;
+- [x] Injection-shaped fixture text remains redacted, external, and untrusted;
       it is not copied into the zero-finding final report.
-- [ ] Fixture requests are explicit-reference-only and no search/discovery
+- [x] Fixture requests are explicit-reference-only and no search/discovery
       input or capability is introduced.
-- [ ] Identical final inputs write byte-identical report pairs; existing M3
+- [x] Identical final inputs write byte-identical report pairs; existing M3
       review bundle IDs/replay hashes and M1 compatibility bytes remain stable.
-- [ ] The external-adapter guide/example and README accurately document the
+- [x] The external-adapter guide/example and README accurately document the
       public boundary and are included by npm pack.
-- [ ] Focused tests, type checking, two consecutive full suites, stdio smoke,
+- [x] Focused tests, type checking, two consecutive full suites, stdio smoke,
       deterministic CI smoke, package dry-run, diff checks, and a clean
       worktree pass.
-- [ ] No live vendor access, dependency, lockfile, version, CI workflow,
+- [x] No live vendor access, dependency, lockfile, version, CI workflow,
       Roadmap, decision, release, or npm state change occurs.
 
 ## Required validation
@@ -434,18 +434,41 @@ failure. A command that fails is not omitted from the handoff.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
+- Outcome: `accepted`
 - Reviewed branch head:
-- Integration commit:
+  `3c7909f1a8f1091e6240530a2cb9415a62c82189`
+- Integration commits:
+  `b11c197b51fa20e59f483b507842935094c60698`,
+  `e5cab4ff482557edce911e346011a4079427fd89`
 
 ### Review findings
 
-- Pending.
+- The complete `base..head` diff stayed inside the explicit implementation,
+  fixture, test, documentation, package-file, and worker-handoff allowlist.
+- The coordinator independently passed the 74 focused tests, type checking,
+  stdio smoke, deterministic CI smoke, and npm package dry-run. The package
+  contains both external-adapter guide files.
+- Static review confirmed that every retained evidence item is projected in
+  order without excerpt or selection reason, and that arbitrary locators,
+  URIs, titles, adapter names, and redaction notes remain inside the existing
+  Markdown containment helpers.
+- The public stdio fixture covers Lark document/block evidence, Jira issue
+  evidence, Confluence page evidence, a denied comment, redaction, missing
+  evidence, zero-finding validation, report writing, and byte-stable replay.
+- The worker disclosed the pre-existing 100-millisecond Windows child-startup
+  race. M5-005 fixed only that test allowance while preserving every runtime
+  and security assertion. After integration, the coordinator obtained two
+  consecutive full suites of 27 files / 242 tests.
+- No blocking review finding remains.
 
 ### Required follow-up
 
-- Pending review.
+- Keep the fixture-versus-live-compatibility distinction in the final M5
+  evidence record. Live vendor credential and API pilots remain deferred to
+  M7.
+- Keep the report schema provisional until the M8 compatibility freeze.
 
 ### Roadmap and release impact
 
-- M5 remains in progress until all milestone exit criteria pass.
+- M5-004 is accepted and integrated. M5 remains in progress until the
+  coordinator records the final Ubuntu exit run and milestone evidence.
