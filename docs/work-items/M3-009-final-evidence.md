@@ -4,7 +4,7 @@
 
 - Status: `assigned`
 - Milestone: `M3 — Agent review loop`
-- Base commit: `67403479529170bcd3747d9884d28c4e7759e683`
+- Base commit: `674034778e085eedd355e711553ff57e87898b0f`
 - Branch: `codex/M3-009-final-evidence`
 - Worktree: Codex-managed isolated worktree
 - Push task branch: `no`
@@ -131,7 +131,7 @@ npm run check
 npm test
 npm run smoke:stdio
 npm run pack:check
-git diff --check 67403479529170bcd3747d9884d28c4e7759e683..HEAD
+git diff --check 674034778e085eedd355e711553ff57e87898b0f..HEAD
 git status --short
 ```
 
