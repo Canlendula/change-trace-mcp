@@ -173,6 +173,7 @@ and the catalog cases exercised. Do not omit transient failures.
 - Status: `ready_for_review`
 - Implementation commit(s):
   - `3ab269321db69ccacfb92292e128c19ace0147fc`
+  - `7796054e8404e03b439bc3038cd9a8c581914d91`
 - Branch head: resolve the current
   `codex/M5-006-ci-report-schema-guard` head after the handoff commit; the
   handoff commit is intentionally not self-referenced.
@@ -210,6 +211,11 @@ and the catalog cases exercised. Do not omit transient failures.
   - the first five-file required run had 1 failure / 88 passes because
     `dist/cli.js` had not been built in the isolated worktree; `npm run build`
     restored the documented prerequisite and the rerun passed 89/89.
+- A final Zod-parity audit changed the invalid timestamp to February 30 and
+  the invalid redaction count to an unsafe integer. The targeted command
+  initially exited 1 with both cases accepted, proving that `Date.parse` and
+  `Number.isInteger` were too permissive. Explicit Gregorian calendar checks
+  and `Number.isSafeInteger` closed both gaps; the targeted rerun passed 2/2.
 - Final required focused command: 5 files, 97 tests passed.
 - `npm run check`: passed.
 - Final first consecutive `npm test`: 27 files, 265 tests passed.
@@ -232,8 +238,8 @@ and the catalog cases exercised. Do not omit transient failures.
   `trusted_repository` and an external document with exact adapter/provenance
   fields and `untrusted_external`.
 - Negative cases cover invalid evidence/type/trust enums, stable IDs,
-  timestamps, SHA-256 hashes, source references, related change IDs,
-  redaction values, and external provenance values.
+  calendar dates/timestamps, SHA-256 hashes, source references, related change
+  IDs, safe redaction counts/values, and external provenance values.
 - Exact-key rejection is exercised at catalog-entry, source, redaction,
   adapter, and provenance levels.
 - Bounds are exercised at 10,001 catalog entries, 1,001 related change IDs,
