@@ -441,3 +441,37 @@ they contain untrusted fixture content and local execution details.
 This gate closes the M3 review-loop milestone. It does not create a general
 model-quality guarantee, publish a new package, or extend Host compatibility
 claims beyond the recorded replay configuration.
+
+## 20. Free GitHub Models GPT-4.1 is not the M4 reference reviewer
+
+M4 does not accept the free GitHub Models `openai/gpt-4.1` path as its
+reference semantic reviewer.
+
+The first live OpenCode workflow established a capacity failure before useful
+inference: the five public MCP tool definitions require more input tokens than
+the free High-tier request limit. M4-004 then removed those tool definitions
+from the question and sent the exact accepted M3 ReviewPackets directly to the
+model through the official inference API.
+
+The direct quality spike used one declared response per fixture, mandatory
+controls first, no retries or response repair, a 4,000-token output limit, and
+the accepted M3 scorer. `implemented-correctly` passed with no findings.
+`intentional-doc-free-refactor` produced an invalid inference response, so the
+run stopped after its second request. The frozen gate failed and no stability
+rerun was authorized.
+
+This is a no-go for the tested free provider/model/response-contract path. It
+is not a general finding that the deterministic evidence, validation, and
+reporting core is unviable, and it does not isolate GPT-4.1 semantic reasoning
+from provider/output reliability. The exact bounded evidence is recorded in
+[`docs/evaluation/M4_GPT41_RESULTS.md`](evaluation/M4_GPT41_RESULTS.md).
+
+Until another M4 architecture is selected:
+
+- automatic GitHub Models inference remains paused;
+- the OpenCode inference step requires an explicit manual workflow input;
+- no free GitHub semantic-review compatibility claim may be published;
+- a replacement model/Host must pass the same M3-derived quality gate before
+  it can become the M4 reference path;
+- compact schemas or deterministic orchestration may solve request capacity,
+  but do not by themselves satisfy model-quality or output-reliability gates.

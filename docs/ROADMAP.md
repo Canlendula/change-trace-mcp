@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M3 complete
+> Status: M4 in progress; reference-Host decision required
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -436,6 +436,37 @@ Run the review after or alongside existing CI without changing the release path 
 - logs do not print credentials or full sensitive documents;
 - reruns produce a new report with clear run metadata.
 
+### Current status and decision gate
+
+M4 remains in progress.
+
+- The Host-neutral advisory runner and generic CI path are implemented and
+  tested.
+- The trusted GitHub Actions/OpenCode workflow preserves credential and
+  subject-code isolation, but its first live model run did not complete. The
+  five MCP tool definitions exceed the free GitHub Models High-tier input
+  allowance before evidence is added.
+- A separate direct quality spike removed the MCP schemas and sent the exact
+  accepted M3 packets to free GitHub Models `openai/gpt-4.1`. The first
+  mandatory fixture passed; the second returned
+  `inference_response_invalid`. The frozen gate stopped after two requests,
+  made no retry, and failed.
+- Automatic model inference is paused. Ordinary non-model quality checks remain
+  active.
+- The bounded live evidence is tracked in
+  [`docs/evaluation/M4_GPT41_RESULTS.md`](evaluation/M4_GPT41_RESULTS.md).
+
+The free GPT-4.1 path is therefore not an M4 reference reviewer. The next
+coordinator/user decision must select one of these directions before M4
+implementation resumes:
+
+1. use deterministic trusted orchestration with a different model/provider
+   that passes the M3-derived quality gate;
+2. retain direct MCP tool use with a provider/model that accepts the full tool
+   schema and also passes the quality gate;
+3. scope M4 to the provider-neutral advisory runner and caller-supplied Host,
+   without a built-in free GitHub semantic-review claim.
+
 ## 11. M5 — External documentation adapters
 
 ### Goal
@@ -695,10 +726,12 @@ Progress as of 2026-07-25:
 | Report writing | Complete; confined deterministic Markdown/JSON output passes unit and stdio integration tests |
 | M3 evaluation fixtures and scorer | Complete; nine fixtures, deterministic replay preparation, capture scoring, and summaries are tracked |
 | M3 cross-Host exit gate | Complete; Codex Desktop, Claude Code, and OpenCode each pass 9 of 9 on instruction `1.4.0` |
+| M4 advisory CI | In progress; generic runner and trusted workflow implemented, free GitHub GPT-4.1 reference path rejected after bounded live quality spike |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
 prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 `0.0.0-dev.0` until the next preview release is explicitly published.
 
-The next milestone in the selected sequence is M4 advisory CI integration.
+The selected sequence remains at M4 advisory CI integration. Further
+construction requires the M4 reference-Host direction above to be selected.

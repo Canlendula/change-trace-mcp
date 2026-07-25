@@ -317,12 +317,16 @@ git status --short
 
 ### Required follow-up
 
-- Push the accepted manual workflow to `main`, trigger exactly one first-run
-  quality spike, and inspect only its bounded `score.json` and job summary.
-- If the first run completes and passes the declared gate, trigger one complete
-  stability rerun. If it fails or stops early, do not retry; record the free
-  GPT-4.1 reference path as no-go or separately classify a provider/protocol
-  incompatibility before making the M4 architecture decision.
+- Completed. The accepted workflow was pushed to `main` and exactly one
+  first-run quality spike was triggered:
+  `https://github.com/Canlendula/change-trace-mcp/actions/runs/30166044169`.
+- The first mandatory fixture passed. The second mandatory fixture produced
+  `inference_response_invalid`; the run stopped after two requests with zero
+  rejected findings and `gatePassed: false`. No stability rerun was triggered.
+- The free GPT-4.1 reference path is recorded as no-go in
+  [`docs/evaluation/M4_GPT41_RESULTS.md`](../evaluation/M4_GPT41_RESULTS.md).
+  A different M4 reference-Host direction now requires a user/coordinator
+  decision.
 
 ### Roadmap and release impact
 
@@ -330,3 +334,6 @@ git status --short
   dependency, version, npm state, or release claim. Its live result decides
   whether the free GitHub Models reference path justifies a capacity adapter
   or must be replaced, downgraded, or scoped out.
+- Live result: the free GitHub Models GPT-4.1 path failed the frozen first-run
+  gate and does not justify a capacity adapter for that path. Automatic model
+  inference remains paused.
