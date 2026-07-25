@@ -164,32 +164,32 @@ maximum of 100 outcomes.
 
 ### Acceptance criteria
 
-- [ ] Registration is strict and bounded; expected adapter identity, argv,
+- [x] Registration is strict and bounded; expected adapter identity, argv,
       source allowlist, credential environment-name allowlist, timeout, and
       byte limits are fixed outside the request.
-- [ ] The child runs with `shell: false`, receives one request on stdin, and
+- [x] The child runs with `shell: false`, receives one request on stdin, and
       receives only the documented baseline environment plus configured
       credential names.
-- [ ] Timeout, stdout, and stderr limits terminate the child and return stable
+- [x] Timeout, stdout, and stderr limits terminate the child and return stable
       bounded errors without raw process or credential content.
-- [ ] Only one strict response is accepted; request/registration/response
+- [x] Only one strict response is accepted; request/registration/response
       identity, result coverage, source type, and source-system checks pass
       before normalization.
-- [ ] Available content is redacted, hashed when complete, assigned a
+- [x] Available content is redacted, hashed when complete, assigned a
       deterministic Change Trace ID, forced to `untrusted_external`, and keeps
       structured adapter/source provenance.
-- [ ] Structured unavailable outcomes map deterministically to
+- [x] Structured unavailable outcomes map deterministically to
       `MissingEvidence`, with secret-redacted reasons.
-- [ ] Collection ordering follows request ordering even when response results
+- [x] Collection ordering follows request ordering even when response results
       are reordered.
-- [ ] External evidence and unavailable outcomes have a combined hard maximum
+- [x] External evidence and unavailable outcomes have a combined hard maximum
       of 100.
-- [ ] Prompt-injection-shaped content remains inert excerpt data.
-- [ ] Existing schema IDs, M5-001 exports, MCP tool list, and package
+- [x] Prompt-injection-shaped content remains inert excerpt data.
+- [x] Existing schema IDs, M5-001 exports, MCP tool list, and package
       dependencies/version remain unchanged.
-- [ ] Focused tests, type checking, two consecutive full-suite runs, stdio
+- [x] Focused tests, type checking, two consecutive full-suite runs, stdio
       smoke, package dry-run, diff checks, and clean worktree checks pass.
-- [ ] No registration loader, MCP change, bundle merge, network/live vendor
+- [x] No registration loader, MCP change, bundle merge, network/live vendor
       access, retry/repair, dependency, Roadmap, decision, CI, release, or npm
       state change occurs.
 
@@ -357,10 +357,13 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `changes_requested`
+- Outcome: `accepted`
 - Reviewed branch head:
-  `99d16f656776f59c6787ed84f70924b2170fd51a`
-- Integration commit:
+  `e71fe9837f80dcd073ffc9ffe77c04bdd2200599`
+- Integration commits:
+  `d791cad0f94d9ca3ccd316487a84653bca015bfb`,
+  `255aa50497cf7b71a8aa2806742bef41185063e0`, and
+  `e6355009bb1dc86a750277305055f16204ecc163`
 
 ### Review findings
 
@@ -379,13 +382,22 @@ git status --short
   when given a smaller environment object. The focused test confirms arbitrary
   Host variables and non-allowlisted credential values remain absent. This is
   accepted as a documented platform boundary, not a review finding.
+- The follow-up uses fatal UTF-8 decoding and rejects the binary invalid-UTF-8
+  fixture with the stable `invalid_response` code. The durable handoff now
+  records the exact repository objects.
+- Coordinator validation on the integrated Windows main tree passed 37 focused
+  tests, TypeScript checking, and the complete 23-file/217-test suite. Review
+  found no raw stdout/stderr, argv, credential value, or arbitrary Host
+  environment exposure in public results or errors.
 
 ### Required follow-up
 
-- Add the fatal UTF-8 rejection test and smallest runner fix.
-- Run the complete focused command, type check, and two unchanged full-suite
-  runs; update the handoff with exact Git object IDs and results.
+- None for M5-002. The final M5 cloud validation should exercise the POSIX
+  baseline. Descendant process-tree hardening remains a later security task;
+  this accepted contract guarantees termination of the directly registered
+  adapter process.
 
 ### Roadmap and release impact
 
-- M5 remains in progress until all milestone exit criteria pass.
+- M5-002 is accepted. M5 remains in progress; no server tool, registration
+  loader, package version, or release state changed.
