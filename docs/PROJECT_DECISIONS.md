@@ -590,3 +590,29 @@ M5 will implement this in bounded slices:
 3. the `collect_external_evidence` MCP path and review-bundle integration;
 4. Lark and Jira/Confluence fixture adapters that prove the shared contract,
    permission handling, provenance, and injection resistance.
+
+## 24. External provenance remains structured on normalized evidence
+
+M5 normalization must not discard the source title, source update time,
+external source type, or adapter identity/version established by the adapter
+protocol. Normalized external `EvidenceItem` records therefore carry an
+optional strict `externalProvenance` object containing:
+
+- adapter ID, name, and version;
+- external source type;
+- source title;
+- nullable source update time.
+
+The field is optional so existing repository, Git, test, and runtime evidence
+remain valid. Every available external result must populate it. External
+collections enforce that the item provenance matches the collection adapter
+and that the item trust level is `untrusted_external`.
+
+The normalizer, rather than the external adapter, owns core evidence identity,
+content hashing, secret redaction, trust assignment, missing-evidence mapping,
+and related-change linkage. An adapter may supply source content and
+provenance, but it cannot choose a core evidence ID or elevate trust.
+
+The core schema remains provisional before v1 stabilization. This additive
+field keeps the current schema version during M5; M8 will freeze the complete
+v1 schema snapshot and compatibility policy before the stable release.
