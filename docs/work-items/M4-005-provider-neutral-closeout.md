@@ -79,6 +79,10 @@
 - `docs/ci/README.md`
 - `docs/ci/github-actions.example.yml`
 - `scripts/ci/smoke-advisory-ci.mjs`
+- `tests/integration/advisory-ci.test.ts` — review follow-up may only raise
+  the default non-timeout fixture Host budget to a stable process-startup
+  allowance; preserve the explicit 100 ms timeout/termination case and all
+  runner assertions
 - `tests/integration/advisory-host.test.ts`
 - `tests/integration/gpt41-quality-spike.test.ts` — update only the obsolete
   assertion that required the active M4 workflow to retain the rejected
@@ -129,6 +133,9 @@
       prevents a credential from reaching an MCP child.
 - [ ] Existing manual GPT-4.1 evidence remains historical and automatic model
       inference stays impossible.
+- [ ] The default successful/failure fixture Host budget remains bounded but
+      does not misclassify normal child startup under full-suite parallel load;
+      the explicit timeout fixture retains its short termination budget.
 - [ ] Focused tests, generic CI smoke, type checking, the full suite, stdio
       smoke, package dry-run, diff checks, and clean worktree checks pass.
 - [ ] No public MCP/schema/source/dependency/lockfile/version/governance/
@@ -140,6 +147,7 @@
 npx vitest run tests/integration/advisory-host.test.ts tests/integration/provider-neutral-ci.test.ts
 npm run smoke:ci
 npm run check
+npm test
 npm test
 npm run smoke:stdio
 npm run pack:check
@@ -219,17 +227,25 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
-- Reviewed branch head:
+- Outcome: `changes_requested`
+- Reviewed branch head: `6fae684393eb19d49183e9fd0caca8c8648ef69b`
 - Integration commit:
 
 ### Review findings
 
-- Pending.
+- The static scope, workflow trust boundary, provider-neutral example, action
+  pins, and YAML syntax passed review.
+- The coordinator full-suite run failed 2 of 185 tests because the pre-existing
+  advisory fixture helper gives ordinary successful child processes only
+  200 ms. The new provider-neutral smoke test adds another concurrent Node
+  child, making normal process startup exceed that test-only budget and become
+  `infrastructure_failure`. Raise only the default non-timeout fixture budget;
+  keep the explicit 100 ms timeout/termination case unchanged.
 
 ### Required follow-up
 
-- Pending.
+- Run the focused CI suites, then two consecutive unchanged full-suite runs,
+  and update the worker handoff with every result.
 
 ### Roadmap and release impact
 
