@@ -241,25 +241,91 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `not_started`
-- Handoff branch:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M5-002-external-adapter-runner`
 - Implementation commits:
+  - `e38ccd0c1a16763869984ed95662dc91c2319558` —
+    `feat(evidence): add external adapter runner`
+  - `82aca9b89e6f9d1a14301a483b2ac109fc7c0310` —
+    `fix(evidence): reject invalid adapter UTF-8`
 
 ### Implementation summary
 
-- Pending.
+- Added a strict Host-owned adapter registration with an explicit argv,
+  adapter/source/credential-name allowlists, safe environment names, and hard
+  timeout/stdout/stderr limits.
+- Added a `shell: false` runner that builds a fresh bounded OS environment,
+  forwards only configured credential variables, sends one validated JSON
+  request, drains bounded diagnostics, fatally decodes UTF-8, and accepts one
+  strict JSON response.
+- Added safe typed runner errors, exact identity/result/source validation,
+  deterministic request-order normalization, pre-redaction hashing, secret
+  redaction, forced `untrusted_external` trust, and structured missing-evidence
+  mapping.
+- Added optional structured external provenance to core evidence and a strict
+  100-outcome external collection with a deterministic Draft 2020-12 export.
 
 ### Changed areas
 
-- Pending.
+- `src/schemas/external-adapter.ts`,
+  `src/schemas/external-provenance.ts`, and
+  `src/schemas/external-evidence.ts` — registration, shared source/adapter
+  definitions, provenance, and external collection contracts.
+- `src/schemas/evidence.ts`, `src/schemas/index.ts`, and
+  `src/schemas/json-schema.ts` — additive optional provenance, public exports,
+  and deterministic collection JSON Schema.
+- `src/evidence/external/**` and `src/evidence/index.ts` — bounded process
+  runner, protocol checks, normalization, typed safe errors, and public
+  exports.
+- `tests/fixtures/external-adapter/**`,
+  `tests/integration/external-adapter-runner.test.ts`, and
+  `tests/unit/external-evidence-schema.test.ts` — fixture processes and
+  schema/process/security/normalization coverage.
 
 ### Validation
 
-- Pending.
+- Test-first confirmation: after `npm ci`,
+  `npx vitest run tests/unit/external-adapter-schema.test.ts
+  tests/unit/external-evidence-schema.test.ts
+  tests/integration/external-adapter-runner.test.ts
+  tests/unit/core-schemas.test.ts` failed because the external runner module and
+  the new schema exports did not yet exist; the schema suite recorded six
+  failing contract cases.
+- Initial handoff focused command above — passed, 4 files / 36 tests.
+- `npm run check` — passed.
+- First `npm test` — passed, 23 files / 216 tests.
+- Second consecutive `npm test` — passed, 23 files / 216 tests.
+- `npm run smoke:stdio` — passed; the unchanged seven-tool list and M1
+  compatibility fixture were returned.
+- `npm run pack:check` — passed; dry-run package included the new compiled
+  registration, provenance, collection, and runner declarations/JavaScript.
+- `git diff --check
+  3b94c78fde7ef14a0c021042f4d9d0464b6aac3d..HEAD` — passed with no
+  output before this handoff-only commit.
+- Protected-path and security scans found no package/lockfile, server, CLI,
+  bundle, governance, CI, or release changes; the only `shell: true` occurrence
+  is a rejected-input test fixture.
+- Review follow-up test-first confirmation:
+  `npx vitest run tests/integration/external-adapter-runner.test.ts -t
+  "rejects invalid UTF-8"` failed on the prior runner because lossy UTF-8
+  decoding accepted the binary JSON-string fixture.
+- Review follow-up focused command — passed, 4 files / 37 tests.
+- Review follow-up `npm run check` — passed.
+- Review follow-up first `npm test` — passed, 23 files / 217 tests.
+- Review follow-up second consecutive `npm test` — passed,
+  23 files / 217 tests.
 
 ### Public contract and documentation impact
 
-- Pending.
+- Adds root TypeScript exports for `ExternalAdapterRegistration`, external
+  provenance and collection schemas/types, the bounded runner error vocabulary,
+  and `runExternalAdapter`.
+- `EvidenceItem` gains one optional strict `externalProvenance` field. Existing
+  evidence remains valid, its schema ID and the core version remain unchanged,
+  and the prior M5-001 source/adapter exports remain available.
+- Adds the deterministic `externalEvidenceCollection` JSON Schema export.
+- No MCP tool, server registration, CLI option, registration loader, bundle
+  merge, dependency, package version, or compatibility claim changed.
 
 ### Deviations from assignment
 
@@ -267,7 +333,16 @@ git status --short
 
 ### Known limitations and risks
 
-- Pending.
+- The runner terminates and waits for the directly registered child process.
+  Process-tree/descendant management remains outside this assigned direct-child
+  contract.
+- Windows process creation exposes a small OS bootstrap set including
+  system/user/session variables even when Node receives a smaller environment.
+  The runner explicitly fixes and tests that baseline; arbitrary Host variables
+  remain absent and only configured credential names are added.
+- Validation was performed on Windows. The POSIX baseline uses only
+  `PATH`, `HOME`, `TMPDIR`, `LANG`, and `LC_ALL`, but no live POSIX execution
+  was part of this task.
 
 ### Decisions or questions for coordinator
 
@@ -275,10 +350,10 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified by the worker.
-- [ ] No version, dependency, tag, publish, live external-system, CI, or
+- [x] Coordinator-only files were not modified by the worker.
+- [x] No version, dependency, tag, publish, live external-system, CI, or
       release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
