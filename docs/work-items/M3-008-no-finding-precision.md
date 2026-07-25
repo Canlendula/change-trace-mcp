@@ -176,35 +176,68 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
-- Handoff branch:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M3-008-no-finding-precision`
 - Implementation commits:
+  - `fc77b44b9ef537e51540398c8a6f8330f38650e2` — test: harden replay no-finding precision
 
 ### Implementation summary
 
-- `<what was implemented>`
+- Bumped only `REPLAY_INSTRUCTION_VERSION` to `1.4.0`; replay schema,
+  packets, captures, response contract, canonical serialization, and bundle
+  digest inputs are unchanged.
+- Added compact, generic conformance guidance: authoritative requirements are
+  not made stricter or exhaustive by inference, and explicit trusted
+  conformance facts support an empty finding response when there is no
+  conflict or materially missing evidence.
+- Preserved untrusted-evidence handling while preventing the mere content or
+  presence of an adversarial directive from becoming a product finding.
+- Strengthened output confinement to one bare response object matching
+  `responseContract`, with no analysis, schema restatement, Markdown, prefix,
+  or suffix.
+- Added regression coverage for instruction versioning, both no-finding
+  precision guards, bare-object output, fixture-derived-content isolation, and
+  unchanged bundle digests.
 
 ### Changed areas
 
-- `<path or component and reason>`
+- `tests/helpers/review-replay.ts` — replay instruction version and compact
+  generic guards.
+- `tests/unit/review-replay.test.ts` — targeted semantic, output, stability,
+  and leakage regressions.
+- `docs/work-items/M3-008-no-finding-precision.md` — this Worker handoff.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npx vitest run tests/unit/review-replay.test.ts tests/integration/review-replay-cli.test.ts tests/unit/review-score.test.ts tests/unit/review-fixture.test.ts` | PASS | 4 files, 62 tests passed. |
+| `npm run check` | PASS | TypeScript no-emit check passed. |
+| `npm test` | PASS | 16 files, 149 tests passed. |
+| `npm run smoke:stdio` | PASS | Build and stdio smoke check completed. |
+| `npm run pack:check` | PASS | Dry-run package check completed. |
+| `git diff --check 662e54a4c4547bbe23a86b736f352647f8e20149..HEAD` | PASS | No whitespace errors. |
+| `git status --short` | PASS | Clean after the handoff commit. |
 
 ### Public contract and documentation impact
 
-- `<impact, or None>`
+- None. The change is limited to test-only replay tooling and this work-item
+  handoff.
 
 ### Deviations from assignment
 
-- None.
+- The provided Codex worktree started detached, while the assigned
+  `work/M3-008-no-finding-precision` branch was attached to its designated
+  external worktree. This task therefore uses the isolated
+  `codex/M3-008-no-finding-precision` branch from the assigned commit.
+- Installed the lockfile dependencies with `npm ci` because this worktree had
+  no local `node_modules`; package metadata and lockfile were unchanged.
 
 ### Known limitations and risks
 
-- None.
+- The new guards provide replay guidance only; existing finding validation
+  remains authoritative for submitted output validity. No Host or model was
+  invoked or configured.
 
 ### Decisions or questions for coordinator
 
@@ -212,9 +245,9 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
