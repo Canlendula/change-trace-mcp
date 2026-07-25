@@ -201,7 +201,9 @@ git status --short
 
 - Status: `ready_for_review`
 - Handoff branch: `codex/M4-001-advisory-runner`
-- Implementation commits: `c8bc7fc82cfd22c9b4578f05c971e91d3db7f075`
+- Implementation commits: `c8bc7fc82cfd22c9b4578f05c971e91d3db7f075`,
+  `da9caf6285af47eefb138369bf933246fc9f855d`,
+  `a64cc28ae7d9a9ad66cc67334b58621dae4a27f3`
 
 ### Implementation summary
 
@@ -212,6 +214,9 @@ git status --short
 - Successful Host report pairs remain byte-preserved: the runner snapshot
   checks report sizes and SHA-256 hashes before and after publishing only the
   status sidecar.
+- Before every Host invocation, the runner invalidates the preceding managed
+  status, Markdown, and JSON files in that order. This prevents stale reports
+  or statuses from being interpreted as output from a no-op rerun.
 - Added deterministic fixture Hosts and integration coverage for precedence,
   recoverable failures, path/type safety, non-disclosure, bounded output,
   reruns, revision validation, and an uncooperative direct child.
@@ -221,7 +226,7 @@ git status --short
 - `scripts/ci/advisory-runner.mjs` — generic runner and confined artifact handling.
 - `scripts/ci/smoke-advisory-ci.mjs` and `package.json` — deterministic `smoke:ci` path.
 - `tests/fixtures/ci/fixture-host.mjs` and
-  `tests/integration/advisory-ci.test.ts` — Host fixtures and 21 integration tests.
+  `tests/integration/advisory-ci.test.ts` — Host fixtures and 22 integration tests.
 - `docs/ci/README.md` — environment, artifact, outcome, timeout, rerun, and
   non-disclosure contract.
 
@@ -229,10 +234,10 @@ git status --short
 
 | Command | Result | Notes |
 |---|---|---|
-| `npx vitest run tests/integration/advisory-ci.test.ts` | PASS | 21 tests passed. |
+| `npx vitest run tests/integration/advisory-ci.test.ts` | PASS | 22 tests passed. |
 | `npm run smoke:ci` | PASS | Verified all three generic CI artifacts. |
 | `npm run check` | PASS | TypeScript check passed. |
-| `npm test` | PASS | 17 files, 170 tests passed. |
+| `npm test` | PASS | 17 files, 171 tests passed. |
 | `npm run smoke:stdio` | PASS | Existing stdio smoke passed. |
 | `npm run pack:check` | PASS | Dry-run package check passed. |
 | `git diff --check` | PASS | No whitespace errors before handoff commit. |
@@ -254,6 +259,9 @@ git status --short
   mid-write filesystem failure exits nonzero; status is not treated as a fresh
   completion record. The runner intentionally does not use broad deletion or
   process-tree termination.
+- Pre-run invalidation only unlinks the three exact managed regular files;
+  removing status first prevents a stale completion sidecar if a later unlink
+  fails before Host startup.
 
 ### Decisions or questions for coordinator
 
