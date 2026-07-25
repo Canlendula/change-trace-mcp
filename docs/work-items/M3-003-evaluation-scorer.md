@@ -177,6 +177,7 @@ git status --short
   isolated branch from assignment commit `5b6b60c` instead.
 - Implementation commits:
   - `1f9f58b test: add deterministic review fixture scorer`
+  - `a929438 test: harden review suite input scoring`
 
 ### Implementation summary
 
@@ -189,21 +190,25 @@ git status --short
   finding prose.
 - Added reference, negative, normalization, malicious-instruction, exact-suite,
   and permutation coverage for the accepted M3-002 fixture corpus.
+- Follow-up: suite definitions now validate independently against the fixed
+  accepted nine IDs; untrusted response values, bounded input errors, and
+  aggregate coverage for all nine expected fixture slots are enforced.
 
 ### Changed areas
 
 - `tests/helpers/review-score.ts` — pure fixture and suite scoring functions
   plus JSON-serializable score types.
-- `tests/unit/review-score.test.ts` — 11 scorer tests covering all assigned
-  acceptance cases.
+- `tests/unit/review-score.test.ts` — 15 scorer tests covering all assigned
+  acceptance cases plus suite definition, untrusted input, bounded-error, and
+  aggregate-invariant follow-up coverage.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| `npx vitest run tests/unit/review-score.test.ts tests/unit/review-fixture.test.ts` | Passed | 2 files, 41 tests. |
+| `npx vitest run tests/unit/review-score.test.ts tests/unit/review-fixture.test.ts` | Passed | 2 files, 45 tests. |
 | `npm run check` | Passed | TypeScript no-emit check. |
-| `npm test` | Passed | 14 files, 128 tests. |
+| `npm test` | Passed | 14 files, 132 tests. |
 | `npm run smoke:stdio` | Passed | stdio tool smoke check completed. |
 | `npm run pack:check` | Passed | `npm pack --dry-run` completed. |
 | `git diff --check 0dc4e71028f36a78f6f321766cf554bacba9d05f..HEAD` | Passed | No whitespace errors. |
