@@ -170,35 +170,61 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress`
-- Handoff branch: `work/M3-003-evaluation-scorer`
+- Status: `ready_for_review`
+- Handoff branch: `codex/M3-003-evaluation-scorer`
+- Branch deviation: `work/M3-003-evaluation-scorer` was already checked out by
+  an external coordinator worktree, so this worker created the authorized
+  isolated branch from assignment commit `5b6b60c` instead.
 - Implementation commits:
+  - `1f9f58b test: add deterministic review fixture scorer`
 
 ### Implementation summary
 
-- Pending.
+- Added a versioned, deterministic test-only scorer that first validates raw
+  findings with `validateFindings`, then evaluates valid-finding count bounds,
+  required semantic matches with complete per-finding evidence sets, and
+  configured forbidden categories and statuses.
+- Added exact suite-key validation, stable code-unit ordering, aggregate
+  validation counts, bounded failure codes, and score output that excludes raw
+  finding prose.
+- Added reference, negative, normalization, malicious-instruction, exact-suite,
+  and permutation coverage for the accepted M3-002 fixture corpus.
 
 ### Changed areas
 
-- Pending.
+- `tests/helpers/review-score.ts` — pure fixture and suite scoring functions
+  plus JSON-serializable score types.
+- `tests/unit/review-score.test.ts` — 11 scorer tests covering all assigned
+  acceptance cases.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| Pending | Pending | Pending |
+| `npx vitest run tests/unit/review-score.test.ts tests/unit/review-fixture.test.ts` | Passed | 2 files, 41 tests. |
+| `npm run check` | Passed | TypeScript no-emit check. |
+| `npm test` | Passed | 14 files, 128 tests. |
+| `npm run smoke:stdio` | Passed | stdio tool smoke check completed. |
+| `npm run pack:check` | Passed | `npm pack --dry-run` completed. |
+| `git diff --check 0dc4e71028f36a78f6f321766cf554bacba9d05f..HEAD` | Passed | No whitespace errors. |
+| `git status --short` | Passed | Clean before this handoff edit; rechecked after committing it. |
 
 ### Public contract and documentation impact
 
-- None expected; this task is test-only evaluation infrastructure.
+- None. This task adds test-only evaluation infrastructure and does not change
+  production source or public contracts.
 
 ### Deviations from assignment
 
-- None.
+- Used `codex/M3-003-evaluation-scorer` because the assigned
+  `work/M3-003-evaluation-scorer` branch was occupied by another worktree.
+  No scope or behavior deviation.
 
 ### Known limitations and risks
 
-- None.
+- The scorer remains test-only and intentionally does not define Host prompts,
+  captured-response storage, quality thresholds, replay execution, or CI
+  integration.
 
 ### Decisions or questions for coordinator
 
@@ -206,9 +232,9 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
