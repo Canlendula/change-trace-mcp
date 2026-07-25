@@ -153,35 +153,74 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress`
+- Status: `ready_for_review`
 - Handoff branch: `codex/M4-003-opencode-runtime`
-- Implementation commits:
+- Implementation commits: `07445695b07e054fd520cd3632480912889e800f`
 
 ### Implementation summary
 
-- Pending.
+- Root cause: the custom `github_models/openai/gpt-4.1` model omitted its
+  `limit`. In exact OpenCode v1.18.5 source,
+  `provider.ts` initializes an omitted custom-model output limit to `0`, then
+  `ProviderTransform.maxOutputTokens()` turns that value into its 32,000-token
+  fallback. The GitHub Models catalog identifies `openai/gpt-4.1` as High tier,
+  and the documented free High-tier per-request limit is 8,000 input and 4,000
+  output tokens. The prior Host therefore asked for 32,000 output tokens. The
+  live Host stopped at its exact twelve-minute direct-child cap; the upstream
+  response remains intentionally unrecorded, but v1.18.5 retries retryable
+  session failures without a total-attempt cap, making this configuration a
+  supported explanation for the timeout.
+- Declared the custom-model limit explicitly as `context: 12000`, `input:
+  8000`, and `output: 4000`, so OpenCode requests stay within the documented
+  free-tier request shape while retaining enough combined context for tool
+  calls.
+- Raised the direct OpenCode-child ceiling to thirteen minutes and derive its
+  maximum from the inherited fourteen-minute runner timeout, reserving one
+  minute for child termination and artifact publication. The outer generic
+  runner, output policy, and non-blocking workflow remain unchanged.
 
 ### Changed areas
 
-- Pending.
+- `scripts/ci/opencode-advisory-host.mjs` — bounded custom-model token limits
+  and runner-aware direct-child timeout budget.
+- `tests/integration/advisory-host.test.ts` — deterministic regression coverage
+  for the exact custom-model limits and 13-minute/14-minute timeout boundary.
+- `docs/ci/README.md` — documented the runtime limits and timeout budget.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| Pending | Pending | Pending |
+| `npx vitest run tests/integration/advisory-host.test.ts` | PASS | 6 deterministic Host/workflow tests passed. |
+| `npm run smoke:ci` | PASS | Existing generic runner smoke passed. |
+| `npm run smoke:ci:host` | PASS | Deterministic isolated Host smoke passed. |
+| `npm run check` | PASS | TypeScript check passed. |
+| `npm test` | PASS | 18 files, 177 tests passed. |
+| `npm run smoke:stdio` | PASS | Existing stdio smoke passed. |
+| `npm run pack:check` | PASS | Dry-run package check passed. |
+| `actionlint@2.0.6` Node parser on `.github/workflows/m4-advisory-review.yml` | PASS | No unexpected YAML/expression diagnostics. Its sole `models` permission diagnostic is the parser's unsupported current GitHub permission scope. |
+| `npm view opencode-ai@1.18.5 version dist.integrity` | PASS | Version `1.18.5`; integrity matched the accepted package metadata. |
+| `git diff --check ade0adac68b0af0f8945968ca5b3978c05d93bda..HEAD` | Pending final handoff commit | Re-run after this handoff is committed. |
+| `git status --short` | Pending final handoff commit | Re-run after this handoff is committed. |
 
 ### Public contract and documentation impact
 
-- Pending.
+- Documents internal Host runtime limits only. No MCP schema, Report/runner
+  contract, production source, dependency, lockfile, version, or package export
+  changed.
 
 ### Deviations from assignment
 
-- None.
+- None. No raw provider/Host output was retained or classified; the limit and
+  timeout repair is based on the exact pinned source, bounded live duration,
+  and an offline configuration regression.
 
 ### Known limitations and risks
 
-- None.
+- A coordinator-owned live GitHub Actions retry remains required to prove a
+  valid report pair with the current GitHub Models service. GitHub's free tier
+  limits are documented as subject to change; the explicit 8k/4k configuration
+  should be revisited if the credential tier changes.
 
 ### Decisions or questions for coordinator
 
@@ -189,9 +228,9 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
