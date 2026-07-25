@@ -171,35 +171,62 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
-- Handoff branch:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M3-007-precision-guards`
 - Implementation commits:
+  - `403cf87` — test: add review precision guards
 
 ### Implementation summary
 
-- `<what was implemented>`
+- Bumped only the replay instruction version to `1.3.0`; the replay schema,
+  packet and capture shapes, response contract, canonical serialization, and
+  bundle digest inputs remain unchanged.
+- Added compact, Host-neutral instruction guards for structurally material
+  missing evidence, authoritative test-gap requirements, and evidence-ID field
+  provenance.
+- Added focused regression coverage for the version, each guard, bundle digest
+  stability, and instruction isolation from fixture-specific, reference, and
+  Host-specific data.
 
 ### Changed areas
 
-- `<path or component and reason>`
+- `tests/helpers/review-replay.ts` — instruction version and compact precision
+  guards.
+- `tests/unit/review-replay.test.ts` — focused guard, version, stability, and
+  leakage regression tests.
+- `docs/work-items/M3-007-precision-guards.md` — this Worker handoff only.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npx vitest run tests/unit/review-replay.test.ts tests/integration/review-replay-cli.test.ts tests/unit/review-score.test.ts tests/unit/review-fixture.test.ts` | PASS | 4 files, 59 tests passed. |
+| `npm run check` | PASS | TypeScript no-emit check completed. |
+| `npm test` | PASS | 16 files, 146 tests passed. |
+| `npm run smoke:stdio` | PASS | Build and stdio smoke completed. |
+| `npm run pack:check` | PASS | Dry-run package check completed. |
+| `git diff --check 14563241f3e8d64eaf9dc6c8d7bec77406501f9e..HEAD` | PASS | No whitespace errors. |
+| `git status --short` | PASS | Clean after the handoff commit. |
 
 ### Public contract and documentation impact
 
-- `<impact, or None>`
+- None. This is a test-only replay-instruction update; no production or public
+  contract changed.
 
 ### Deviations from assignment
 
-- None.
+- This Codex worktree started detached while the assigned `work/` branch was
+  attached to its designated external worktree. The implementation is attached
+  to `codex/M3-007-precision-guards` and descends from the assigned commit;
+  the shared task branch was not changed.
+- Installed the existing lockfile dependencies with `npm ci` because this
+  worktree initially had no local `node_modules`; package metadata and lockfile
+  were unchanged.
 
 ### Known limitations and risks
 
-- None.
+- The guards improve replay guidance only. Existing finding validation remains
+  the authority for submitted output validity.
 
 ### Decisions or questions for coordinator
 
@@ -207,9 +234,9 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
