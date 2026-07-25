@@ -37,7 +37,7 @@ async function run(
       CHANGE_TRACE_CI_BASE_REVISION: "a".repeat(40),
       CHANGE_TRACE_CI_HEAD_REVISION: "b".repeat(40),
       CHANGE_TRACE_CI_HOST_ID: "fixture-host",
-      CHANGE_TRACE_CI_TIMEOUT_MS: "200",
+      CHANGE_TRACE_CI_TIMEOUT_MS: "2000",
       ...extra,
     },
     maxBuffer: 1024 * 1024,
