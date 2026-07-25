@@ -9,8 +9,11 @@ import type {
   LoadedReviewFixture,
   SemanticMatch,
 } from "./review-fixture.js";
+import { EXPECTED_FIXTURE_IDS } from "./review-fixture.js";
 
 export const REVIEW_SCORE_SCHEMA_VERSION = "1.0.0";
+export const MAX_SUITE_INPUT_ERRORS = 64;
+export const MAX_SUITE_INPUT_ERROR_FIXTURE_ID_LENGTH = 160;
 
 export type FixtureFailureCode =
   | "finding_validation_failed"
@@ -71,14 +74,23 @@ export type ForbiddenStatusScore = {
 };
 
 export type SuiteInputError = {
-  code: "missing_fixture_response" | "unexpected_fixture_response";
+  code: SuiteInputErrorCode;
   fixtureId: string;
 };
+
+export type SuiteInputErrorCode =
+  | "duplicate_fixture_definition"
+  | "invalid_fixture_response"
+  | "missing_fixture_definition"
+  | "missing_fixture_response"
+  | "unexpected_fixture_definition"
+  | "unexpected_fixture_response";
 
 export type ReviewSuiteScore = {
   schemaVersion: typeof REVIEW_SCORE_SCHEMA_VERSION;
   passed: boolean;
   inputErrors: SuiteInputError[];
+  omittedInputErrors: number;
   fixtures: ReviewFixtureScore[];
   aggregate: {
     fixturesPassed: number;
@@ -99,6 +111,10 @@ function compareCodeUnits(left: string, right: string): number {
 
 function uniqueSorted<T extends string>(values: readonly T[]): T[] {
   return [...new Set(values)].sort(compareCodeUnits);
+}
+
+function boundedFixtureId(fixtureId: string): string {
+  return fixtureId.slice(0, MAX_SUITE_INPUT_ERROR_FIXTURE_ID_LENGTH);
 }
 
 function semanticMatchSortKey(match: SemanticMatch): string {
@@ -249,72 +265,125 @@ export function scoreReviewFixture(
 
 export function scoreReviewSuite(
   fixtures: readonly LoadedReviewFixture[],
-  responsesByFixtureId: Readonly<Record<string, readonly unknown[]>>,
+  responsesByFixtureId: Readonly<Record<string, unknown>>,
 ): ReviewSuiteScore {
-  const fixtureIds = uniqueSorted(
-    fixtures.map((fixture) => fixture.descriptor.fixtureId),
-  );
-  const expectedFixtureIds = new Set(fixtureIds);
-  const responseFixtureIds = Object.keys(responsesByFixtureId);
-  const inputErrors: SuiteInputError[] = [
-    ...fixtureIds
-      .filter(
-        (fixtureId) =>
-          !Object.prototype.hasOwnProperty.call(responsesByFixtureId, fixtureId),
-      )
-      .map((fixtureId) => ({
-        code: "missing_fixture_response" as const,
+  const expectedFixtureIds = [...EXPECTED_FIXTURE_IDS].sort(compareCodeUnits);
+  const expectedFixtureIdSet = new Set<string>(expectedFixtureIds);
+  const definitionsByFixtureId = new Map<string, LoadedReviewFixture[]>();
+  for (const fixture of fixtures) {
+    const fixtureId = fixture.descriptor.fixtureId;
+    const definitions = definitionsByFixtureId.get(fixtureId) ?? [];
+    definitions.push(fixture);
+    definitionsByFixtureId.set(fixtureId, definitions);
+  }
+
+  type PendingSuiteInputError = {
+    code: SuiteInputErrorCode;
+    fixtureId: string;
+  };
+  const pendingInputErrors: PendingSuiteInputError[] = [];
+  for (const fixtureId of expectedFixtureIds) {
+    const definitionCount = definitionsByFixtureId.get(fixtureId)?.length ?? 0;
+    if (definitionCount === 0) {
+      pendingInputErrors.push({
+        code: "missing_fixture_definition",
         fixtureId,
-      })),
-    ...uniqueSorted(responseFixtureIds)
-      .filter((fixtureId) => !expectedFixtureIds.has(fixtureId))
-      .map((fixtureId) => ({
-        code: "unexpected_fixture_response" as const,
-        fixtureId,
-      })),
-  ].sort(
-    (left, right) =>
-      compareCodeUnits(left.fixtureId, right.fixtureId) ||
-      compareCodeUnits(left.code, right.code),
-  );
-  const fixturesById = new Map(
-    fixtures.map((fixture) => [fixture.descriptor.fixtureId, fixture]),
-  );
-  const fixtureScores = fixtureIds.flatMap((fixtureId) => {
-    const fixture = fixturesById.get(fixtureId);
-    const response = responsesByFixtureId[fixtureId];
-    if (!fixture || !response) {
-      return [];
+      });
     }
-    return [scoreReviewFixture(fixture, response)];
-  });
-  const aggregate = fixtureScores.reduce(
-    (totals, score) => ({
-      fixturesPassed: totals.fixturesPassed + (score.passed ? 1 : 0),
-      fixturesFailed: totals.fixturesFailed + (score.passed ? 0 : 1),
-      findingsSubmitted:
-        totals.findingsSubmitted + score.validation.submitted,
-      findingsValid: totals.findingsValid + score.validation.valid,
-      findingsRejected: totals.findingsRejected + score.validation.rejected,
-      findingsWarned: totals.findingsWarned + score.validation.warnings,
-    }),
-    {
-      fixturesPassed: 0,
-      fixturesFailed: 0,
-      findingsSubmitted: 0,
-      findingsValid: 0,
-      findingsRejected: 0,
-      findingsWarned: 0,
-    },
-  );
+  }
+  for (const fixtureId of uniqueSorted([...definitionsByFixtureId.keys()])) {
+    if (!expectedFixtureIdSet.has(fixtureId)) {
+      pendingInputErrors.push({
+        code: "unexpected_fixture_definition",
+        fixtureId,
+      });
+    }
+    if ((definitionsByFixtureId.get(fixtureId)?.length ?? 0) > 1) {
+      pendingInputErrors.push({
+        code: "duplicate_fixture_definition",
+        fixtureId,
+      });
+    }
+  }
+
+  const responseFixtureIds = Object.keys(responsesByFixtureId);
+  for (const fixtureId of uniqueSorted(responseFixtureIds)) {
+    if (!expectedFixtureIdSet.has(fixtureId)) {
+      pendingInputErrors.push({
+        code: "unexpected_fixture_response",
+        fixtureId,
+      });
+    }
+  }
+
+  const fixtureScores: ReviewFixtureScore[] = [];
+  const aggregate = {
+    fixturesPassed: 0,
+    fixturesFailed: 0,
+    findingsSubmitted: 0,
+    findingsValid: 0,
+    findingsRejected: 0,
+    findingsWarned: 0,
+  };
+
+  for (const fixtureId of expectedFixtureIds) {
+    const definitions = definitionsByFixtureId.get(fixtureId) ?? [];
+    const fixture = definitions[0];
+    if (definitions.length !== 1 || !fixture) {
+      aggregate.fixturesFailed += 1;
+      continue;
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(responsesByFixtureId, fixtureId)) {
+      pendingInputErrors.push({
+        code: "missing_fixture_response",
+        fixtureId,
+      });
+      aggregate.fixturesFailed += 1;
+      continue;
+    }
+
+    const rawResponse = responsesByFixtureId[fixtureId];
+    if (!Array.isArray(rawResponse)) {
+      pendingInputErrors.push({
+        code: "invalid_fixture_response",
+        fixtureId,
+      });
+      aggregate.fixturesFailed += 1;
+      continue;
+    }
+
+    const score = scoreReviewFixture(fixture, rawResponse);
+    fixtureScores.push(score);
+    aggregate.fixturesPassed += score.passed ? 1 : 0;
+    aggregate.fixturesFailed += score.passed ? 0 : 1;
+    aggregate.findingsSubmitted += score.validation.submitted;
+    aggregate.findingsValid += score.validation.valid;
+    aggregate.findingsRejected += score.validation.rejected;
+    aggregate.findingsWarned += score.validation.warnings;
+  }
+
+  const boundedInputErrors = pendingInputErrors
+    .sort(
+      (left, right) =>
+        compareCodeUnits(left.fixtureId, right.fixtureId) ||
+        compareCodeUnits(left.code, right.code),
+    )
+    .slice(0, MAX_SUITE_INPUT_ERRORS)
+    .map(({ code, fixtureId }) => ({
+      code,
+      fixtureId: boundedFixtureId(fixtureId),
+    }));
+  const boundedOmittedInputErrors =
+    pendingInputErrors.length - boundedInputErrors.length;
 
   return {
     schemaVersion: REVIEW_SCORE_SCHEMA_VERSION,
     passed:
-      inputErrors.length === 0 &&
-      fixtureScores.length === fixtureIds.length &&
-      fixtureScores.every((score) => score.passed),
-    inputErrors,
+      boundedInputErrors.length === 0 &&
+      aggregate.fixturesPassed === expectedFixtureIds.length,
+    inputErrors: boundedInputErrors,
+    omittedInputErrors: boundedOmittedInputErrors,
     fixtures: fixtureScores,
     aggregate,
   };

@@ -3,10 +3,13 @@ import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import {
+  MAX_SUITE_INPUT_ERROR_FIXTURE_ID_LENGTH,
+  MAX_SUITE_INPUT_ERRORS,
   scoreReviewFixture,
   scoreReviewSuite,
 } from "../helpers/review-score.js";
 import {
+  EXPECTED_FIXTURE_IDS,
   canonicalStringify,
   discoverReviewFixtures,
   loadReviewFixture,
@@ -35,12 +38,20 @@ function fixture(fixtureId: string): LoadedReviewFixture {
   return match;
 }
 
-function referenceResponses(): Record<string, unknown[]> {
+function referenceResponses(): Record<string, unknown> {
   return Object.fromEntries(
     fixtures.map((loaded) => [
       loaded.descriptor.fixtureId,
       structuredClone(loaded.referenceFindings),
     ]),
+  );
+}
+
+function expectExpectedFixtureAggregate(score: {
+  aggregate: { fixturesPassed: number; fixturesFailed: number };
+}): void {
+  expect(score.aggregate.fixturesPassed + score.aggregate.fixturesFailed).toBe(
+    EXPECTED_FIXTURE_IDS.length,
   );
 }
 
@@ -94,6 +105,7 @@ describe("review fixture scoring", () => {
         fixturesFailed: 0,
       },
     });
+    expectExpectedFixtureAggregate(suite);
   });
 
   it("accepts explicit empty responses for all no-findings precision controls", () => {
@@ -230,6 +242,12 @@ describe("review fixture scoring", () => {
     expect(missingScore.inputErrors).toEqual([
       { code: "missing_fixture_response", fixtureId: "implemented-correctly" },
     ]);
+    expect(missingScore.passed).toBe(false);
+    expect(missingScore.aggregate).toMatchObject({
+      fixturesPassed: EXPECTED_FIXTURE_IDS.length - 1,
+      fixturesFailed: 1,
+    });
+    expectExpectedFixtureAggregate(missingScore);
 
     const unexpected = referenceResponses();
     unexpected["unexpected-fixture"] = [];
@@ -237,6 +255,8 @@ describe("review fixture scoring", () => {
     expect(unexpectedScore.inputErrors).toEqual([
       { code: "unexpected_fixture_response", fixtureId: "unexpected-fixture" },
     ]);
+    expect(unexpectedScore.passed).toBe(false);
+    expectExpectedFixtureAggregate(unexpectedScore);
 
     const explicitEmpty = referenceResponses();
     explicitEmpty["implemented-correctly"] = [];
@@ -244,6 +264,100 @@ describe("review fixture scoring", () => {
       passed: true,
       inputErrors: [],
     });
+  });
+
+  it("rejects an eight-definition subset even with matching eight responses", () => {
+    const subset = fixtures.filter(
+      (loaded) => loaded.descriptor.fixtureId !== "implemented-correctly",
+    );
+    const responses = referenceResponses();
+    delete responses["implemented-correctly"];
+
+    const score = scoreReviewSuite(subset, responses);
+    expect(score.passed).toBe(false);
+    expect(score.inputErrors).toEqual([
+      { code: "missing_fixture_definition", fixtureId: "implemented-correctly" },
+    ]);
+    expect(score.aggregate).toMatchObject({
+      fixturesPassed: EXPECTED_FIXTURE_IDS.length - 1,
+      fixturesFailed: 1,
+    });
+    expectExpectedFixtureAggregate(score);
+  });
+
+  it("rejects duplicate and unexpected fixture definitions as suite-level input errors", () => {
+    const duplicate = fixture("implemented-correctly");
+    const unexpected = structuredClone(fixture("implemented-correctly"));
+    unexpected.descriptor.fixtureId = "unexpected-definition";
+
+    const duplicateScore = scoreReviewSuite(
+      [...fixtures, duplicate],
+      referenceResponses(),
+    );
+    expect(duplicateScore.passed).toBe(false);
+    expect(duplicateScore.inputErrors).toEqual([
+      {
+        code: "duplicate_fixture_definition",
+        fixtureId: "implemented-correctly",
+      },
+    ]);
+    expectExpectedFixtureAggregate(duplicateScore);
+
+    const unexpectedScore = scoreReviewSuite(
+      [...fixtures, unexpected],
+      referenceResponses(),
+    );
+    expect(unexpectedScore.passed).toBe(false);
+    expect(unexpectedScore.inputErrors).toEqual([
+      {
+        code: "unexpected_fixture_definition",
+        fixtureId: "unexpected-definition",
+      },
+    ]);
+    expectExpectedFixtureAggregate(unexpectedScore);
+  });
+
+  it("rejects a present non-array response without throwing and counts its fixture as failed", () => {
+    const responses = referenceResponses();
+    responses["implemented-correctly"] = "not an array";
+
+    const score = scoreReviewSuite(fixtures, responses);
+    expect(score.passed).toBe(false);
+    expect(score.inputErrors).toEqual([
+      { code: "invalid_fixture_response", fixtureId: "implemented-correctly" },
+    ]);
+    expect(score.aggregate).toMatchObject({
+      fixturesPassed: EXPECTED_FIXTURE_IDS.length - 1,
+      fixturesFailed: 1,
+    });
+    expectExpectedFixtureAggregate(score);
+  });
+
+  it("bounds and truncates untrusted suite input errors deterministically", () => {
+    const responses = referenceResponses();
+    const unexpectedCount = MAX_SUITE_INPUT_ERRORS + 10;
+    const longSuffix = "x".repeat(
+      MAX_SUITE_INPUT_ERROR_FIXTURE_ID_LENGTH + 1_000,
+    );
+    for (let index = 0; index < unexpectedCount; index += 1) {
+      responses[`unexpected-${String(index).padStart(4, "0")}-${longSuffix}`] = [];
+    }
+
+    const score = scoreReviewSuite(fixtures, responses);
+    const serialized = canonicalStringify(score);
+    expect(score.passed).toBe(false);
+    expect(score.inputErrors).toHaveLength(MAX_SUITE_INPUT_ERRORS);
+    expect(score.omittedInputErrors).toBe(10);
+    expect(
+      score.inputErrors.every(
+        (inputError) =>
+          inputError.fixtureId.length <=
+          MAX_SUITE_INPUT_ERROR_FIXTURE_ID_LENGTH,
+      ),
+    ).toBe(true);
+    expect(serialized).not.toContain(longSuffix);
+    expect(serialized.length).toBeLessThan(50_000);
+    expectExpectedFixtureAggregate(score);
   });
 
   it("is locale-independent and byte-stable across suite-map and finding permutations", () => {
@@ -259,9 +373,11 @@ describe("review fixture scoring", () => {
     forward[requirement.descriptor.fixtureId] = [first, second];
     const reverse = Object.fromEntries(
       [...fixtures].reverse().map((loaded) => {
-        const response = structuredClone(
-          forward[loaded.descriptor.fixtureId] ?? [],
-        );
+        const original = forward[loaded.descriptor.fixtureId];
+        if (!Array.isArray(original)) {
+          throw new Error("Expected array response in permutation fixture");
+        }
+        const response = structuredClone(original);
         return [loaded.descriptor.fixtureId, response.reverse()];
       }),
     );
