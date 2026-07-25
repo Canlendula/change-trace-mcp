@@ -282,17 +282,34 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
+- Outcome: `changes_requested`
 - Reviewed branch head:
+  `99d16f656776f59c6787ed84f70924b2170fd51a`
 - Integration commit:
 
 ### Review findings
 
-- Pending.
+- The runner decodes stdout with `Buffer.toString("utf8")`. Node replaces
+  malformed byte sequences with U+FFFD, so invalid UTF-8 embedded inside an
+  otherwise valid JSON string can pass `JSON.parse` and the response schema.
+  Adapter protocol JSON must be valid UTF-8; decode with a fatal UTF-8 decoder
+  and return the existing safe `invalid_response` code without exposing
+  content. Add a binary-output fixture and regression assertion.
+- The Worker handoff records implementation commit
+  `e38ccd06a790add8515d87355182f2e97ef5cd27`, but the actual repository object
+  is `e38ccd0c1a16763869984ed95662dc91c2319558`. Correct the durable handoff and
+  record the new follow-up commit/head exactly.
+- The disclosed Windows bootstrap environment was independently reproduced:
+  Node injects the documented system/user/session bootstrap variables even
+  when given a smaller environment object. The focused test confirms arbitrary
+  Host variables and non-allowlisted credential values remain absent. This is
+  accepted as a documented platform boundary, not a review finding.
 
 ### Required follow-up
 
-- Pending review.
+- Add the fatal UTF-8 rejection test and smallest runner fix.
+- Run the complete focused command, type check, and two unchanged full-suite
+  runs; update the handoff with exact Git object IDs and results.
 
 ### Roadmap and release impact
 
