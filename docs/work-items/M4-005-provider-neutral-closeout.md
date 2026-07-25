@@ -314,6 +314,13 @@ git status --short
   checkout leaves the valid workflow unchanged but causes two assertions to
   fail. Normalize read text to LF inside the focused test before parsing or
   matching it; do not change the workflow/example bytes or their behavior.
+- Live orchestration run
+  `https://github.com/Canlendula/change-trace-mcp/actions/runs/30167981866`
+  completed successfully, but GitHub annotated the pinned
+  `actions/upload-artifact@v4.6.2` action because its Node 20 runtime is
+  deprecated. Replace both workflow pins with the current official v7.0.1
+  commit `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a`, update the focused
+  assertion, and keep the full-SHA pinning policy.
 
 ### Required follow-up
 
@@ -321,6 +328,9 @@ git status --short
   and update the worker handoff with every result.
 - After the line-ending follow-up, verify the focused test from both the task
   worktree and the coordinator's CRLF main worktree.
+- Validate the v7.0.1 action pins with `actionlint`, then leave a clean,
+  committed handoff for a new coordinator-owned dispatch. Do not rerun the
+  old workflow run because reruns retain the original workflow revision.
 
 ### Roadmap and release impact
 
