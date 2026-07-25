@@ -4,7 +4,7 @@
 
 - Status: `assigned`
 - Milestone: `M3 — Agent review loop`
-- Base commit: `969dc261dcdfdc359c86bb8c9a4b3a92ee635594`
+- Base commit: `969dc26d4e2eb54df14d8782f6d6408d63ddd584`
 - Branch: `work/M3-005-review-rubric`
 - Worktree:
   `D:\projects\change-trace-worktrees\M3-005-review-rubric`
@@ -156,7 +156,7 @@ npm run check
 npm test
 npm run smoke:stdio
 npm run pack:check
-git diff --check 969dc261dcdfdc359c86bb8c9a4b3a92ee635594..HEAD
+git diff --check 969dc26d4e2eb54df14d8782f6d6408d63ddd584..HEAD
 git status --short
 ```
 
