@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M4 complete; M5 ready to start
+> Status: M4 complete; M5 in progress
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -133,6 +133,10 @@ The technical spike may revise this choice if Host compatibility or package star
   Final GitHub run `30168292163` passed attempts 1 and 2 with no annotations;
   the attempt-2 sidecar records the expected rerun identity and
   `completed_no_findings`. No semantic model/Host claim was added.
+- M5 started on 2026-07-26 with M5-001. Decision 23 fixes the initial
+  explicit-reference, preconfigured-command security boundary; the first
+  implementation slice defines only the shared strict adapter protocol and
+  deterministic JSON Schema exports.
 
 ## 6. M0 — Project foundation
 
@@ -743,7 +747,7 @@ Progress as of 2026-07-25:
 | M3 evaluation fixtures and scorer | Complete; nine fixtures, deterministic replay preparation, capture scoring, and summaries are tracked |
 | M3 cross-Host exit gate | Complete; Codex Desktop, Claude Code, and OpenCode each pass 9 of 9 on instruction `1.4.0` |
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
-| M5 external documents | Ready; bounded explicit-reference adapter boundary recorded in Decision 23 |
+| M5 external documents | In progress; M5-001 shared adapter protocol assigned under Decision 23 |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
