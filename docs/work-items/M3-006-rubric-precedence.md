@@ -245,18 +245,24 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending | accepted | changes_requested | rejected`
+- Outcome: `accepted`
 - Reviewed branch head:
-- Integration commit:
+  `0c7b492fc693168b687bd2620ff735fde686152a`
+- Integration commit: fast-forwarded to `main`; acceptance record pending in this
+  commit.
 
 ### Review findings
 
-- `<finding, or None>`
+- None.
 
 ### Required follow-up
 
-- `<follow-up, or None>`
+- Re-run the unchanged nine-fixture suite through Codex, Claude Code, and
+  OpenCode with instruction version `1.2.0`, then evaluate the declared M3
+  quality gate without changing accepted ground truth.
 
 ### Roadmap and release impact
 
-- `<coordinator assessment>`
+- The ordered Host-neutral rubric is accepted. M3 completion remains contingent
+  on the final cross-Host replay, recorded quality threshold, and durable result
+  evidence.
