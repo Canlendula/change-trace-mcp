@@ -67,7 +67,7 @@ describe("review replay packets", () => {
     const packets = prepareReplayPackets(await loadReplayBundles(reviewRoot));
 
     expect(REPLAY_SCHEMA_VERSION).toBe("1.0.0");
-    expect(REPLAY_INSTRUCTION_VERSION).toBe("1.2.0");
+    expect(REPLAY_INSTRUCTION_VERSION).toBe("1.3.0");
     expect(Object.fromEntries(
       packets.map(({ fixtureId, bundleSha256 }) => [fixtureId, bundleSha256]),
     )).toEqual(ACCEPTED_BUNDLE_DIGESTS);
@@ -80,12 +80,43 @@ describe("review replay packets", () => {
     }
 
     expect(packet.instruction).toContain("Apply these decision rules in order.");
-    expect(packet.instruction).toContain("If missing or inaccessible evidence materially blocks the requested assessment, return exactly one bounded other/inconclusive/investigate finding. This takes precedence over returning no findings or a confirmed or suspected finding.");
+    expect(packet.instruction).toContain("This takes precedence over returning no findings or a confirmed or suspected finding.");
     expect(packet.instruction).toContain("If directly conflicting evidence remains unresolved, return contradictory_evidence/inconclusive/investigate. Agreement with one side does not establish the intended corrective direction.");
     expect(packet.instruction).toContain("If implementation behavior is absent from available documentation and approval or intent evidence is absent, return undocumented_behavior/suspected/update_documentation.");
     expect(packet.instruction).toContain("Use requirement_missing only when a present authoritative requirement explicitly requires behavior that implementation lacks.");
     expect(packet.instruction).toContain("Use stale_documentation only when present approval or change evidence establishes implementation as intended and documentation as outdated.");
     expect(packet.instruction).toContain("Use confirmed only when available evidence establishes both the inconsistency and intended corrective direction.");
+  });
+
+  it("defines material missing evidence structurally and preserves its bounded outcome", async () => {
+    const [packet] = prepareReplayPackets(await loadReplayBundles(reviewRoot));
+    if (!packet) {
+      throw new Error("Expected replay packet");
+    }
+
+    expect(packet.instruction).toContain("a non-empty bundle.missingEvidence entry has a source directly referenced by available requirements, implementation, facts, or the requested behavior assessment");
+    expect(packet.instruction).toContain("visible code/document agreement does not remove that uncertainty");
+    expect(packet.instruction).toContain("exactly one bounded other/inconclusive/investigate finding");
+  });
+
+  it("requires explicit authoritative coverage before reporting a test gap", async () => {
+    const [packet] = prepareReplayPackets(await loadReplayBundles(reviewRoot));
+    if (!packet) {
+      throw new Error("Expected replay packet");
+    }
+
+    expect(packet.instruction).toContain("Report test_gap only when available authoritative evidence explicitly requires coverage that is absent");
+    expect(packet.instruction).toContain("do not use it merely because additional tests or edge cases could be useful");
+  });
+
+  it("restricts every evidence-ID field to exact evidence-item IDs", async () => {
+    const [packet] = prepareReplayPackets(await loadReplayBundles(reviewRoot));
+    if (!packet) {
+      throw new Error("Expected replay packet");
+    }
+
+    expect(packet.instruction).toContain("Every finding.evidenceIds value and deterministicFacts[].evidenceIds value must exactly equal a bundle.evidenceItems[].id byte-for-byte");
+    expect(packet.instruction).toContain("never use bundle.deterministicFacts[].id, change/file IDs, or any other identifier in either evidence-ID field");
   });
 
   it("produces nine byte-stable packets from bundle data only", async () => {
@@ -187,6 +218,31 @@ describe("review replay packets", () => {
         expect(serialized).not.toContain(finding.inference);
       }
       expect(serialized).not.toContain(`\"outcome\":\"${fixture.expected.outcome}\"`);
+    }
+  });
+
+  it("keeps the instruction independent of fixture-specific and Host-specific data", async () => {
+    const packets = prepareReplayPackets(await loadReplayBundles(reviewRoot));
+    for (const packet of packets) {
+      for (const fixture of fixtures) {
+        expect(packet.instruction).not.toContain(fixture.descriptor.fixtureId);
+        expect(packet.instruction).not.toContain(fixture.expected.rationale);
+        for (const finding of fixture.referenceFindings) {
+          expect(packet.instruction).not.toContain(finding.title);
+          expect(packet.instruction).not.toContain(finding.expectedBehavior);
+          expect(packet.instruction).not.toContain(finding.observedBehavior);
+          expect(packet.instruction).not.toContain(finding.inference);
+          for (const evidenceId of finding.evidenceIds) {
+            expect(packet.instruction).not.toContain(evidenceId);
+          }
+          for (const fact of finding.deterministicFacts) {
+            expect(packet.instruction).not.toContain(fact.statement);
+            for (const evidenceId of fact.evidenceIds) {
+              expect(packet.instruction).not.toContain(evidenceId);
+            }
+          }
+        }
+      }
     }
   });
 });
