@@ -189,7 +189,8 @@ git status --short
 - Handoff branch: `codex/M4-005-provider-neutral-closeout`
 - Implementation commits:
   `6c94dfaf654a26f04eb6060f98b008dfafff8334`,
-  `54a67a379faae2067b89c5912f37955d40a77ce9`
+  `54a67a379faae2067b89c5912f37955d40a77ce9`,
+  `4464888c1517782420cea361acbe5ff5064d1aab`
 
 ### Implementation summary
 
@@ -211,6 +212,9 @@ git status --short
 - Review follow-up raised only the ordinary fixture Host process-startup
   budget from 200 ms to a bounded 2,000 ms. The explicit uncooperative-child
   timeout remains 100 ms and all runner assertions remain unchanged.
+- Second review follow-up normalizes workflow, example, and CI-guide text to LF
+  inside the focused test before matching. Tracked YAML/document bytes and
+  runtime behavior remain unchanged.
 
 ### Changed areas
 
@@ -224,8 +228,8 @@ git status --short
 - `tests/integration/provider-neutral-ci.test.ts`,
   `tests/integration/advisory-host.test.ts`, and
   `tests/integration/gpt41-quality-spike.test.ts` — active workflow,
-  deterministic smoke, provider neutrality, exact artifacts, and obsolete
-  historical assertion coverage.
+  deterministic smoke, provider neutrality, exact artifacts, cross-platform
+  line-ending handling, and obsolete historical assertion coverage.
 - `tests/integration/advisory-ci.test.ts` — stable bounded default fixture
   startup allowance for full-suite parallel load.
 
@@ -239,6 +243,10 @@ git status --short
 | `npm run check` | PASS | TypeScript check passed. |
 | `npm test` — consecutive run 1 | PASS | 20 files and 185 tests passed with the review-follow-up tree unchanged. |
 | `npm test` — consecutive run 2 | PASS | 20 files and 185 tests passed again with no intervening change. |
+| `npx vitest run tests/integration/advisory-ci.test.ts tests/integration/advisory-host.test.ts tests/integration/provider-neutral-ci.test.ts` — CRLF follow-up | PASS | 3 files and 30 tests passed after normalized text reads. |
+| `npm run smoke:ci` — CRLF follow-up | PASS | Deterministic smoke remained `completed_no_findings`. |
+| `npm run check` — CRLF follow-up | PASS | Focused test typing passed. |
+| `npm test` — CRLF follow-up | PASS | 20 files and 185 tests passed. |
 | `npm run smoke:stdio` | PASS | Existing stdio tool smoke passed. |
 | `npm run pack:check` | PASS | Package dry-run passed. |
 | `git diff --check d786521ee47c69ac166064374ad2f883134a1836..HEAD` | PASS | No whitespace errors after the review-follow-up commit. |
@@ -261,6 +269,9 @@ git status --short
 - Coordinator review authorized the single-line fixture-budget stabilization
   through assignment update `16c2903`; no runner or production change was
   needed.
+- Coordinator review authorized the test-only LF normalization through
+  assignment update `990a8bd`; no workflow, example, or documentation content
+  was changed.
 
 ### Known limitations and risks
 
@@ -268,6 +279,8 @@ git status --short
   record GitHub orchestration evidence. The deterministic fixture proves
   orchestration, artifacts, advisory containment, and rerun metadata only; it
   makes no semantic Host/model compatibility claim.
+- The coordinator will independently rerun the focused test in the CRLF main
+  worktree before acceptance.
 
 ### Decisions or questions for coordinator
 
