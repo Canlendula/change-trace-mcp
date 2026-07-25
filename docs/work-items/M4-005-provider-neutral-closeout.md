@@ -190,7 +190,8 @@ git status --short
 - Implementation commits:
   `6c94dfaf654a26f04eb6060f98b008dfafff8334`,
   `54a67a379faae2067b89c5912f37955d40a77ce9`,
-  `4464888c1517782420cea361acbe5ff5064d1aab`
+  `4464888c1517782420cea361acbe5ff5064d1aab`,
+  `8b341a7f5d2b67f69d2f63eb6ee6521d2b48d857`
 
 ### Implementation summary
 
@@ -215,16 +216,20 @@ git status --short
 - Second review follow-up normalizes workflow, example, and CI-guide text to LF
   inside the focused test before matching. Tracked YAML/document bytes and
   runtime behavior remain unchanged.
+- Final review follow-up updates both `actions/upload-artifact` full-SHA pins
+  from v4.6.2 to the official v7.0.1 commit while preserving all workflow
+  behavior and other action pins.
 
 ### Changed areas
 
 - `.github/workflows/m4-advisory-review.yml` — manual deterministic workflow,
-  job separation, safe metadata, exact artifact upload, and bounded summary.
+  job separation, safe metadata, exact artifact upload, bounded summary, and
+  current full-SHA artifact action pin.
 - `scripts/ci/smoke-advisory-ci.mjs` — forwarded and verified revision/attempt
   metadata without changing the runner.
 - `docs/ci/README.md` and `docs/ci/github-actions.example.yml` — selected
   architecture, GitHub/GitLab credential ownership, copyable Host example, and
-  historical-path boundary.
+  historical-path boundary; the example uses the same current artifact pin.
 - `tests/integration/provider-neutral-ci.test.ts`,
   `tests/integration/advisory-host.test.ts`, and
   `tests/integration/gpt41-quality-spike.test.ts` — active workflow,
@@ -247,6 +252,12 @@ git status --short
 | `npm run smoke:ci` — CRLF follow-up | PASS | Deterministic smoke remained `completed_no_findings`. |
 | `npm run check` — CRLF follow-up | PASS | Focused test typing passed. |
 | `npm test` — CRLF follow-up | PASS | 20 files and 185 tests passed. |
+| Official `actionlint` v1.7.12 on `.github/workflows/m4-advisory-review.yml` and `docs/ci/github-actions.example.yml` | PASS | Both YAMLs passed with no diagnostics; official Windows amd64 archive SHA-256 matched `6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9`. |
+| `npx vitest run tests/integration/advisory-ci.test.ts tests/integration/advisory-host.test.ts tests/integration/provider-neutral-ci.test.ts` — action-pin follow-up | PASS | 3 files and 30 tests passed. |
+| `npx vitest run tests/integration/advisory-host.test.ts tests/integration/provider-neutral-ci.test.ts` — action-pin follow-up | PASS | Required focused suite passed 2 files and 8 tests. |
+| `npm run smoke:ci` — action-pin follow-up | PASS | Deterministic smoke remained `completed_no_findings`. |
+| `npm run check` — action-pin follow-up | PASS | TypeScript check passed. |
+| `npm test` — action-pin follow-up | PASS | 20 files and 185 tests passed. |
 | `npm run smoke:stdio` | PASS | Existing stdio tool smoke passed. |
 | `npm run pack:check` | PASS | Package dry-run passed. |
 | `git diff --check d786521ee47c69ac166064374ad2f883134a1836..HEAD` | PASS | No whitespace errors after the review-follow-up commit. |
@@ -272,6 +283,9 @@ git status --short
 - Coordinator review authorized the test-only LF normalization through
   assignment update `990a8bd`; no workflow, example, or documentation content
   was changed.
+- Coordinator review authorized the current artifact-action pin update through
+  coordinator-authored task record `e9719b4`, cherry-picked as `874ded4`; no
+  trigger, permission, artifact, or summary behavior changed.
 
 ### Known limitations and risks
 
@@ -281,6 +295,8 @@ git status --short
   makes no semantic Host/model compatibility claim.
 - The coordinator will independently rerun the focused test in the CRLF main
   worktree before acceptance.
+- The prior successful live run retains its original workflow revision. A new
+  coordinator-owned dispatch is required to exercise the v7.0.1 artifact pin.
 
 ### Decisions or questions for coordinator
 
