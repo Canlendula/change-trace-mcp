@@ -188,7 +188,8 @@ git status --short
 - Status: `ready_for_review`
 - Handoff branch: `codex/M4-005-provider-neutral-closeout`
 - Implementation commits:
-  `6c94dfaf654a26f04eb6060f98b008dfafff8334`
+  `6c94dfaf654a26f04eb6060f98b008dfafff8334`,
+  `54a67a379faae2067b89c5912f37955d40a77ce9`
 
 ### Implementation summary
 
@@ -207,6 +208,9 @@ git status --short
 - Reframed the CI guide around the caller-supplied Host architecture while
   keeping the rejected OpenCode/GitHub Models path and manual quality spike
   clearly historical.
+- Review follow-up raised only the ordinary fixture Host process-startup
+  budget from 200 ms to a bounded 2,000 ms. The explicit uncooperative-child
+  timeout remains 100 ms and all runner assertions remain unchanged.
 
 ### Changed areas
 
@@ -222,20 +226,23 @@ git status --short
   `tests/integration/gpt41-quality-spike.test.ts` — active workflow,
   deterministic smoke, provider neutrality, exact artifacts, and obsolete
   historical assertion coverage.
+- `tests/integration/advisory-ci.test.ts` — stable bounded default fixture
+  startup allowance for full-suite parallel load.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
+| `npx vitest run tests/integration/advisory-ci.test.ts tests/integration/advisory-host.test.ts tests/integration/provider-neutral-ci.test.ts` | PASS | 3 files, 30 tests passed after the review follow-up. |
 | `npx vitest run tests/integration/advisory-host.test.ts tests/integration/provider-neutral-ci.test.ts` | PASS | 2 files, 8 tests passed. |
 | `npm run smoke:ci` | PASS | Produced and verified `completed_no_findings` plus all three artifacts. |
 | `npm run check` | PASS | TypeScript check passed. |
-| `npx vitest run tests/integration/advisory-ci.test.ts` | PASS | Existing generic runner suite passed, 22 tests. |
-| `npm test` | PASS | Final run passed 20 files and 185 tests. Two earlier full runs reproduced the previously recorded 200 ms parallel-load fixture timeout in `advisory-ci.test.ts`; the focused runner suite and final full run passed without changes to that protected test or runner. |
+| `npm test` — consecutive run 1 | PASS | 20 files and 185 tests passed with the review-follow-up tree unchanged. |
+| `npm test` — consecutive run 2 | PASS | 20 files and 185 tests passed again with no intervening change. |
 | `npm run smoke:stdio` | PASS | Existing stdio tool smoke passed. |
 | `npm run pack:check` | PASS | Package dry-run passed. |
-| `git diff --check d786521ee47c69ac166064374ad2f883134a1836..HEAD` | PASS | No whitespace errors after the implementation commit. |
-| `git status --short` | PASS | Clean after the implementation commit. |
+| `git diff --check d786521ee47c69ac166064374ad2f883134a1836..HEAD` | PASS | No whitespace errors after the review-follow-up commit. |
+| `git status --short` | PASS | Clean after the review-follow-up commit. |
 
 ### Public contract and documentation impact
 
@@ -251,6 +258,9 @@ git status --short
   coordinator expanded the task allowlist in `aa97e43` and authorized only
   replacing that assertion with the new manual/no-model boundary; all other
   historical quality-spike assertions remain unchanged.
+- Coordinator review authorized the single-line fixture-budget stabilization
+  through assignment update `16c2903`; no runner or production change was
+  needed.
 
 ### Known limitations and risks
 
@@ -258,9 +268,6 @@ git status --short
   record GitHub orchestration evidence. The deterministic fixture proves
   orchestration, artifacts, advisory containment, and rerun metadata only; it
   makes no semantic Host/model compatibility claim.
-- The existing 200 ms generic-runner fixture can time out under full-suite
-  parallel load. Its focused 22-test run and the final 185-test suite passed;
-  this task did not change that protected runner/test contract.
 
 ### Decisions or questions for coordinator
 
