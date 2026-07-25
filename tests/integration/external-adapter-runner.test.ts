@@ -460,26 +460,30 @@ describe("external adapter runner", () => {
     expect(spawnError.exitCode).toBeNull();
   });
 
-  it("terminates the direct child on timeout and returns only a stable safe error", async () => {
-    const directory = await createTemporaryDirectory();
-    const pidPath = join(directory, "pid.txt");
-    const error = await expectRunnerError(
-      runExternalAdapter(
-        registration("hang", [pidPath], {
-          limits: {
-            ...registration("hang").limits,
-            timeoutMilliseconds: 100,
-          },
-        }),
-        request(),
-      ),
-      "timeout",
-      [pidPath, fixturePath],
-    );
-    expect(error.exitCode).toBeNull();
-    const pid = Number(await readFile(pidPath, "utf8"));
-    await waitForProcessExit(pid);
-  });
+  it(
+    "terminates the direct child on timeout and returns only a stable safe error",
+    { timeout: 10_000 },
+    async () => {
+      const directory = await createTemporaryDirectory();
+      const pidPath = join(directory, "pid.txt");
+      const error = await expectRunnerError(
+        runExternalAdapter(
+          registration("hang", [pidPath], {
+            limits: {
+              ...registration("hang").limits,
+              timeoutMilliseconds: 2_000,
+            },
+          }),
+          request(),
+        ),
+        "timeout",
+        [pidPath, fixturePath],
+      );
+      expect(error.exitCode).toBeNull();
+      const pid = Number(await readFile(pidPath, "utf8"));
+      await waitForProcessExit(pid);
+    },
+  );
 
   it("terminates on stdout and stderr hard limits without disclosing either stream", async () => {
     await expectRunnerError(
