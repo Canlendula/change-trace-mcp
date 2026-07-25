@@ -186,35 +186,87 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress`
+- Status: `ready_for_review`
 - Handoff branch: `codex/M4-004-gpt41-quality-spike`
 - Implementation commits:
+  - `eb6a0b7` — feat(ci): add manual GPT-4.1 quality spike
 
 ### Implementation summary
 
-- Pending.
+- Added a `workflow_dispatch`-only GitHub Models quality-spike workflow with
+  `contents: read` and `models: read`, a direct `openai/gpt-4.1` inference
+  harness, bounded metadata artifact, and allowlisted job summary.
+- The harness prepares the accepted M3 packets through the accepted replay
+  helper, sends one non-streaming JSON-schema response request per attempted
+  fixture, fixes output to 4,000 tokens, applies a 30-second transport timeout,
+  and gives the credential-free evaluator subprocess its own 30-second bound.
+- Mandatory fixtures run first in the declared order. The harness immediately
+  stops on mandatory failure, a rejected finding, two failures, or a request,
+  response, or scoring failure. It uses the accepted scorer without changing
+  M3 fixtures, instruction `1.4.0`, response contract, or ground truth.
+- Raw prompts, model/API responses, temporary captures, and credentials remain
+  in memory or a removed private temporary directory. The persisted score is
+  limited to run/configuration identifiers, packet digests, pass/fail and
+  bounded failure codes, validation counts, stop reason, and aggregate gate
+  metadata.
+- Paused the credential-bearing OpenCode inference step and summary unless a
+  maintainer explicitly manually dispatches the existing workflow with
+  `run_opencode_advisory` enabled. Existing automatic non-model quality checks
+  and trusted OpenCode setup remain unchanged.
 
 ### Changed areas
 
-- Pending.
+- `.github/workflows/m4-gpt41-quality-spike.yml` — Manual-only GPT-4.1 spike,
+  least-privilege permissions, metadata-only artifact upload, and summary.
+- `.github/workflows/m4-advisory-review.yml` — Manual guard for the
+  credential-bearing OpenCode model invocation and summary.
+- `scripts/ci/gpt41-quality-spike.mjs` and
+  `scripts/ci/summarize-gpt41-quality-spike.mjs` — One-shot transport,
+  early-stop gate, bounded score writer, and summary renderer.
+- `tests/evaluation/gpt41-quality-spike.ts` — Credential-free adapter to the
+  accepted M3 replay packet preparation and scorer.
+- `tests/fixtures/ci/gpt41-quality-transport.mjs` and
+  `tests/integration/gpt41-quality-spike.test.ts` — Deterministic fake
+  transport and offline tests for order, one-shot behavior, failures,
+  configuration, metadata bounds, and isolation.
+- `docs/ci/README.md` — Manual spike, early stop, artifact, and MCP-capacity
+  boundary documentation.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| Pending | Pending | Pending |
+| `npx vitest run tests/integration/gpt41-quality-spike.test.ts` | PASS | 6 tests passed; fake transport covers success, ordering, mandatory failure, rejected findings, malformed/API failure, bounded metadata, manual trigger, and paused model step. |
+| `npx vitest run tests/integration/advisory-host.test.ts` | PASS | 5 tests passed. |
+| `npm run smoke:ci` | PASS | Generic advisory wrapper smoke passed. |
+| `npm run smoke:ci:host` | PASS | Offline trusted OpenCode Host smoke passed. |
+| `npm run check` | PASS | TypeScript strict check passed. |
+| `npm test` | PASS | 19 test files and 182 tests passed. |
+| `npm run smoke:stdio` | PASS | Build and stdio tool smoke passed. |
+| `npm run pack:check` | PASS | `npm pack --dry-run` passed. |
+| `git diff --check 2c26ec6e4e8288135994eab91f0170ae45de36a6..HEAD` | PASS before handoff commit | No whitespace errors in the base comparison at validation time. |
+| `git status --short` | PASS before handoff commit | Only the worker-owned handoff update remained to commit. |
 
 ### Public contract and documentation impact
 
-- Pending.
+- No public MCP, package, source, schema, fixture, scorer, or dependency
+  contract changed. The CI guide documents a manual internal feasibility spike.
 
 ### Deviations from assignment
 
-- None.
+- The legacy OpenCode workflow job still performs its non-credential setup on
+  its existing automatic paths to preserve current trusted workflow checks; its
+  only credential-bearing inference invocation and status summary are now
+  manual-input guarded, so it cannot automatically consume model quota.
 
 ### Known limitations and risks
 
-- None.
+- The spike has intentionally not been run against GitHub Models. Semantic
+  adequacy, quota availability, and complete-run stability remain for the
+  coordinator to assess through a manual dispatch.
+- The GitHub Models API may reject a request or structured response. Per the
+  assigned policy this is recorded as a failed attempted fixture with no retry
+  or raw diagnostic capture.
 
 ### Decisions or questions for coordinator
 
@@ -222,8 +274,8 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, tag, publish, or release action was performed.
 - [ ] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
