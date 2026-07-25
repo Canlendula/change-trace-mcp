@@ -133,10 +133,13 @@ The technical spike may revise this choice if Host compatibility or package star
   Final GitHub run `30168292163` passed attempts 1 and 2 with no annotations;
   the attempt-2 sidecar records the expected rerun identity and
   `completed_no_findings`. No semantic model/Host claim was added.
-- M5 started on 2026-07-26 with M5-001. Decision 23 fixes the initial
-  explicit-reference, preconfigured-command security boundary; the first
-  implementation slice defines only the shared strict adapter protocol and
-  deterministic JSON Schema exports.
+- M5 is in progress. M5-001 through M5-003 are accepted: the strict shared
+  protocol, bounded command runner/normalizer, Host-owned startup
+  configuration, `collect_external_evidence` MCP tool, and deterministic
+  review-bundle merge are implemented. Decisions 23–26 fix the
+  explicit-reference security boundary, structured external provenance,
+  startup registration, and final-report evidence-source catalog. The
+  remaining slice is the Lark and Jira/Confluence fixture/report exit proof.
 
 ## 6. M0 — Project foundation
 
@@ -520,13 +523,16 @@ Required fields:
 - initially support a command adapter around user-configured Lark tooling;
 - keep authentication outside the MCP configuration file where possible;
 - prefer read-only operations;
-- allow explicit document URLs/tokens and search-based discovery;
+- accept explicit document URLs/tokens and project-item identifiers in v1;
+- defer search-based discovery to a separately configured, bounded capability
+  after the explicit-reference path has pilot evidence;
 - preserve document block/source identifiers in evidence references.
 
 ### Jira/Confluence strategy
 
 - begin with explicit issue keys and page URLs;
-- optionally infer keys from branch, commit, and PR text;
+- defer inferred keys from branch, commit, and PR text until after the
+  explicit-reference path is validated in pilots;
 - avoid organization-wide indexing in v1;
 - preserve issue status, acceptance criteria, links, and update timestamps;
 - treat comments and linked pages as separate evidence items.

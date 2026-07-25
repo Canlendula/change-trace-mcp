@@ -643,3 +643,57 @@ returns a bounded safe error without process execution.
 The tool is read-only, non-destructive, and idempotent for a stable upstream
 source. Its MCP `openWorldHint` is true because it reads an external system.
 All other M5-002 process and credential boundaries remain unchanged.
+
+## 26. Final reports carry a bounded evidence-source catalog
+
+The final JSON and Markdown reports must retain the source identity needed to
+audit every evidence item that survived bundle construction. The report
+therefore gains a required `evidenceSources` catalog derived from all retained
+bundle evidence items in bundle order.
+
+Each catalog entry contains:
+
+- the core evidence ID and evidence type;
+- the canonical source system, locator, and nullable URI;
+- retrieval time, nullable content hash, and trust level;
+- related change IDs and redaction metadata;
+- optional external provenance: adapter ID/name/version, source type, title,
+  and nullable source update time.
+
+The catalog does not copy evidence excerpts into the final report. This keeps
+the report traceable without creating a second store of external document
+content or prompt-injection-shaped text. Findings may still reference evidence
+IDs, and an operator can follow the canonical source reference under the
+source system's own access controls.
+
+The Markdown renderer presents source URIs as escaped code literals rather
+than constructing active links from untrusted values. External titles and all
+other dynamic values use the existing containment helpers. Missing-evidence
+records also render their nullable source URI when present, while permission
+messages remain bounded and redacted by the external normalizer.
+
+The report writer always emits the catalog, including for reports with zero
+findings. Catalog order follows the deterministic bundle order and remains
+within the existing 10,000-item evidence bound and report byte limits. A
+change to external title, update time, source type, or adapter identity already
+changes the bundle ID under Decision 24, so the report remains tied to the
+exact provenance snapshot it presents.
+
+This additive report change keeps the provisional `1.0.0` schema version
+during M5. Existing M3 review-bundle replay identities remain unchanged;
+serialized report fixtures are updated intentionally. M8 will freeze the v1
+schema snapshot and compatibility policy.
+
+M5 source-specific proof uses deterministic command-adapter fixtures rather
+than live vendor credentials:
+
+- one Lark/Feishu document fixture preserves a document/block locator, URL,
+  retrieval/update timestamps, and injection-shaped untrusted content;
+- one Jira/Confluence fixture covers an issue, a linked page, and a
+  permission-denied record;
+- both travel through the same configured command protocol, MCP collection
+  tool, normalized collection, review bundle, validation, and report writer.
+
+These fixtures prove the shared contract and security boundary. They are not
+claims of live vendor API compatibility; real credentialed pilots remain an
+M7 activity.
