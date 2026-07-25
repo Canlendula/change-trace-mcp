@@ -11,7 +11,7 @@ const config = JSON.parse(await readFile(configPath, "utf8"));
 await writeFile(observationPath, JSON.stringify({
   cwd: process.cwd(),
   arguments: argumentsFromHost,
-  environment: { OPENCODE_CONFIG: configPath },
+  environment: Object.fromEntries(Object.keys(process.env).sort().map((key) => [key, process.env[key]])),
   config,
   prompt,
 }));

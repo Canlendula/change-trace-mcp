@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -55,9 +56,22 @@ describe("trusted OpenCode advisory Host", () => {
         "run", "--pure", "--format", "json", "--agent", "change_trace_advisory", expect.any(String),
       ]);
       expect(observed.environment.OPENCODE_CONFIG).not.toContain(subject);
+      const hostAllowed = new Set([
+        "PATH", "HOME", "USERPROFILE", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "OPENCODE_CONFIG", "BUN_INSTALL_CACHE_DIR",
+        "CHANGE_TRACE_TEST_OBSERVATION", "CHANGE_TRACE_TEST_HANG", "GITHUB_MODELS_TOKEN",
+        "SystemRoot", "SYSTEMROOT", "ComSpec", "WINDIR", "SYSTEMDRIVE", "HOMEDRIVE", "HOMEPATH", "USERNAME", "USERDOMAIN", "LOGONSERVER", "TEMP",
+      ]);
+      expect(Object.keys(observed.environment).filter((key) => !hostAllowed.has(key))).toEqual([]);
+      expect(observed.environment.GITHUB_MODELS_TOKEN).toBe("credential-sentinel-for-host-only");
+      expect(["GITHUB_TOKEN", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"].every((key) => !(key in observed.environment))).toBe(true);
+      expect(["HOME", "USERPROFILE", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "OPENCODE_CONFIG", "BUN_INSTALL_CACHE_DIR"].every((key) => !observed.environment[key].includes(subject))).toBe(true);
+      expect(existsSync(observed.environment.OPENCODE_CONFIG)).toBe(false);
+      expect(existsSync(dirname(dirname(observed.environment.OPENCODE_CONFIG)))).toBe(false);
       expect(observed.config.share).toBe("disabled");
       expect(observed.config.snapshot).toBe(false);
       expect(observed.config.autoupdate).toBe(false);
+      expect(observed.config.plugin).toEqual([]);
+      expect(observed.config.instructions).toEqual([]);
       expect(observed.config.enabled_providers).toEqual(["github_models"]);
       expect(observed.config.provider.github_models.options.baseURL).toBe("https://models.github.ai/inference");
       expect(observed.config.provider.github_models.options.apiKey).toBe("{env:GITHUB_MODELS_TOKEN}");
@@ -78,6 +92,13 @@ describe("trusted OpenCode advisory Host", () => {
       expect(observed.prompt).toContain("untrusted evidence");
       expect(observed.prompt).toContain("release-review.md");
       expect(observed.prompt).toContain("run attempt: 7");
+      expect(observed.prompt).toContain(`repositoryRoot: ${subject}`);
+      expect(observed.prompt).toContain("outputDirectory: artifacts/review");
+      expect(observed.prompt).toContain("reportName: release-review");
+      expect(observed.prompt).toContain("overwrite: true");
+      const toolOrder = ["change_trace_get_change_scope", "change_trace_collect_local_evidence", "change_trace_get_review_bundle", "change_trace_validate_findings", "change_trace_write_report"].map((tool) => observed.prompt.indexOf(tool));
+      expect(toolOrder.every((index) => index >= 0)).toBe(true);
+      expect(toolOrder).toEqual([...toolOrder].sort((left, right) => left - right));
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
