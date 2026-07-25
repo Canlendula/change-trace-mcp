@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `assigned`
+- Status: `accepted`
 - Milestone: `M5 — External documentation adapters`
 - Base commit: `54e609e03b486f9e75267aa04cdbaaf65c7105f5`
 - Branch: `codex/M5-006-ci-report-schema-guard`
@@ -108,23 +108,23 @@ Reading other files is allowed. Writing outside this list is not.
 
 ## Acceptance criteria
 
-- [ ] The clean deterministic fixture parses with the current `reportSchema`
+- [x] The clean deterministic fixture parses with the current `reportSchema`
       and contains `evidenceSources: []`.
-- [ ] The standalone runner rejects a missing, oversized, malformed,
+- [x] The standalone runner rejects a missing, oversized, malformed,
       unknown-field, or coverage-count-mismatched evidence-source catalog as
       `report_inconsistent`.
-- [ ] Valid core and external catalog entries pass the standalone validation
+- [x] Valid core and external catalog entries pass the standalone validation
       and preserve existing outcome classification.
-- [ ] Catalog/nested bounds, enums, exact keys, timestamps, hashes, stable IDs,
+- [x] Catalog/nested bounds, enums, exact keys, timestamps, hashes, stable IDs,
       source references, redactions, and optional external provenance are
       checked without dependencies.
-- [ ] `smoke:ci` fails if the deterministic report lacks the catalog and passes
+- [x] `smoke:ci` fails if the deterministic report lacks the catalog and passes
       only with `evidenceSources: []`.
-- [ ] Existing failure artifact, advisory outcome, secrecy, mutation/race,
+- [x] Existing failure artifact, advisory outcome, secrecy, mutation/race,
       revision, rerun, and managed-artifact tests remain green.
-- [ ] Focused tests, type checking, two consecutive full suites, stdio smoke,
+- [x] Focused tests, type checking, two consecutive full suites, stdio smoke,
       deterministic CI smoke, package dry-run, diff, and clean checks pass.
-- [ ] No source, schema, workflow, dependency, version, governance, release, or
+- [x] No source, schema, workflow, dependency, version, governance, release, or
       npm state changes.
 
 ## Required validation
@@ -274,19 +274,38 @@ and the catalog cases exercised. Do not omit transient failures.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
+- Outcome: `accepted`
 - Reviewed branch head:
-- Integration commit:
+  `22b1c103f08ebff2cc9e0d35f59a53411de3b0e5`
+- Integration commits:
+  `fad13af5f1ce2601f52780f7718f2b92ba0637a4`,
+  `d3661eb8bca624a6f2299d9e8af84a72941506f5`,
+  `a21d832855180440e51ca3b28cb8e2b68eb912bf`,
+  `a5e73e45e4906d7b934fb483e743daedbbd13966`
 
 ### Review findings
 
-- Pending.
+- The base-to-head diff contains only the assignment, five allowed
+  implementation/test paths, and the worker-owned handoff.
+- The standalone checks match the Decision 26 catalog projection, including
+  exact nested keys, three array bounds, Gregorian timestamps, safe integer
+  redaction counts, stable IDs, nullable hashes, and external provenance.
+- Positive fixtures parse with the public `reportSchema`; the external fixture
+  retains the required `untrusted_external` trust level.
+- The coordinator independently passed the 97-test focused command and type
+  checking before integration.
+- On `main`, the coordinator passed two consecutive full suites at 27 files /
+  265 tests, then passed type checking, stdio smoke, deterministic CI smoke,
+  and package dry-run.
+- No blocking review finding remains.
 
 ### Required follow-up
 
-- Pending review.
+- Rerun the manual Ubuntu workflow from the reviewed `main` commit and audit
+  the downloaded artifact against the required `evidenceSources` contract.
 
 ### Roadmap and release impact
 
-- M5 remains in progress until this guard is accepted and a new Ubuntu run
-  uploads a report that satisfies Decision 26.
+- This task is accepted. M5 remains in progress until a new Ubuntu run uploads
+  a report that satisfies Decision 26 and the coordinator records the
+  milestone exit evidence.
