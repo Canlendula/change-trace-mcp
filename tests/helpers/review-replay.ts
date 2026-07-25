@@ -48,16 +48,7 @@ export type ReplayPacket = {
   fixtureId: string;
   bundleSha256: string;
   instruction: string;
-  responseContract: {
-    type: "object";
-    additionalProperties: false;
-    required: ["schemaVersion", "fixtureId", "findings"];
-    properties: {
-      schemaVersion: { const: typeof REPLAY_SCHEMA_VERSION };
-      fixtureId: { const: string };
-      findings: { type: "array"; items: Readonly<Record<string, unknown>> };
-    };
-  };
+  responseContract: Readonly<Record<string, unknown>>;
   bundle: ReviewBundle;
 };
 
@@ -79,12 +70,6 @@ const REVIEW_INSTRUCTION = [
   "Separate deterministic facts from inference in each finding.",
   "Return only the response object that matches responseContract, with no Markdown fence or surrounding prose.",
 ].join(" ");
-
-const FINDING_RESPONSE_JSON_SCHEMA = z.toJSONSchema(findingSchema, {
-  target: "draft-2020-12",
-  io: "output",
-  reused: "ref",
-});
 
 function compareCodeUnits(left: string, right: string): number {
   if (left === right) {
@@ -142,16 +127,18 @@ function packetForBundle(replayBundle: ReplayBundle): ReplayPacket {
     fixtureId: replayBundle.fixtureId,
     bundleSha256: digestBundle(replayBundle.bundle),
     instruction: REVIEW_INSTRUCTION,
-    responseContract: {
-      type: "object",
-      additionalProperties: false,
-      required: ["schemaVersion", "fixtureId", "findings"],
-      properties: {
-        schemaVersion: { const: REPLAY_SCHEMA_VERSION },
-        fixtureId: { const: replayBundle.fixtureId },
-        findings: { type: "array", items: FINDING_RESPONSE_JSON_SCHEMA },
+    responseContract: z.toJSONSchema(
+      z.strictObject({
+        schemaVersion: z.literal(REPLAY_SCHEMA_VERSION),
+        fixtureId: z.literal(replayBundle.fixtureId),
+        findings: z.array(findingSchema).max(1_000),
+      }),
+      {
+        target: "draft-2020-12",
+        io: "output",
+        reused: "ref",
       },
-    },
+    ),
     bundle: replayBundle.bundle,
   };
 }

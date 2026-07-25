@@ -73,7 +73,18 @@ describe("review replay packets", () => {
         additionalProperties: false,
         required: ["schemaVersion", "fixtureId", "findings"],
       });
-      const findingItems = packet.responseContract.properties.findings.items as {
+      const responseContract = packet.responseContract as {
+        properties?: { findings?: { items?: unknown; maxItems?: number } };
+        $defs?: Record<string, unknown>;
+      };
+      const findingReference = responseContract.properties?.findings?.items as {
+        $ref?: string;
+      };
+      const findingDefinitionKey = /^#\/\$defs\/(.+)$/u.exec(
+        findingReference.$ref ?? "",
+      )?.[1];
+      expect(findingDefinitionKey).toBeTruthy();
+      const findingItems = responseContract.$defs?.[findingDefinitionKey ?? ""] as {
         required?: string[];
         additionalProperties?: boolean;
       };
@@ -89,6 +100,29 @@ describe("review replay packets", () => {
         ]),
       );
       expect(findingItems.additionalProperties).toBe(false);
+      expect(responseContract.properties?.findings?.maxItems).toBe(1_000);
+
+      const localDefinitionReferences = new Set<string>();
+      const collectReferences = (value: unknown): void => {
+        if (Array.isArray(value)) {
+          value.forEach(collectReferences);
+        } else if (value !== null && typeof value === "object") {
+          for (const [key, child] of Object.entries(value)) {
+            if (key === "$ref" && typeof child === "string") {
+              const match = /^#\/\$defs\/(.+)$/u.exec(child);
+              if (match?.[1]) {
+                localDefinitionReferences.add(match[1]);
+              }
+            }
+            collectReferences(child);
+          }
+        }
+      };
+      collectReferences(responseContract);
+      expect(localDefinitionReferences.size).toBeGreaterThan(0);
+      for (const definition of localDefinitionReferences) {
+        expect(responseContract.$defs).toHaveProperty(definition);
+      }
     }
   });
 
