@@ -236,14 +236,21 @@ the exact offline Host smoke command and record that explicit deviation.
 
 - Status: `ready_for_review`
 - Handoff branch: `codex/M4-002-opencode-github-actions`
-- Implementation commits: `a5abcad472c9e71f5b8d7c1accbef7959e70e738`, `bd6b2290b0c558d50b8e73f6616e4e9f32768f7f`
+- Implementation commits: `a5abcad472c9e71f5b8d7c1accbef7959e70e738`, `bd6b2290b0c558d50b8e73f6616e4e9f32768f7f`, `1f9715dd27dd8eceae9ac9568f84588c96d09d3a`
 
 ### Implementation summary
 
 - Added a non-blocking GitHub Actions advisory workflow with distinct quality
-  and advisory jobs, trusted base/subject-head checkouts (including fork PR
-  subjects), full action pins, bounded revisions, exact OpenCode package pin,
-  direct CLI path/version verification, and uniquely named three-file uploads.
+  and advisory jobs. `pull_request` runs only low-privilege quality from the
+  PR merge commit; `pull_request_target` runs the model-bearing advisory from
+  the trusted base workflow definition. Trusted base/subject-head checkouts
+  support fork subjects, retain the no-subject-execution boundary, use full
+  action pins and bounded revisions, and upload uniquely named three-file
+  artifacts.
+- Fixed the exact OpenCode 1.18.5 install so its required `postinstall` runs
+  only in the pre-credential installation step. The workflow then verifies the
+  package manifest, confined real binary path, and direct CLI version before
+  the credential-bearing Host step.
 - Added an isolated OpenCode 1.18.5 GitHub Models Host, fixed trusted prompt,
   credential-clearing MCP configuration, import-before-sanitization wrapper,
   bounded Host child timeout, and an allowlisted status summary.
@@ -254,8 +261,9 @@ the exact offline Host smoke command and record that explicit deviation.
 
 ### Changed areas
 
-- `.github/workflows/m4-advisory-review.yml` — least-privilege, advisory
-  quality/Host/artifact workflow.
+- `.github/workflows/m4-advisory-review.yml` — event-separated trusted
+  advisory/low-privilege quality workflow, explicit fork-head checkout opt-in,
+  and verified postinstall-enabled OpenCode CLI installation.
 - `scripts/ci/opencode-advisory-host.mjs`, `start-sanitized-mcp.mjs`,
   `summarize-advisory-status.mjs`, and prompt/smoke helpers — trusted Host,
   environment boundary, bounded output, status rendering, and offline smoke.
@@ -271,14 +279,15 @@ the exact offline Host smoke command and record that explicit deviation.
 | Command | Result | Notes |
 |---|---|---|
 | `npx vitest run tests/integration/advisory-host.test.ts` | PASS | 5 offline Host/configuration tests passed. |
+| `actionlint@2.0.6` Node parser on `.github/workflows/m4-advisory-review.yml` | PASS | No unexpected YAML/expression diagnostics. This older parser's sole `models` permission diagnostic was recognized as its unsupported current GitHub permission scope. |
 | `npm run smoke:ci` | PASS | Existing generic runner smoke passed. |
 | `npm run smoke:ci:host` | PASS | Deterministic isolated Host smoke passed. |
 | `npm run check` | PASS | TypeScript check passed. |
 | `npm test` | PASS | 18 files, 176 tests passed. One earlier full-run attempt exposed a pre-existing 200 ms M4-001 fixture timeout under parallel load; a focused rerun and final `npm test` passed without changes to protected existing tests. |
 | `npm run smoke:stdio` | PASS | Existing stdio smoke passed. |
 | `npm run pack:check` | PASS | Dry-run package check passed. |
-| `git diff --check 2d4bcbf5610ba742aa5d3256a3544b13ef60b3a0..HEAD` | PASS | No whitespace errors before handoff update. |
-| `git status --short` | PASS | Clean before handoff staging. |
+| `git diff --check 2d4bcbf5610ba742aa5d3256a3544b13ef60b3a0..HEAD` | Pending final handoff commit | Re-run after this handoff is committed. |
+| `git status --short` | Pending final handoff commit | Re-run after this handoff is committed. |
 
 ### Public contract and documentation impact
 
@@ -295,6 +304,13 @@ the exact offline Host smoke command and record that explicit deviation.
 - A real GitHub Actions run remains coordinator-owned. The reference workflow
   intentionally keeps review advisory and makes no compatibility or release
   claim.
+- The split ensures the repository's intended model-bearing advisory execution
+  is sourced from the base workflow; repository or organization workflow
+  approval/execution-protection policy remains necessary to govern arbitrary
+  PR-controlled workflow revisions.
+- OpenCode's package lifecycle script executes only in the exact pinned,
+  no-model-credential installation step. The direct manifest/realpath/version
+  checks detect a missing or substituted CLI before the Host receives a token.
 
 ### Decisions or questions for coordinator
 
