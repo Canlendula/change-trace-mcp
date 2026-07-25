@@ -27,6 +27,7 @@
     "pack:check": "npm pack --dry-run",
     "prepack": "npm run build",
     "smoke:ci": "node scripts/ci/smoke-advisory-ci.mjs",
+    "smoke:ci:host": "node scripts/ci/smoke-opencode-advisory.mjs",
     "smoke:stdio": "npm run build && node scripts/smoke-stdio.mjs node dist/cli.js",
     "start": "node dist/cli.js",
     "test": "npm run build && vitest run",

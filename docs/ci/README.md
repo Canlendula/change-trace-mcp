@@ -90,3 +90,75 @@ and revisions.
 
 Run `npm run smoke:ci`. It uses the repository's deterministic generic fixture
 Host and verifies all three artifacts below `artifacts/advisory-ci-smoke`.
+
+## Trusted OpenCode reference Host
+
+`.github/workflows/m4-advisory-review.yml` keeps `quality` and
+`advisory-review` separate. The advisory job depends on quality but uses
+`if: always()` and job-level `continue-on-error: true`, so it cannot turn a
+test/build result into a merge gate. It has only `contents: read` and
+`models: read` permissions.
+
+For a pull request, the workflow checks out trusted tooling from the base SHA
+into `trusted-tooling` and the review subject from the head repository/SHA into
+`subject`. This also supports fork pull requests. The trusted checkout supplies
+the runner, Host, prompt, configuration, build, and MCP executable. The subject
+is evidence only: the workflow never runs its npm scripts, dependencies, hooks,
+OpenCode configuration, or binaries.
+
+The workflow installs `opencode-ai@1.18.5` without lifecycle scripts in a
+trusted local prefix, validates its package metadata and its directly resolved
+binary's `--version`, then passes that absolute binary path to the Host. The
+pin refers to the npm package version and the CLI self-reports `1.18.5`; using
+`npm exec ... --version` is avoided because npm may consume that trailing flag.
+The package metadata was verified for `opencode-ai@1.18.5` (integrity
+`sha512-Q0jlX4ihn7veMeYsLX3c4PYFAKIURU3GIpXt1FnhNxNn3v8+RpIZ8z9umG5D0r8g8Smp9fZLGjgLe/9mJ4NyYw==`).
+
+`scripts/ci/opencode-advisory-host.mjs` creates a new private temporary state
+directory for each invocation and removes only that directory. It starts from
+the trusted checkout with an inline `OPENCODE_CONFIG`, isolated home/config/
+data/cache paths, `--pure`, sharing/snapshots/autoupdate disabled, no plugins
+or instructions, provider allowlist `github_models`, and `subagent_depth: 0`.
+The configuration selects `openai/gpt-4.1` at
+`https://models.github.ai/inference`, denies every built-in tool, and allows
+only `change_trace_*` tools. The selected
+`@ai-sdk/openai-compatible` provider is bundled by OpenCode v1.18.5 (official
+tag `v1.18.5`, commit `e5cc278dec9294a627a7b05f47ce6a564408c1a2`), so this
+provider does not dynamically install an adapter during the credential-bearing
+step.
+
+The GitHub Models token is introduced only in the credential-bearing trusted
+Host workflow step. The generic runner and trusted Host helper inherit it so
+the OpenCode CLI can consume it; it is never passed in argv, prompts, reports,
+logs, or artifacts. The MCP configuration first overrides
+`GITHUB_MODELS_TOKEN` and `GITHUB_TOKEN` to empty values. Then
+`scripts/ci/start-sanitized-mcp.mjs` validates the trusted built entry before
+importing it and reconstructs the MCP environment from this exact allowlist:
+`PATH`, platform runtime variables (`SystemRoot`, `SYSTEMROOT`,
+`ComSpec`, `WINDIR`, `SYSTEMDRIVE`, Windows home/user-domain variables,
+locale/timezone and temp variables when present), the five
+`CHANGE_TRACE_CI_*` run-context values, and `GIT_CONFIG_NOSYSTEM`,
+`GIT_CONFIG_GLOBAL`, and `GIT_TERMINAL_PROMPT`. No credential or provider
+variable is retained.
+
+The fixed prompt treats subject text as untrusted evidence and calls the five
+M3 tools in order. It gives `write_report` an absolute `repositoryRoot`, a
+subject-relative `outputDirectory`, `reportName: release-review`, and
+`overwrite: true`. Host streams are bounded, drained, and discarded; neither
+raw OpenCode JSON events nor stderr are logged or uploaded. The Host has a
+twelve-minute direct-child timeout, shorter than the runner's fourteen-minute
+timeout. Only the three managed report artifacts are uploaded. The job summary
+uses allowlisted outcome, counts, revisions, attempt, names, sizes, and hashes.
+
+Run `npm run smoke:ci:host` for the offline deterministic Host/configuration
+smoke. It uses a trusted fixture binary and never contacts a model provider.
+
+## Generic GitLab-compatible example
+
+[`gitlab-ci.example.yml`](gitlab-ci.example.yml) is provider-neutral and
+advisory. Before using it, a protected pipeline must independently obtain a
+trusted tooling checkout at a protected revision, verify that directory is not
+a symlink, and provide a distinct read-only subject worktree. Supply safe
+base/head revisions and a unique attempt number through the listed variables.
+Keep a Host/provider credential protected and masked; pass it only to the Host
+process and never to MCP configuration or artifacts.

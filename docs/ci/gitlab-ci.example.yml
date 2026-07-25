@@ -1,0 +1,46 @@
+# Copyable provider-neutral advisory example. Prepare CHANGE_TRACE_TOOLING_ROOT
+# from a protected trusted revision; never use the merge-request worktree for it.
+stages: [test, advisory]
+
+change_trace_advisory:
+  stage: advisory
+  image: node:22-bookworm
+  timeout: 15m
+  allow_failure: true
+  variables:
+    CHANGE_TRACE_TOOLING_ROOT: "$CI_PROJECT_DIR/.change-trace-trusted"
+    CHANGE_TRACE_SUBJECT_ROOT: "$CI_PROJECT_DIR"
+    CHANGE_TRACE_OUTPUT_DIRECTORY: "artifacts/advisory"
+  script:
+    - test -n "$CHANGE_TRACE_HOST_COMMAND"
+    - test -n "$CHANGE_TRACE_BASE_REVISION"
+    - test -n "$CHANGE_TRACE_HEAD_REVISION"
+    - cd "$CHANGE_TRACE_TOOLING_ROOT"
+    - npm ci --ignore-scripts
+    - npm run build
+    - >-
+      CHANGE_TRACE_CI_COMMAND="$CHANGE_TRACE_HOST_COMMAND"
+      CHANGE_TRACE_CI_REPOSITORY_ROOT="$CHANGE_TRACE_SUBJECT_ROOT"
+      CHANGE_TRACE_CI_OUTPUT_DIRECTORY="$CHANGE_TRACE_OUTPUT_DIRECTORY"
+      CHANGE_TRACE_CI_BASE_REVISION="$CHANGE_TRACE_BASE_REVISION"
+      CHANGE_TRACE_CI_HEAD_REVISION="$CHANGE_TRACE_HEAD_REVISION"
+      CHANGE_TRACE_CI_RUN_ATTEMPT="$CI_JOB_ID"
+      CHANGE_TRACE_CI_TIMEOUT_MS=840000
+      node scripts/ci/advisory-runner.mjs
+  artifacts:
+    when: always
+    paths:
+      - artifacts/advisory/release-review.md
+      - artifacts/advisory/release-review.json
+      - artifacts/advisory/release-review-status.json
+
+# Define CHANGE_TRACE_HOST_COMMAND as explicit JSON argv in protected CI
+# configuration. If the selected Host needs a provider credential, store it as a
+# protected and masked variable and pass it only to that Host process. Do not
+# put it in MCP configuration, command arguments, logs, reports, or artifacts.
+# Before this job, a protected pipeline step must independently check out the
+# trusted tooling revision into CHANGE_TRACE_TOOLING_ROOT, verify it is a real
+# directory under CI_PROJECT_DIR (not a symlink), and provide a separate,
+# read-only subject worktree at CHANGE_TRACE_SUBJECT_ROOT. Do not let merge
+# request content create either trusted path. The stage ordering places this
+# advisory job after the project's test stage without assuming a job name.
