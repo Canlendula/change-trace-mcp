@@ -50,6 +50,8 @@ describe("provider-neutral CI references", () => {
     expect(workflow).toContain("CHANGE_TRACE_CI_RUN_ATTEMPT: ${{ github.run_attempt }}");
     expect(workflow).toContain("github.run_id");
     expect(workflow).toContain("github.run_attempt");
+    expect(workflow).toContain("actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1");
+    expect(workflow).not.toContain("actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02");
     expect(uploadPaths(workflow, "Upload deterministic advisory artifacts")).toEqual(
       managedNames.map((name) => `artifacts/advisory-ci-smoke/${name}`),
     );
@@ -97,6 +99,8 @@ describe("provider-neutral CI references", () => {
     expect(example).toContain("timeout-minutes: 15");
     expect(example).toContain("CHANGE_TRACE_CI_TIMEOUT_MS: '840000'");
     expect(example).toContain("node scripts/ci/advisory-runner.mjs");
+    expect(example).toContain("actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1");
+    expect(example).not.toContain("actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02");
     expect(example).not.toMatch(/opencode|codex|claude|openai|anthropic|github models/i);
     expect(uploadPaths(example, "Upload advisory artifacts")).toEqual(
       managedNames.map((name) => `subject/artifacts/advisory/${name}`),
