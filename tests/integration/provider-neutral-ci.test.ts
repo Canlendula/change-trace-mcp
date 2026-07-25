@@ -18,6 +18,10 @@ const managedNames = [
   "release-review-status.json",
 ];
 
+async function readLf(path: string): Promise<string> {
+  return (await readFile(path, "utf8")).replace(/\r\n?/g, "\n");
+}
+
 function uploadPaths(document: string, stepName: string): string[] {
   const escapedName = stepName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const step = document.match(new RegExp(`- name: ${escapedName}[\\s\\S]*?(?=\\n\\s+- name:|$)`))?.[0];
@@ -28,7 +32,7 @@ function uploadPaths(document: string, stepName: string): string[] {
 
 describe("provider-neutral CI references", () => {
   it("keeps the live M4 workflow manual, deterministic, credential-free, and advisory", async () => {
-    const workflow = await readFile(workflowPath, "utf8");
+    const workflow = await readLf(workflowPath);
 
     expect(workflow).toMatch(/^on:\r?\n  workflow_dispatch:\s*$/m);
     expect(workflow).not.toMatch(/^\s{2}(?:push|pull_request|pull_request_target|schedule|workflow_call):/m);
@@ -83,8 +87,8 @@ describe("provider-neutral CI references", () => {
   });
 
   it("provides a bounded provider-neutral GitHub template with explicit JSON argv", async () => {
-    const example = await readFile(examplePath, "utf8");
-    const docs = await readFile(docsPath, "utf8");
+    const example = await readLf(examplePath);
+    const docs = await readLf(docsPath);
 
     expect(example).toContain("CHANGE_TRACE_CI_COMMAND: ${{ vars.CHANGE_TRACE_HOST_COMMAND }}");
     expect(example).toContain("CHANGE_TRACE_HOST_CREDENTIAL: ${{ secrets.CHANGE_TRACE_HOST_CREDENTIAL }}");
