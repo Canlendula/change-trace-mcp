@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M4 in progress; reference-Host decision required
+> Status: M4 in progress; provider-neutral closeout selected
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -409,9 +409,9 @@ Run the review after or alongside existing CI without changing the release path 
 
 ### Integration targets
 
-1. GitHub Actions with a headless Agent Host;
-2. optional GitHub Copilot Code Review with repository MCP configuration when
-   a licensed contributor or pilot is available;
+1. GitHub Actions with a caller-supplied headless Agent Host;
+2. optional platform-native Agent review with repository MCP configuration
+   when an entitled pilot is available;
 3. one generic template suitable for GitLab CI or another runner.
 
 ### Required behavior
@@ -431,6 +431,7 @@ Run the review after or alongside existing CI without changing the release path 
 ### Exit criteria
 
 - one sample repository demonstrates the full loop;
+- the GitHub and generic examples do not require one bundled provider/model;
 - failure of the advisory review does not fail the release pipeline by default;
 - secrets are passed only to required MCP adapters;
 - logs do not print credentials or full sensitive documents;
@@ -438,7 +439,7 @@ Run the review after or alongside existing CI without changing the release path 
 
 ### Current status and decision gate
 
-M4 remains in progress.
+M4 remains in progress with its reference architecture selected.
 
 - The Host-neutral advisory runner and generic CI path are implemented and
   tested.
@@ -455,17 +456,23 @@ M4 remains in progress.
   active.
 - The bounded live evidence is tracked in
   [`docs/evaluation/M4_GPT41_RESULTS.md`](evaluation/M4_GPT41_RESULTS.md).
+- Official platform evidence now confirms caller-supplied Agent execution
+  across GitHub Actions, GitLab External Agents, Bitbucket Agentic Pipelines,
+  and generic/self-managed CI runners. Exact capabilities and restrictions are
+  tracked in
+  [`docs/evaluation/M4_CI_AGENT_LANDSCAPE.md`](evaluation/M4_CI_AGENT_LANDSCAPE.md).
+- Decision 21 selects the provider-neutral advisory runner and caller-supplied
+  Host. Change Trace will not provide a built-in free semantic reviewer.
+- Semantic Host/model compatibility still requires the M3-derived quality
+  gate. A deterministic CI Host may validate orchestration, artifacts,
+  advisory isolation, and rerun metadata without creating a semantic
+  compatibility claim.
 
-The free GPT-4.1 path is therefore not an M4 reference reviewer. The next
-coordinator/user decision must select one of these directions before M4
-implementation resumes:
-
-1. use deterministic trusted orchestration with a different model/provider
-   that passes the M3-derived quality gate;
-2. retain direct MCP tool use with a provider/model that accepts the full tool
-   schema and also passes the quality gate;
-3. scope M4 to the provider-neutral advisory runner and caller-supplied Host,
-   without a built-in free GitHub semantic-review claim.
+The remaining M4 closeout is bounded: retire the free GitHub Models path as a
+reference, provide a provider-neutral GitHub example alongside the generic
+template, preserve the historical failure evidence, and validate the
+deterministic GitHub orchestration path. M5 begins after that closeout passes
+coordinator review.
 
 ## 11. M5 — External documentation adapters
 
@@ -726,12 +733,13 @@ Progress as of 2026-07-25:
 | Report writing | Complete; confined deterministic Markdown/JSON output passes unit and stdio integration tests |
 | M3 evaluation fixtures and scorer | Complete; nine fixtures, deterministic replay preparation, capture scoring, and summaries are tracked |
 | M3 cross-Host exit gate | Complete; Codex Desktop, Claude Code, and OpenCode each pass 9 of 9 on instruction `1.4.0` |
-| M4 advisory CI | In progress; generic runner and trusted workflow implemented, free GitHub GPT-4.1 reference path rejected after bounded live quality spike |
+| M4 advisory CI | In progress; caller-supplied Host selected, generic runner implemented, free GitHub GPT-4.1 path rejected, provider-neutral closeout pending |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
 prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 `0.0.0-dev.0` until the next preview release is explicitly published.
 
-The selected sequence remains at M4 advisory CI integration. Further
-construction requires the M4 reference-Host direction above to be selected.
+The selected sequence remains at M4 advisory CI integration. The reference
+direction is selected; the next construction item is the bounded
+provider-neutral closeout described above.

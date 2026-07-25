@@ -475,3 +475,75 @@ Until another M4 architecture is selected:
   it can become the M4 reference path;
 - compact schemas or deterministic orchestration may solve request capacity,
   but do not by themselves satisfy model-quality or output-reliability gates.
+
+## 21. M4 uses a caller-supplied Agent Host
+
+M4 selects the provider-neutral advisory runner and caller-supplied Host
+direction. Change Trace does not bundle, subsidize, or certify a default free
+semantic reviewer.
+
+The durable responsibility split is:
+
+- the repository platform owns event triggers, protected execution, identity,
+  credentials, artifact retention, PR/MR comments, and merge-policy wiring;
+- the caller-selected Agent Host and model own semantic reasoning and MCP tool
+  invocation;
+- Change Trace owns deterministic change scope, bounded and provenance-rich
+  evidence, validation, outcome classification, and portable Markdown/JSON
+  report artifacts.
+
+Official platform evidence shows that this is a supported deployment pattern:
+GitHub Actions can run Codex or Claude through vendor-maintained Actions;
+GitLab External Agents supports managed Codex and Claude paths across its
+documented offerings; Bitbucket Agentic Pipelines supports Rovo Dev plus
+bring-your-own Codex and Claude; Azure Pipelines, Gitee Go, and self-managed
+forge runners can invoke explicit command-line Hosts. These paths have
+different availability, trust, credential, and runner constraints, so none is
+part of the core public contract.
+
+M4 compatibility claims follow these rules:
+
+- a deterministic Host may prove CI orchestration, artifact behavior, rerun
+  identity, and advisory failure containment;
+- semantic Host/model compatibility requires that exact path to pass the
+  M3-derived replay quality gate;
+- a platform listing or successful CLI launch does not establish semantic
+  quality;
+- platform-specific comments and checks belong in optional examples or
+  adapters, not the MCP core;
+- the rejected free GitHub Models GPT-4.1 path remains paused and historical;
+  it is not a fallback.
+
+The M4 exit gate therefore requires provider-neutral GitHub and generic CI
+examples plus deterministic orchestration evidence. It does not require the
+project to purchase or operate a model credential. The supporting official and
+live evidence is tracked in
+[`docs/evaluation/M4_CI_AGENT_LANDSCAPE.md`](evaluation/M4_CI_AGENT_LANDSCAPE.md).
+
+## 22. Product differentiation is the change-intent evidence layer
+
+Change Trace will not compete as a general AI code reviewer. Repository
+platforms and model vendors already provide code-quality review, repository
+instructions, skills, MCP access, and increasingly intent-aware review.
+
+The v1 product claim is:
+
+> Change Trace provides cross-system, traceable, and verifiable change-intent
+> evidence to an existing review Agent.
+
+The core differentiators are:
+
+- platform- and model-neutral evidence contracts;
+- external requirements, product documentation, ADRs, decisions, and issue
+  acceptance criteria;
+- stable provenance, source identity, timestamps, hashes, selection reasons,
+  truncation, and missing-access records;
+- CI, test, API, Playwright, deployment, and other runtime observations kept
+  distinct from static evidence;
+- validated findings that can distinguish requirement gaps, stale
+  documentation, code drift, runtime mismatch, and insufficient evidence.
+
+This decision raises the strategic priority of M5 external-document adapters
+and M6 runtime evidence. Repository-specific presentation remains an outer
+integration concern, while Change Trace stays focused on evidence collection,
+normalization, traceability, and report validation.
