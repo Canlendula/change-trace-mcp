@@ -124,21 +124,52 @@ again or weakening assertions.
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress`
+- Status: `ready_for_review`
 - Implementation commit(s):
-- Branch head:
+  - `727b665cc9fd610054d8d0660b80a69cb18bc162`
+- Branch head: resolve the current
+  `codex/M5-005-runner-timeout-test-reliability` head after the handoff
+  commit; the handoff commit is intentionally not self-referenced.
 
 ### Implementation summary
 
-- Pending.
+- Changed only the existing direct-child timeout test:
+  - configured the `hang` registration with a 2,000-millisecond runner
+    timeout so a new Windows Node child can write its PID under concurrent
+    load;
+  - assigned the Vitest case an explicit 10,000-millisecond timeout.
+- Production runner behavior, the fixture process, public limits, helper
+  polling, and every runtime/security assertion remain unchanged.
 
 ### Validation
 
-- Pending.
+- `1..10 | ForEach-Object { npx vitest run
+  tests/integration/external-adapter-runner.test.ts; if ($LASTEXITCODE -ne 0)
+  { exit $LASTEXITCODE } }`: passed all 10 consecutive executions; every run
+  passed 1 file / 15 tests, for 150 successful focused test executions.
+- `npm run check`: passed.
+- First consecutive `npm test`: passed, 27 files / 242 tests.
+- Second consecutive `npm test`: passed, 27 files / 242 tests.
+- `git diff --check
+  e5cab4ff482557edce911e346011a4079427fd89..HEAD`: passed after the handoff
+  commit.
+- `git status --short`: clean after the handoff commit.
+- No command failed during M5-005 implementation or validation.
 
 ### Assertion-preservation audit
 
-- Pending.
+- The case still requires `expectRunnerError(..., "timeout", [pidPath,
+  fixturePath])`, retaining the exact stable error code and both forbidden
+  values.
+- `expect(error.exitCode).toBeNull()` remains unchanged.
+- The test still reads the fixture PID from `pid.txt` after the runner returns
+  and passes it to `waitForProcessExit`.
+- `waitForProcessExit` remains unchanged and still fails if the direct child
+  remains alive after its existing two-second confirmation deadline.
+- No retry, conditional skip, platform skip, `ENOENT` handling, arbitrary
+  post-failure sleep, failure suppression, or loosened expectation was added.
+- The complete base-to-head path audit contains only this task file and
+  `tests/integration/external-adapter-runner.test.ts`.
 
 ### Deviations from assignment
 
@@ -146,18 +177,22 @@ again or weakening assertions.
 
 ### Known limitations and risks
 
-- Pending.
+- The 2,000-millisecond value is only this test's child-startup allowance. It
+  does not change a product default or the runner implementation.
+- The accepted direct-child-only termination boundary is unchanged; process
+  tree or descendant hardening remains outside this reliability task.
 
 ### Decisions or questions for coordinator
 
-- None reported.
+- None. The prescribed 2,000-millisecond value passed all stress and full-suite
+  gates without escalation.
 
 ### Protected-file confirmation
 
-- [ ] Only allowed paths changed.
-- [ ] No production, fixture, dependency, version, CI, release, or npm state
+- [x] Only allowed paths changed.
+- [x] No production, fixture, dependency, version, CI, release, or npm state
       changed.
-- [ ] All intended handoff changes are committed and the worktree is clean.
+- [x] All intended handoff changes are committed and the worktree is clean.
 
 ## Coordinator review — coordinator owned
 
