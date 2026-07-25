@@ -199,27 +199,50 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
-- Handoff branch:
-- Implementation commits:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M4-001-advisory-runner`
+- Implementation commits: `c8bc7fc82cfd22c9b4578f05c971e91d3db7f075`
 
 ### Implementation summary
 
-- `<what was implemented>`
+- Added a dependency-free, Host-neutral advisory runner with explicit JSON argv
+  parsing, `shell: false`, bounded stream draining, direct-child timeout
+  escalation, report validation, four-state classification, confined artifact
+  publication, and redaction-safe status/failure artifacts.
+- Successful Host report pairs remain byte-preserved: the runner snapshot
+  checks report sizes and SHA-256 hashes before and after publishing only the
+  status sidecar.
+- Added deterministic fixture Hosts and integration coverage for precedence,
+  recoverable failures, path/type safety, non-disclosure, bounded output,
+  reruns, revision validation, and an uncooperative direct child.
 
 ### Changed areas
 
-- `<path or component and reason>`
+- `scripts/ci/advisory-runner.mjs` — generic runner and confined artifact handling.
+- `scripts/ci/smoke-advisory-ci.mjs` and `package.json` — deterministic `smoke:ci` path.
+- `tests/fixtures/ci/fixture-host.mjs` and
+  `tests/integration/advisory-ci.test.ts` — Host fixtures and 21 integration tests.
+- `docs/ci/README.md` — environment, artifact, outcome, timeout, rerun, and
+  non-disclosure contract.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npx vitest run tests/integration/advisory-ci.test.ts` | PASS | 21 tests passed. |
+| `npm run smoke:ci` | PASS | Verified all three generic CI artifacts. |
+| `npm run check` | PASS | TypeScript check passed. |
+| `npm test` | PASS | 17 files, 170 tests passed. |
+| `npm run smoke:stdio` | PASS | Existing stdio smoke passed. |
+| `npm run pack:check` | PASS | Dry-run package check passed. |
+| `git diff --check` | PASS | No whitespace errors before handoff commit. |
+| `git status --short` | PASS | Clean before handoff record staging. |
 
 ### Public contract and documentation impact
 
-- `<impact, or None>`
+- Added the internal CI runner environment and artifact contract in
+  `docs/ci/README.md`; no MCP schema, tool, production source, dependency, or
+  public package export changed.
 
 ### Deviations from assignment
 
@@ -227,7 +250,10 @@ git status --short
 
 ### Known limitations and risks
 
-- None.
+- Failure placeholders are written Markdown, JSON, then status last. A
+  mid-write filesystem failure exits nonzero; status is not treated as a fresh
+  completion record. The runner intentionally does not use broad deletion or
+  process-tree termination.
 
 ### Decisions or questions for coordinator
 
@@ -235,9 +261,9 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
