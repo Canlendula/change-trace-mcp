@@ -275,18 +275,32 @@ git status --short
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
-- Reviewed branch head:
-- Integration commit:
+- Outcome: `accepted`
+- Reviewed branch head: `51537ffedfe66109cf9992d7dd68b7778e489dbf`
+- Integration commits: `d108cbe`, `8adb92c`, `0d4adb0`, `3893794`
 
 ### Review findings
 
-- Pending.
+- Initial review found that a zero-exit, no-output rerun could reuse the
+  preceding report pair and publish fresh run metadata for stale content.
+  `0d4adb0` resolves this by invalidating status first and then only the two
+  exact managed report files before Host startup. The new regression proves a
+  no-output second attempt becomes an infrastructure-failure artifact set and
+  preserves unrelated files.
+- Earlier review feedback also resolved successful-report rewrites, an
+  unbounded soft-termination wait, and unvalidated revision metadata.
+- Coordinator validation passed: 22 focused integration tests, 171 full tests,
+  `smoke:ci`, type checking, stdio smoke, pack dry-run, diff/path scope, clean
+  worktree, and credential-pattern audit.
 
 ### Required follow-up
 
-- Pending.
+- Proceed with a separate M4 task for the trusted headless Host, GitHub Actions
+  advisory workflow, credential isolation, artifact upload, and generic CI
+  template. Live cloud evidence remains required before M4 can close.
 
 ### Roadmap and release impact
 
-- Pending coordinator review.
+- M4 remains in progress. This task establishes the accepted Host-neutral
+  runner contract but does not make a Host compatibility claim, complete the
+  sample-repository loop, change package version, or authorize a release.
