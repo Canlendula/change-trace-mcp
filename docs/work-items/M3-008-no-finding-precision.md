@@ -4,7 +4,7 @@
 
 - Status: `assigned`
 - Milestone: `M3 — Agent review loop`
-- Base commit: `662e54aa07aacb5004b0119cefcd96928fd3e41a`
+- Base commit: `662e54a4c4547bbe23a86b736f352647f8e20149`
 - Branch: `work/M3-008-no-finding-precision`
 - Worktree:
   `D:\projects\change-trace-worktrees\M3-008-no-finding-precision`
@@ -146,7 +146,7 @@ npm run check
 npm test
 npm run smoke:stdio
 npm run pack:check
-git diff --check 662e54aa07aacb5004b0119cefcd96928fd3e41a..HEAD
+git diff --check 662e54a4c4547bbe23a86b736f352647f8e20149..HEAD
 git status --short
 ```
 
