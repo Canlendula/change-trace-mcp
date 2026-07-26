@@ -1,0 +1,38 @@
+{
+  "profile": "m6-staging-summary-v1",
+  "environment": {
+    "kind": "staging",
+    "name": "review-app-42",
+    "source": {
+      "system": "deployment-metadata",
+      "locator": "review-app-42",
+      "uri": "https://staging.example.test/review-app-42"
+    }
+  },
+  "records": [
+    {
+      "id": "environment",
+      "kind": "environment_metadata",
+      "source": {
+        "system": "ci-summary",
+        "locator": "staging/review-app-42",
+        "uri": null
+      },
+      "accessStatus": "available",
+      "summary": "Review application metadata was supplied by the CI summary."
+    },
+    {
+      "id": "observation",
+      "kind": "browser_observation",
+      "source": {
+        "system": "ci-summary",
+        "locator": "staging:review-app-42",
+        "uri": "https://staging.example.test/review-app-42"
+      },
+      "accessStatus": "inaccessible",
+      "reason": "Staging observation unavailable. access_token=m6-staging-reason-secret",
+      "probeCommand": "staging-probe-command-sentinel",
+      "credential": "staging-credential-sentinel"
+    }
+  ]
+}

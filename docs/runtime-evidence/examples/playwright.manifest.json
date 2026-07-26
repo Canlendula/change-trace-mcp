@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0.0",
+  "producer": {
+    "id": "producer:example-playwright-v1",
+    "name": "Example pinned Playwright mapper",
+    "version": "1.0.0"
+  },
+  "sourceFormat": "playwright_json",
+  "records": [
+    {
+      "recordId": "record:playwright:example-flow:chromium:fails",
+      "kind": "test_case",
+      "source": {
+        "system": "playwright",
+        "locator": "suite:example-flow/spec:fails/project:chromium/test:tests/example.spec.ts:20:3",
+        "uri": null
+      },
+      "environment": {
+        "kind": "ci",
+        "name": "example-playwright-job",
+        "source": {
+          "system": "ci",
+          "locator": "jobs/playwright/example",
+          "uri": "https://ci.example.test/jobs/playwright/example"
+        }
+      },
+      "relatedChangeIds": [
+        "file:src/example.ts"
+      ],
+      "relatedEvidenceIds": [
+        "evidence:document:example-requirement"
+      ],
+      "accessStatus": "available",
+      "outcome": "failed",
+      "startedAt": "2026-07-26T08:01:00.000Z",
+      "completedAt": "2026-07-26T08:01:00.250Z",
+      "durationMilliseconds": 250,
+      "summary": "Example failed.",
+      "artifactReferences": [
+        {
+          "system": "playwright",
+          "locator": "artifacts/example/trace.zip",
+          "uri": null
+        }
+      ],
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": null,
+        "retainedCharacters": 15
+      }
+    }
+  ]
+}

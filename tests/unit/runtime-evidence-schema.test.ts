@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import { z } from "zod";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
@@ -1052,5 +1054,36 @@ describe("runtime JSON Schema exports", () => {
       title: "RuntimeEvidenceCollection",
       type: "object",
     });
+  });
+});
+
+describe("packaged runtime manifest examples", () => {
+  it("keeps all four strict examples non-secret and within the collector boundary", async () => {
+    const examples = [
+      "junit.manifest.json",
+      "playwright.manifest.json",
+      "api-smoke.manifest.json",
+      "staging.manifest.json",
+    ];
+
+    for (const example of examples) {
+      const content = await readFile(
+        new URL(
+          `../../docs/runtime-evidence/examples/${example}`,
+          import.meta.url,
+        ),
+      );
+      expect(content.byteLength).toBeLessThanOrEqual(4 * 1024 * 1024);
+      const text = content.toString("utf8");
+      expect(text.toLowerCase()).not.toContain("secret");
+      expect(text.toLowerCase()).not.toContain("api_key");
+      expect(text.toLowerCase()).not.toContain("access_token");
+      const manifest = runtimeEvidenceManifestSchema.parse(
+        JSON.parse(text),
+      );
+      expect(manifest.schemaVersion).toBe(CORE_SCHEMA_VERSION);
+      expect(manifest.records.length).toBeGreaterThan(0);
+      expect(manifest.records.length).toBeLessThanOrEqual(1_000);
+    }
   });
 });

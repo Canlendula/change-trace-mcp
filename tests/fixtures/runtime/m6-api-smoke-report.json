@@ -1,0 +1,49 @@
+{
+  "profile": "m6-api-smoke-v1",
+  "environment": {
+    "kind": "ci",
+    "name": "api-smoke-job",
+    "source": {
+      "system": "ci",
+      "locator": "jobs/api-smoke/42",
+      "uri": "https://ci.example.test/jobs/api-smoke/42"
+    }
+  },
+  "checks": [
+    {
+      "id": "health",
+      "source": {
+        "system": "api-smoke",
+        "locator": "checks/health",
+        "uri": null
+      },
+      "outcome": "passed",
+      "startedAt": "2026-07-26T09:00:00.000Z",
+      "completedAt": "2026-07-26T09:00:00.080Z",
+      "durationMilliseconds": 80,
+      "summary": "Health check passed. api_key=m6-api-summary-secret",
+      "requestBody": "api-request-body-sentinel",
+      "responseBody": "api-response-body-sentinel",
+      "headers": {
+        "x-fixture": "api-header-sentinel"
+      },
+      "cookies": ["api-cookie-sentinel"],
+      "token": "api-token-sentinel",
+      "retryCommand": "api-retry-command-sentinel",
+      "rawLog": "api-raw-log-sentinel"
+    },
+    {
+      "id": "contract",
+      "source": {
+        "system": "api-smoke",
+        "locator": "checks/contract",
+        "uri": null
+      },
+      "outcome": "failed",
+      "startedAt": "2026-07-26T09:00:01.000Z",
+      "completedAt": "2026-07-26T09:00:01.120Z",
+      "durationMilliseconds": 120,
+      "summary": "Contract check reported a failed observed response."
+    }
+  ]
+}

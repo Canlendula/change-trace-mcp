@@ -1,0 +1,144 @@
+{
+  "profile": "m6-playwright-json-v1",
+  "suites": [
+    {
+      "title": "release-flow",
+      "specs": [
+        {
+          "title": "passes",
+          "file": "tests/release-flow.spec.ts",
+          "line": 10,
+          "column": 3,
+          "tests": [
+            {
+              "projectName": "chromium",
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "passed",
+                  "startTime": "2026-07-26T08:00:00.000Z",
+                  "duration": 125,
+                  "stdout": ["playwright-stdout-sentinel"],
+                  "stderr": ["playwright-stderr-sentinel"],
+                  "errors": [
+                    {
+                      "stack": "playwright-stack-sentinel"
+                    }
+                  ],
+                  "steps": [
+                    {
+                      "title": "playwright-step-sentinel"
+                    }
+                  ],
+                  "annotations": [
+                    {
+                      "description": "playwright-annotation-sentinel"
+                    }
+                  ],
+                  "attachments": [
+                    {
+                      "name": "trace",
+                      "path": "artifacts/release-flow/trace.zip",
+                      "contentType": "application/zip"
+                    },
+                    {
+                      "name": "screenshot",
+                      "path": "artifacts/release-flow/screenshot.png",
+                      "uri": "https://ci.example.test/artifacts/screenshot.png",
+                      "contentType": "image/png"
+                    },
+                    {
+                      "name": "inline",
+                      "body": "playwright-attachment-body-sentinel",
+                      "contentType": "text/plain"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "fails",
+          "file": "tests/release-flow.spec.ts",
+          "line": 20,
+          "column": 3,
+          "tests": [
+            {
+              "projectName": "chromium",
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "failed",
+                  "startTime": "2026-07-26T08:01:00.000Z",
+                  "duration": 250,
+                  "attachments": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "times-out",
+          "file": "tests/release-flow.spec.ts",
+          "line": 30,
+          "column": 3,
+          "tests": [
+            {
+              "projectName": "firefox",
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "timedOut",
+                  "startTime": "2026-07-26T08:02:00.000Z",
+                  "duration": 30000,
+                  "attachments": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "skips",
+          "file": "tests/release-flow.spec.ts",
+          "line": 40,
+          "column": 3,
+          "tests": [
+            {
+              "projectName": "webkit",
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "skipped",
+                  "startTime": "2026-07-26T08:03:00.000Z",
+                  "duration": 0,
+                  "attachments": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "interrupts",
+          "file": "tests/release-flow.spec.ts",
+          "line": 50,
+          "column": 3,
+          "tests": [
+            {
+              "projectName": "webkit",
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "interrupted",
+                  "startTime": "2026-07-26T08:04:00.000Z",
+                  "duration": 50,
+                  "attachments": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

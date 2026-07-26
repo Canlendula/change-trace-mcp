@@ -5,11 +5,12 @@ and normalizing change-scoped release evidence. The user's existing Agent makes
 semantic judgments; this package keeps evidence preparation deterministic and
 reviewable.
 
-M1–M5 are complete. The external-adapter path accepts explicit references
-through bounded Host-configured commands and preserves normalized source
-provenance in final reports. Deterministic Lark and Jira/Confluence contract
-fixtures prove the shared boundary without claiming live vendor API
-compatibility. The currently exposed MCP tools are:
+M1–M5 are complete. The M6 runtime path accepts strict, pre-produced manifests
+through one confined repository file read. Pinned offline JUnit-style,
+Playwright-JSON, API-smoke, and staging-summary fixtures exercise that path
+without claiming general format support or live compatibility. The
+external-adapter path continues to accept explicit references through bounded
+Host-configured commands. The currently exposed MCP tools are:
 
 - `get_server_info` reports process and runtime metadata;
 - `get_compatibility_fixture` returns a byte-stable fixture for Host smoke tests;
@@ -20,8 +21,11 @@ compatibility. The currently exposed MCP tools are:
 - `collect_external_evidence` returns normalized, redacted, and
   `untrusted_external` evidence for explicit references through one exact
   Host-configured adapter;
+- `collect_runtime_evidence` normalizes one explicit, pre-produced runtime
+  manifest beneath the verified Git root without executing tests, browsers,
+  probes, deployments, or artifact fetches;
 - `get_review_bundle` combines change and document evidence into a bounded,
-  indexed bundle with deterministic facts, external collections, and
+  indexed bundle with deterministic facts, external/runtime collections, and
   missing-evidence records;
 - `validate_findings` validates Agent output against the shared schema and the
   bundle's evidence/source indexes;
@@ -94,6 +98,7 @@ Example MCP call flow:
 ```
 get_change_scope ─┬→ collect_local_evidence ───────────────┐
                   └→ collect_external_evidence (optional) ├→
+                     collect_runtime_evidence (optional) ─┤
                      get_review_bundle → validate_findings → write_report
 ```
 
@@ -102,6 +107,9 @@ External adapters are registered by the Host through
 credentials are never MCP tool input. See the packaged
 [external-adapter guide](docs/external-adapters/README.md) and
 [copyable configuration](docs/external-adapters/config.json.example).
+Runtime conversion remains Host/CI-owned. See the packaged
+[runtime-evidence guide](docs/runtime-evidence/README.md) and its strict
+[normalized manifest examples](docs/runtime-evidence/examples/).
 
 ## Contribution workflow
 
@@ -116,6 +124,7 @@ The package exports strict Zod schemas and deterministic Draft 2020-12 JSON
 Schema documents for `EvidenceItem`, `ChangeScope`, `LocalEvidenceCollection`,
 `ExternalAdapterRequest`, `ExternalAdapterResponse`,
 `ExternalEvidenceCollection`, `ReviewBundle`, `Finding`,
+`RuntimeEvidenceManifest`, `RuntimeEvidenceCollection`,
 `FindingValidationResult`, and `Report`:
 
 ```ts

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0.0",
+  "producer": {
+    "id": "producer:example-api-smoke-v1",
+    "name": "Example project API-smoke mapper",
+    "version": "1.0.0"
+  },
+  "sourceFormat": "api_smoke",
+  "records": [
+    {
+      "recordId": "record:api:example-health",
+      "kind": "api_observation",
+      "source": {
+        "system": "api-smoke",
+        "locator": "checks/example-health",
+        "uri": null
+      },
+      "environment": {
+        "kind": "ci",
+        "name": "example-api-smoke-job",
+        "source": {
+          "system": "ci",
+          "locator": "jobs/api-smoke/example",
+          "uri": "https://ci.example.test/jobs/api-smoke/example"
+        }
+      },
+      "relatedChangeIds": [
+        "file:src/example.ts"
+      ],
+      "relatedEvidenceIds": [
+        "evidence:document:example-requirement"
+      ],
+      "accessStatus": "available",
+      "outcome": "passed",
+      "startedAt": "2026-07-26T09:00:00.000Z",
+      "completedAt": "2026-07-26T09:00:00.080Z",
+      "durationMilliseconds": 80,
+      "summary": "Example API check passed.",
+      "artifactReferences": [],
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": null,
+        "retainedCharacters": 25
+      }
+    }
+  ]
+}

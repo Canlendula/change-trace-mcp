@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="m6-junit-style-v1">
+  <testsuite name="release-suite" tests="4" failures="1" errors="1" skipped="1">
+    <testcase name="passes" classname="release.api" time="0.125" timestamp="2026-07-26T08:00:00.000Z">
+      <system-out>junit-system-out-sentinel</system-out>
+    </testcase>
+    <testcase name="fails" classname="release.api" time="0.250" timestamp="2026-07-26T08:00:01.000Z">
+      <failure message="expected response">junit-failure-stack-sentinel</failure>
+      <system-err>junit-system-err-sentinel</system-err>
+    </testcase>
+    <testcase name="errors" classname="release.worker" time="0.375" timestamp="2026-07-26T08:00:02.000Z">
+      <error message="fixture error">junit-error-stack-sentinel</error>
+    </testcase>
+    <testcase name="skips" classname="release.ui" time="0.000" timestamp="2026-07-26T08:00:03.000Z">
+      <skipped message="profile skip" />
+    </testcase>
+  </testsuite>
+</testsuites>

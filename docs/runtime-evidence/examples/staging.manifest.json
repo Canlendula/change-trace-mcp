@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0.0",
+  "producer": {
+    "id": "producer:example-staging-summary-v1",
+    "name": "Example project staging-summary mapper",
+    "version": "1.0.0"
+  },
+  "sourceFormat": "ci_summary",
+  "records": [
+    {
+      "recordId": "record:staging:example-environment",
+      "kind": "environment_metadata",
+      "source": {
+        "system": "ci-summary",
+        "locator": "staging/example-review-app",
+        "uri": null
+      },
+      "environment": {
+        "kind": "staging",
+        "name": "example-review-app",
+        "source": {
+          "system": "deployment-metadata",
+          "locator": "example-review-app",
+          "uri": "https://staging.example.test/example-review-app"
+        }
+      },
+      "relatedChangeIds": [
+        "file:src/example.ts"
+      ],
+      "relatedEvidenceIds": [
+        "evidence:document:example-requirement"
+      ],
+      "accessStatus": "available",
+      "summary": "Example staging metadata.",
+      "artifactReferences": [],
+      "truncation": {
+        "isTruncated": false,
+        "originalCharacters": null,
+        "retainedCharacters": 25
+      }
+    },
+    {
+      "recordId": "record:staging:example-observation",
+      "kind": "browser_observation",
+      "source": {
+        "system": "ci-summary",
+        "locator": "staging:example-review-app",
+        "uri": "https://staging.example.test/example-review-app"
+      },
+      "environment": {
+        "kind": "staging",
+        "name": "example-review-app",
+        "source": {
+          "system": "deployment-metadata",
+          "locator": "example-review-app",
+          "uri": "https://staging.example.test/example-review-app"
+        }
+      },
+      "relatedChangeIds": [
+        "file:src/example.ts"
+      ],
+      "relatedEvidenceIds": [
+        "evidence:document:example-requirement"
+      ],
+      "accessStatus": "inaccessible",
+      "reason": "Example staging observation was not accessible."
+    }
+  ]
+}
