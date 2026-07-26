@@ -1328,3 +1328,96 @@ Primary references accessed 2026-07-26:
 - `https://semver.org/`;
 - `https://docs.npmjs.com/about-semantic-versioning/`;
 - `https://docs.npmjs.com/cli/dist-tag/`.
+
+## 37. M7 prepares stage-only npm publishing with separate human approval
+
+M7-007 prepares a public, reviewable release path while preserving the rule
+that a dry-run is not release authorization. The repository will add a
+manual-only GitHub Actions workflow named
+`.github/workflows/npm-stage-publish.yml`, repository-only publishing
+guidance, bounded release-preparation/dry-run scripts, and offline contract
+tests. The workflow has no push, pull-request, release, tag, schedule, or
+automatic trigger.
+
+The future authenticated path uses npm trusted publishing through GitHub OIDC
+with `npm stage publish` permission only. It must not receive direct
+`npm publish` permission or a long-lived npm token. The exact future trust
+relationship is:
+
+- package: `change-trace-mcp`;
+- repository: `Canlendula/change-trace-mcp`;
+- workflow filename: `npm-stage-publish.yml`;
+- GitHub environment: `npm-stage`;
+- allowed action: stage publish only.
+
+The trust relationship and GitHub environment are external release state.
+M7-007 documents them but does not create, edit, or test them. npm currently
+permits only one trusted-publisher configuration per package, so later
+configuration requires a separate coordinator/user authorization and
+interactive account authentication.
+
+Staged publishing separates candidate upload from public availability.
+Staging a version reserves that package/version and fixes its dist-tag, so
+even staging requires explicit release authorization. Approval or rejection
+then requires a maintainer proof-of-presence through npm 2FA; the owner's
+existing WebAuthn flow is suitable and no time-based OTP is assumed. Public
+availability begins only after that separate approval. M7-007 must not stage,
+approve, reject, publish, unpublish, create a Git tag/GitHub release, or change
+a dist-tag.
+
+The prepared workflow has two manually selected operations:
+
+- `dry-run` is the default and has only `contents: read`; it prepares one exact
+  candidate tarball and runs npm's non-mutating publish dry-run without an
+  ID-token or credential;
+- `stage` is dormant until separately authorized. It requires an exact
+  `v<package-version>` tag ref, exact version and commit inputs, a fixed
+  confirmation string, the `npm-stage` environment, an explicitly enabled
+  repository variable `NPM_STAGE_PUBLISH_ENABLED`, and a dedicated job with
+  only `contents: read` plus `id-token: write`. The variable is absent or
+  disabled during M7-007, so a manual `stage` selection cannot reach a
+  publishing command.
+
+Both operations use a GitHub-hosted Ubuntu runner, Node.js `24.18.0` LTS with
+its npm `11.16.0`, disabled package-manager caching, lifecycle scripts disabled
+during dependency installation and candidate publication, fixed trusted
+registry `https://registry.npmjs.org/`, and shell-free bounded local helper
+processes. The workflow pins:
+
+- `actions/checkout` v7.0.1 at
+  `3d3c42e5aac5ba805825da76410c181273ba90b1`;
+- `actions/setup-node` v7.0.0 at
+  `820762786026740c76f36085b0efc47a31fe5020`.
+
+The stage operation uses `next`; it cannot move `latest`. The historical
+`latest` and `next` mappings to `0.0.0-dev.0` remain unchanged during this
+task. A later authorized candidate must use a version not already published or
+staged. Git tag creation, GitHub release creation, changelog release dating,
+npm stage approval, dist-tag adjustment, compatibility publication, and
+milestone completion remain separate coordinator actions.
+
+The local accepted M7 dry-run must use the current source
+`0.0.0-dev.1`, a credential-free temporary npm cache/config/home, one exact
+candidate tarball, and npm's `--dry-run`. It records bounded identity,
+file-count, size, integrity, SHA-256, CLI/runtime, exact safe operation, and
+cleanup evidence. It must verify the existing nine-tool, M1 fixture,
+public-documentation, CI fixture, production-dependency, and package-surface
+gates before declaring readiness. It cannot claim OIDC, trusted-publisher,
+provenance, GitHub-runner, stage, approval, publication, or release success.
+
+The workflow may be pushed to the default branch after coordinator acceptance
+so GitHub can parse and display it, but it must not be dispatched during this
+task. M7-007 changes no package version, public runtime contract, dependency,
+lockfile, registry, trusted-publisher, environment, tag, release, staged
+version, publication, or dist-tag state.
+
+Primary references accessed 2026-07-26:
+
+- `https://docs.npmjs.com/trusted-publishers/`;
+- `https://docs.npmjs.com/staged-publishing/`;
+- `https://docs.npmjs.com/cli/v11/commands/npm-stage/`;
+- `https://docs.npmjs.com/cli/v11/commands/npm-trust/`;
+- `https://docs.npmjs.com/cli/publish/`;
+- `https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow`;
+- `https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-npm`;
+- `https://nodejs.org/en/blog/release/v24.18.0`.
