@@ -1088,3 +1088,78 @@ failure-mode gates continue to pass. Only after those tests pass may
 `FIND-M7-001` and `FIND-M7-002` move to `mitigated`; the low redaction
 limitation and informational no-sandbox boundary remain open/accepted as
 recorded.
+
+## 33. M7 separates clean artifact installation from real Host compatibility
+
+M7 installation evidence must test the package artifact that would be
+consumed, not a checkout-relative `dist/cli.js` path and not the older package
+currently selected by an npm dist-tag. Until a release is explicitly
+authorized, M7 uses a locally generated tarball from the current source
+version and must not publish it, change a dist-tag, or describe it as a
+registry release.
+
+M7-003 proves package mechanics in a fresh temporary consumer:
+
+1. run `npm pack --json` into a temporary artifact directory after the normal
+   `prepack` build;
+2. record the package name/version, npm integrity, file count, size, and an
+   independently computed SHA-256 digest;
+3. install that exact tarball into a new directory with a fresh npm cache, an
+   empty temporary user config, install lifecycle scripts disabled, and no
+   inherited npm or registry credential variables;
+4. prove the installed package is a copied package artifact outside the
+   checkout, exposes the declared bin and required packaged documentation, and
+   has a valid production dependency tree;
+5. launch the installed server with the existing reference client and require
+   exact discovery of all nine tools plus the byte-stable M1 fixture;
+6. exercise the equivalent pinned local-tarball `npx` launch path when the
+   installed npm version supports it.
+
+The reusable smoke command must create and remove its own temporary
+directories, reserve stdout for one bounded machine-readable summary, and
+avoid persisting credentials, npm configuration, caches, tarballs, or consumer
+projects in the repository. Unit tests for its planning, environment
+sanitization, result validation, and cleanup must remain offline; the explicit
+clean-install smoke is the networked registry-read gate for declared
+dependencies.
+
+Package configuration examples use an exact
+`change-trace-mcp@<VERSION>` placeholder. They may also show the exact local
+tarball form used by maintainers, but must not recommend an unpinned `latest`
+launch or imply that the source version is already published. Development
+checkout commands remain clearly labeled as development-only.
+
+Current priority-Host syntax is taken only from primary documentation:
+
+- Codex/ChatGPT desktop, CLI, and IDE use local stdio commands configured in
+  the UI, `codex mcp add`, or `[mcp_servers.<name>]` tables with `command`,
+  `args`, optional `cwd`, and timeout/tool-policy fields:
+  `https://developers.openai.com/codex/mcp/` and
+  `https://developers.openai.com/codex/config-reference/`;
+- Claude Code local stdio configuration requires its options before the server
+  name and `--` before the executable; local, project, and user scopes retain
+  their documented trust behavior:
+  `https://code.claude.com/docs/en/mcp`;
+- OpenCode configuration is version-bound. The installed v1 line and current
+  v2 line must not share an unlabeled example; current v2 places named servers
+  under `mcp.servers` and represents a local command as an array:
+  `https://opencode.ai/v2/docs/mcp-servers`;
+- npm supports installing a local tarball and disabling lifecycle scripts, and
+  `npm pack` is the local preview of publish contents:
+  `https://docs.npmjs.com/cli/install/` and
+  `https://docs.npmjs.com/cli/v9/using-npm/developers/`.
+
+M7-003 does not make a real Codex, Claude Code, or OpenCode compatibility
+claim. M7-004 will start fresh sessions of the exact recorded Host versions,
+make each Host call the installed artifact's fixture tool, and record startup,
+tool discovery, exact fixture text, timeout, and shutdown evidence. Model/API
+calls, user/global Host configuration changes, and any credential-bearing
+external execution remain coordinator/user-authorized actions.
+
+Because `docs/ROADMAP.md` is currently part of the npm package, a coordinator
+acceptance update changes the tarball bytes. Worker artifact evidence is
+therefore pre-integration evidence. After recording M7-003 acceptance, the
+coordinator must regenerate and rerun the clean-install smoke from accepted
+`main`, then store the final digest and result in an un-packaged evaluation
+record. No later packaged-file change may be included in that final
+clean-install claim without rerunning it.
