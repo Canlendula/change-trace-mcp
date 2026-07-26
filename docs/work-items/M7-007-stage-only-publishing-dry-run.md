@@ -298,7 +298,7 @@ command is allowed.
 
 - Status: `ready_for_review`
 - Handoff branch: `codex/M7-007-stage-only-publishing-dry-run`
-- Implementation commits: `b143b10`, `32eeee9`, `3193582`
+- Implementation commits: `b143b10`, `32eeee9`, `3193582`, `d9dbf51`, `d45f39d`
 - Worktree: `C:\Users\C\.codex\worktrees\3384\agent-e2e-mcp`
 
 ### Implementation summary
@@ -309,13 +309,19 @@ command is allowed.
 - Added the repository-only publishing guide, bounded credential-free local
   dry-run helper, offline workflow/helper/documentation contract tests, and
   an Unreleased maintainer-preparation note.
+- Addressed coordinator review findings: setup-node now disables its package
+  manager cache and verifies Node 24.18.0's bundled npm 11.16.0; stage-only
+  inputs are optional for dry-run; the helper now uses a narrow child-env
+  allowlist, fail-closed version status parsing, and bounded tarball evidence.
 
 ### Changed areas
 
 - `.github/workflows/npm-stage-publish.yml` — pinned manual dry-run and
-  stage-only workflow with job-local permissions and fixed safeguards.
+  stage-only workflow with job-local permissions, no package-manager cache,
+  bundled npm verification, and fixed safeguards.
 - `scripts/release/dry-run-publish.mjs` — isolated bounded local tarball and
-  `npm publish --dry-run` evidence helper.
+  `npm publish --dry-run` evidence helper with narrow environment inheritance,
+  registry-status failure closure, and on-disk tarball validation.
 - `docs/release/PUBLISHING.md` and `CHANGELOG.md` — repository maintainer
   procedure and scoped Unreleased preparation record.
 - `tests/unit/release-publishing-contract.test.ts` and
@@ -327,11 +333,11 @@ command is allowed.
 | Command | Result | Notes |
 |---|---|---|
 | `npm run check` | passed | TypeScript check completed. |
-| `npx vitest run tests/unit/release-publishing-contract.test.ts tests/integration/release-dry-run.test.ts` | passed | 2 files, 4 tests passed; no network, authentication, or dispatch. |
-| `npm test` | passed | 41 files passed; 397 tests passed and 2 skipped. |
+| `npx vitest run tests/unit/release-publishing-contract.test.ts tests/integration/release-dry-run.test.ts` | passed | 2 files, 7 tests passed; no network, authentication, or dispatch. |
+| `npm test` | passed | 41 files passed; 400 tests passed and 2 skipped. |
 | `npm run smoke:stdio` | passed | Confirmed the existing nine-tool stdio surface. |
 | `npm run smoke:ci` | passed | Deterministic advisory smoke reported `completed_no_findings`. |
-| `node scripts/release/dry-run-publish.mjs` | passed | `change-trace-mcp@0.0.0-dev.1`; one tarball; packed/unpacked `177366`/`868803` bytes; SHA-1 `2368cc2daf2b699d5147f5f7515791529d038513`; SHA-256 `4d319bf981300d85d19e12b1e927a5b49b075a4ad2bf6306818cd03fa137f4f4`; npm `11.3.0`; cleanup `true`. Local dry-run evidence only. |
+| `node scripts/release/dry-run-publish.mjs` | passed | `change-trace-mcp@0.0.0-dev.1`; exactly 1 tarball containing 209 files; packed/unpacked `177366`/`868803` bytes; SHA-1 `2368cc2daf2b699d5147f5f7515791529d038513`; SHA-256 `4d319bf981300d85d19e12b1e927a5b49b075a4ad2bf6306818cd03fa137f4f4`; Node `v24.0.0`; npm `11.3.0`; cleanup `true`. Local dry-run evidence only. |
 | `node scripts/smoke-clean-install.mjs` | passed | 209 packed files; SHA-256 `4d319bf981300d85d19e12b1e927a5b49b075a4ad2bf6306818cd03fa137f4f4`; copied install, npx, CI artifacts, and cleanup succeeded. |
 | `npm run pack:check` | passed | `change-trace-mcp-0.0.0-dev.1.tgz`; 209 files; release-only files absent. |
 | `npm audit --omit=dev --audit-level=high` | passed | `found 0 vulnerabilities`. |
@@ -356,10 +362,14 @@ command is allowed.
 
 ### Known limitations and risks
 
-- The successful local helper invocation used the available local npm `11.3.0`;
-  the future hosted workflow explicitly installs and verifies npm `11.16.0`.
+- The successful local helper invocation used the available local Node `v24.0.0`
+  and npm `11.3.0`; the future hosted workflow uses Node `24.18.0`, which
+  bundles and verifies npm `11.16.0` without a global npm installation.
 - A local `--dry-run` cannot establish OIDC, trusted-publisher, protected
   environment, stage, approval, registry availability, or release success.
+- The unauthenticated version lookup cannot see a pending staged reservation;
+  a coordinator must separately confirm that state through the authorized npm
+  review path before a future stage request.
 
 ### Decisions or questions for coordinator
 
