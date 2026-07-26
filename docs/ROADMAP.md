@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-008 accepted; real multi-team pilot evidence remains
+> Status: M7 in progress; M7-001 through M7-008 accepted; M7-009 test-portability follow-up assigned
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -730,7 +730,9 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M7-001 through M7-008 are accepted. The two
+> Current state: in progress. M7-001 through M7-008 are accepted. M7-009 is
+> assigned to restore line-ending-independent release-contract validation
+> before the real pilot. The two
 > medium security findings are mitigated, clean package installation is
 > reproducible, and the three priority local Hosts pass the exact installed
 > fixture contract with Host-specific lifecycle evidence. The provider-neutral
@@ -932,7 +934,7 @@ Progress as of 2026-07-26:
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
-| M7 public beta hardening | In progress; M7-001 through M7-008 are accepted and the real multi-team, multi-week pilot remains |
+| M7 public beta hardening | In progress; M7-001 through M7-008 are accepted, M7-009 test portability is assigned, and the real pilot remains |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
