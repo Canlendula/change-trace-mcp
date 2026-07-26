@@ -13,7 +13,7 @@ const packageName = "change-trace-mcp";
 const version = "0.0.0-dev.1";
 
 async function repositoryFile(path: string): Promise<string> {
-  return await readFile(resolve(root, path), "utf8");
+  return (await readFile(resolve(root, path), "utf8")).replaceAll("\r\n", "\n");
 }
 
 function packRecord(overrides: Record<string, unknown> = {}): Record<string, unknown> {
