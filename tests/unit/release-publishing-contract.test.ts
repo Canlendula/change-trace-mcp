@@ -49,6 +49,8 @@ describe("M7 stage-only publishing contract", () => {
     expect(helper).toContain("credentialKey");
     expect(helper).toContain("npm_config_userconfig: locations.userConfig");
     expect(helper).toContain("npm_config_registry: registry");
+    expect(helper).toContain("args[3] = locations.userConfig");
+    expect(helper).toContain("args[5] = locations.cache");
     expect(helper).toContain("maxOutputBytes");
     expect(helper).toContain("command_output_overflow");
     expect(helper).toContain("command_timeout");

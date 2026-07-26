@@ -128,8 +128,8 @@ function npmArgs(command) {
 
 function npmCommand(command, locations, extras = []) {
   const args = npmArgs(command);
-  args[2] = locations.userConfig;
-  args[4] = locations.cache;
+  args[3] = locations.userConfig;
+  args[5] = locations.cache;
   return [process.execPath, [...args, ...extras]];
 }
 
