@@ -1,0 +1,221 @@
+import { createHash, randomUUID } from "node:crypto";
+import { spawn } from "node:child_process";
+import { access, appendFile, chmod, lstat, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const require = createRequire(import.meta.url);
+const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
+const MAX_OUTPUT_BYTES = 512 * 1024;
+const MAX_EXCERPT_BYTES = 64 * 1024;
+const HOST_TIMEOUT_MS = 120_000;
+const EXPECTED_HOST_VERSIONS = { codex: "26.707.3748.0", claude: "2.1.217", opencode: "1.18.4" };
+
+export const FIXTURE_TEXT =
+  '{"schemaVersion":"1.0.0","fixtureId":"m1-host-compatibility","ok":true,"scalar":"change-trace","values":[1,2,3],"nested":{"alpha":"A","beta":"B"}}';
+export const EXPECTED_TOOL_NAMES = [
+  "collect_external_evidence", "collect_local_evidence", "collect_runtime_evidence",
+  "get_change_scope", "get_compatibility_fixture", "get_review_bundle",
+  "get_server_info", "validate_findings", "write_report",
+];
+
+class HarnessError extends Error {
+  constructor(code) { super(code); this.code = code; }
+}
+const fail = (code) => { throw new HarnessError(code); };
+const hash = (value) => createHash("sha256").update(value).digest("hex");
+const normalized = (value) => value.replaceAll("\\", "/");
+const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+function isWithin(parent, candidate) {
+  const value = relative(resolve(parent), resolve(candidate));
+  return value === "" || (!isAbsolute(value) && value !== ".." && !value.startsWith(`..${sep}`));
+}
+
+export function createHostPlan({ repositoryRoot: sourceRoot, stateRoot, serverName }) {
+  if (!/^[a-z][a-z0-9_]{5,63}$/u.test(serverName)) fail("server_name_invalid");
+  if (isWithin(sourceRoot, stateRoot)) fail("state_root_invalid");
+  const root = resolve(stateRoot);
+  const consumer = join(root, "consumer");
+  return {
+    repositoryRoot: resolve(sourceRoot), stateRoot: root, serverName,
+    artifactDirectory: join(root, "artifact"), cacheDirectory: join(root, "npm-cache"),
+    homeDirectory: join(root, "home"), userConfigPath: join(root, "npmrc"), consumerDirectory: consumer,
+    hostWorkingDirectory: join(root, "host-workspace"), probePath: join(root, "probe.mjs"),
+    lifecyclePath: join(root, "lifecycle.jsonl"), manifestPath: join(root, "state.json"),
+    claudeConfigPath: join(root, "claude.mcp.json"), opencodeConfigPath: join(root, "opencode.json"),
+    installedCli: join(consumer, "node_modules", "change-trace-mcp", "dist", "cli.js"),
+  };
+}
+
+function setInsensitive(target, key, value) {
+  for (const existing of Object.keys(target)) if (existing.toUpperCase() === key.toUpperCase()) delete target[existing];
+  target[key] = value;
+}
+export function sanitizeChildEnvironment(source, { cacheDirectory, userConfigPath, homeDirectory }) {
+  const target = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (typeof value !== "string") continue;
+    if (["PATH", "SYSTEMROOT", "COMSPEC", "PATHEXT", "WINDIR", "TEMP", "TMP", "TERM", "LANG", "LC_ALL"].includes(key.toUpperCase()) && !Object.keys(target).some((item) => item.toUpperCase() === key.toUpperCase())) setInsensitive(target, key.toUpperCase() === "PATH" ? "PATH" : key, value);
+  }
+  setInsensitive(target, "HOME", homeDirectory);
+  setInsensitive(target, "USERPROFILE", homeDirectory);
+  setInsensitive(target, "NPM_CONFIG_CACHE", cacheDirectory);
+  setInsensitive(target, "NPM_CONFIG_USERCONFIG", userConfigPath);
+  setInsensitive(target, "NPM_CONFIG_IGNORE_SCRIPTS", "true");
+  setInsensitive(target, "NPM_CONFIG_AUDIT", "false");
+  setInsensitive(target, "NPM_CONFIG_FUND", "false");
+  setInsensitive(target, "NPM_CONFIG_PACKAGE_LOCK", "false");
+  setInsensitive(target, "NO_UPDATE_NOTIFIER", "true");
+  return target;
+}
+
+function npmCli(name) {
+  const choices = [
+    join(dirname(process.execPath), "node_modules", "npm", "bin", `${name}-cli.js`),
+    join(dirname(process.execPath), "..", "node_modules", "npm", "bin", `${name}-cli.js`),
+  ];
+  try { choices.push(require.resolve(`npm/bin/${name}-cli.js`)); } catch { /* fixed failure below */ }
+  for (const candidate of choices) {
+    try { if (isAbsolute(candidate)) return resolve(candidate); } catch { /* next */ }
+  }
+  fail("npm_cli_unavailable");
+}
+function parsePack(output, sourcePackage) {
+  let rows; try { rows = JSON.parse(output); } catch { fail("pack_result_invalid"); }
+  if (!Array.isArray(rows) || rows.length !== 1 || !rows[0] || typeof rows[0] !== "object") fail("pack_result_invalid");
+  const row = rows[0];
+  if (row.name !== sourcePackage.name || row.version !== sourcePackage.version || typeof row.filename !== "string" || basename(row.filename) !== row.filename ||
+    !Number.isSafeInteger(row.size) || !Number.isSafeInteger(row.unpackedSize) || typeof row.shasum !== "string" || typeof row.integrity !== "string" || !Array.isArray(row.files)) fail("pack_result_invalid");
+  return { filename: row.filename, packedSize: row.size, unpackedSize: row.unpackedSize, npmShasum: row.shasum, npmIntegrity: row.integrity, fileCount: row.files.length };
+}
+
+async function runBounded(command, args, { cwd, env, timeoutMs = HOST_TIMEOUT_MS } = {}) {
+  if (!isAbsolute(command) || !Array.isArray(args) || args.some((arg) => typeof arg !== "string")) fail("command_plan_invalid");
+  return await new Promise((resolveRun, rejectRun) => {
+    let stdout = ""; let stderr = ""; let bytes = 0; let stopped = null; let settled = false;
+    const child = spawn(command, args, { cwd, env, shell: false, windowsHide: true, stdio: ["ignore", "pipe", "pipe"], detached: process.platform !== "win32" });
+    const stop = (code) => { if (stopped) return; stopped = code; if (process.platform === "win32") spawn("taskkill.exe", ["/pid", String(child.pid), "/t", "/f"], { shell: false, windowsHide: true, stdio: "ignore" }); else { try { process.kill(-child.pid, "SIGKILL"); } catch { child.kill("SIGKILL"); } } };
+    const timer = setTimeout(() => stop("command_timeout"), timeoutMs);
+    const add = (prior, chunk) => { bytes += chunk.length; if (bytes > MAX_OUTPUT_BYTES) { stop("command_output_limit"); return prior; } return `${prior}${chunk.toString("utf8")}`; };
+    child.stdout.on("data", (chunk) => { stdout = add(stdout, chunk); });
+    child.stderr.on("data", (chunk) => { stderr = add(stderr, chunk); });
+    child.once("error", () => { if (!settled) { settled = true; clearTimeout(timer); rejectRun(new HarnessError("command_unavailable")); } });
+    child.once("close", (code, signal) => { if (settled) return; settled = true; clearTimeout(timer); if (stopped) rejectRun(new HarnessError(stopped)); else resolveRun({ exitCode: code, signal, stdout, stderr }); });
+  });
+}
+
+function hostPrompt(serverName) {
+  return `Use only the MCP server ${serverName}. Do not read, write, edit, or inspect any repository files. Call get_compatibility_fixture exactly once with {}. Then return only its text result.`;
+}
+export function createHostCommand(host, plan, executable) {
+  if (!isAbsolute(executable)) fail("host_executable_invalid");
+  const prompt = hostPrompt(plan.serverName);
+  if (host === "claude") return {
+    args: ["--print", "--output-format", "stream-json", "--no-session-persistence", "--mcp-config", plan.claudeConfigPath, "--strict-mcp-config", "--tools", EXPECTED_TOOL_NAMES.map((tool) => `mcp__${plan.serverName}__${tool}`).join(","), "--permission-mode", "dontAsk", prompt],
+    environment: { ...process.env },
+  };
+  if (host === "opencode") return {
+    args: ["run", "--format", "json", "--dir", plan.hostWorkingDirectory, prompt],
+    environment: { ...process.env, OPENCODE_CONFIG: plan.opencodeConfigPath },
+  };
+  fail("host_invalid");
+}
+
+export function validateLifecycle(events) {
+  if (!Array.isArray(events) || events[0]?.type !== "server_started") fail("lifecycle_start_missing");
+  const discovery = events.find((event) => event.type === "tools_list");
+  if (!discovery || !same([...discovery.tools].sort(), EXPECTED_TOOL_NAMES)) fail("tool_discovery_invalid");
+  const call = events.find((event) => event.type === "fixture_call");
+  if (!call || !same(call.arguments, {})) fail("fixture_arguments_invalid");
+  const result = events.find((event) => event.type === "fixture_result");
+  if (!result || result.text !== FIXTURE_TEXT) fail("fixture_result_invalid");
+  const close = events.at(-1);
+  if (!close || close.type !== "server_closed" || close.code !== 0 || close.signal !== null) fail("lifecycle_shutdown_invalid");
+  return true;
+}
+export function validateAttempt(attempt, artifact) {
+  if (!attempt || !["claude", "opencode", "codex"].includes(attempt.host) || attempt.hostVersion !== EXPECTED_HOST_VERSIONS[attempt.host]) fail("host_version_invalid");
+  if (attempt.artifactSha256 !== artifact.sha256 || attempt.distCliSha256 !== artifact.distCliSha256) fail("artifact_binding_invalid");
+  if (attempt.exitCode !== 0 || !Number.isSafeInteger(attempt.durationMs) || attempt.durationMs < 0) fail("attempt_exit_invalid");
+  if (!/^[0-9a-f]{64}$/u.test(attempt.excerptSha256 ?? "") || !Number.isSafeInteger(attempt.excerptBytes) || attempt.excerptBytes < 0 || attempt.excerptBytes > MAX_EXCERPT_BYTES) fail("attempt_excerpt_invalid");
+  validateLifecycle(attempt.lifecycle);
+  return true;
+}
+export function normalizeAttemptFailure({ host, hostVersion, code, durationMs }) {
+  if (!EXPECTED_HOST_VERSIONS[host] || hostVersion !== EXPECTED_HOST_VERSIONS[host] || typeof code !== "string" || !Number.isSafeInteger(durationMs) || durationMs < 0) fail("attempt_failure_invalid");
+  return { host, hostVersion, status: "failed", code, durationMs };
+}
+export async function cleanupStateRoot(stateRoot) { await rm(stateRoot, { recursive: true, force: true, maxRetries: 3, retryDelay: 250 }); }
+
+const probeSource = `import { appendFile } from "node:fs/promises"; import { spawn } from "node:child_process";
+const [logPath, cliPath, cacheDirectory, userConfigPath, homeDirectory] = process.argv.slice(2);
+const keep = new Set(["PATH","SYSTEMROOT","COMSPEC","PATHEXT","WINDIR","TEMP","TMP","TERM","LANG","LC_ALL"]); const env = {}; for (const [key,value] of Object.entries(process.env)) if (typeof value === "string" && keep.has(key.toUpperCase()) && !Object.keys(env).some((item) => item.toUpperCase() === key.toUpperCase())) env[key.toUpperCase()==="PATH"?"PATH":key]=value; env.HOME=homeDirectory; env.USERPROFILE=homeDirectory; env.NPM_CONFIG_CACHE=cacheDirectory; env.NPM_CONFIG_USERCONFIG=userConfigPath; env.NPM_CONFIG_IGNORE_SCRIPTS="true"; env.NPM_CONFIG_AUDIT="false"; env.NPM_CONFIG_FUND="false"; env.NPM_CONFIG_PACKAGE_LOCK="false"; env.NO_UPDATE_NOTIFIER="true";
+const log = async (event) => appendFile(logPath, JSON.stringify(event)+"\\n", "utf8"); let incoming=""; let outgoing=""; const methods = new Map(); const child=spawn(process.execPath,[cliPath],{env,shell:false,windowsHide:true,stdio:["pipe","pipe","ignore"]}); await log({type:"server_started"}); process.stdin.on("data",(chunk)=>{ incoming+=chunk.toString("utf8"); let index; while((index=incoming.indexOf("\\n"))>=0){const line=incoming.slice(0,index);incoming=incoming.slice(index+1);try{const item=JSON.parse(line);if(item && typeof item.id!=="undefined" && typeof item.method==="string"){methods.set(String(item.id),item);if(item.method==="tools/call"&&item.params?.name==="get_compatibility_fixture") log({type:"fixture_call",arguments:item.params.arguments});}}catch{}} }); child.stdout.on("data",(chunk)=>{ process.stdout.write(chunk); outgoing+=chunk.toString("utf8"); let index; while((index=outgoing.indexOf("\\n"))>=0){const line=outgoing.slice(0,index);outgoing=outgoing.slice(index+1);try{const item=JSON.parse(line);const request=methods.get(String(item.id));if(request?.method==="tools/list"&&Array.isArray(item.result?.tools)) log({type:"tools_list",tools:item.result.tools.map((tool)=>tool.name).sort()});if(request?.method==="tools/call"&&request.params?.name==="get_compatibility_fixture"){const block=item.result?.content?.find((entry)=>entry?.type==="text"); log({type:"fixture_result",text:block?.text});}}catch{}} }); process.stdin.pipe(child.stdin); process.stdin.on("end",()=>child.stdin.end()); child.on("close",async(code,signal)=>{await log({type:"server_closed",code,signal});process.exitCode=code??1;}); child.on("error",async()=>{await log({type:"server_closed",code:1,signal:null});process.exitCode=1;});`;
+
+async function writeHostConfigs(plan) {
+  const command = process.execPath;
+  const args = [plan.probePath, plan.lifecyclePath, plan.installedCli, plan.cacheDirectory, plan.userConfigPath, plan.homeDirectory];
+  await writeFile(plan.probePath, probeSource, "utf8");
+  await chmod(plan.probePath, 0o600);
+  await writeFile(plan.claudeConfigPath, JSON.stringify({ mcpServers: { [plan.serverName]: { type: "stdio", command, args } } }), { encoding: "utf8", mode: 0o600 });
+  await writeFile(plan.opencodeConfigPath, JSON.stringify({ $schema: "https://opencode.ai/config.json", mcp: { [plan.serverName]: { type: "local", command: [command, ...args], enabled: true, timeout: 10_000 } } }), { encoding: "utf8", mode: 0o600 });
+}
+async function readEvents(plan) {
+  try { return (await readFile(plan.lifecyclePath, "utf8")).trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)); } catch { return []; }
+}
+async function prepare() {
+  const sourcePackage = JSON.parse(await readFile(join(repositoryRoot, "package.json"), "utf8"));
+  const stateRoot = await mkdtemp(join(tmpdir(), "change-trace-m7-real-"));
+  const serverName = `m7real_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
+  const plan = createHostPlan({ repositoryRoot, stateRoot, serverName });
+  const npm = npmCli("npm"); const env = sanitizeChildEnvironment(process.env, plan);
+  try {
+    await Promise.all([mkdir(plan.artifactDirectory), mkdir(plan.cacheDirectory), mkdir(plan.consumerDirectory), mkdir(plan.hostWorkingDirectory), mkdir(plan.homeDirectory)]);
+    await writeFile(plan.userConfigPath, "", { encoding: "utf8", mode: 0o600 });
+    const packed = parsePack((await runBounded(process.execPath, [npm, "pack", "--json", "--pack-destination", plan.artifactDirectory], { cwd: repositoryRoot, env })).stdout, sourcePackage);
+    const tarball = join(plan.artifactDirectory, packed.filename); if (!isWithin(plan.artifactDirectory, tarball)) fail("tarball_path_invalid");
+    const sha256 = hash(await readFile(tarball));
+    await writeFile(join(plan.consumerDirectory, "package.json"), JSON.stringify({ name: "m7-real-host-consumer", private: true, version: "1.0.0" }), "utf8");
+    await runBounded(process.execPath, [npm, "install", "--ignore-scripts", "--no-audit", "--no-fund", "--no-package-lock", "--cache", plan.cacheDirectory, "--userconfig", plan.userConfigPath, tarball], { cwd: plan.consumerDirectory, env });
+    await runBounded(process.execPath, [npm, "ls", "--omit=dev", "--json", "--no-audit", "--no-fund", "--userconfig", plan.userConfigPath], { cwd: plan.consumerDirectory, env });
+    const installed = await lstat(join(plan.consumerDirectory, "node_modules", sourcePackage.name)); if (installed.isSymbolicLink()) fail("installed_package_linked");
+    const installedReal = await realpath(join(plan.consumerDirectory, "node_modules", sourcePackage.name)); if (!isWithin(plan.consumerDirectory, installedReal) || isWithin(repositoryRoot, installedReal)) fail("installed_package_location_invalid");
+    await access(plan.installedCli);
+    const artifact = { package: sourcePackage.name, version: sourcePackage.version, sha256, distCliSha256: hash(await readFile(plan.installedCli)), ...packed };
+    await writeHostConfigs(plan);
+    const state = { schemaVersion: "1.0.0", status: "prepared", serverName, artifact, attempts: [], environmentPolicy: { npmAndMcpChild: "sanitized_allowlist", lifecycleScripts: "disabled" } };
+    await writeFile(plan.manifestPath, JSON.stringify(state, null, 2), { encoding: "utf8", mode: 0o600 });
+    process.stdout.write(`${JSON.stringify({ ok: true, stateRoot, serverName, artifact })}\n`);
+  } catch (error) { await cleanupStateRoot(stateRoot); throw error; }
+}
+async function runHost(host, stateRoot) {
+  const state = JSON.parse(await readFile(join(stateRoot, "state.json"), "utf8")); const plan = createHostPlan({ repositoryRoot, stateRoot, serverName: state.serverName });
+  const executable = host === "claude" ? process.env.CHANGE_TRACE_CLAUDE_EXECUTABLE : process.env.CHANGE_TRACE_OPENCODE_EXECUTABLE;
+  if (!executable) fail("host_executable_required");
+  const command = createHostCommand(host, plan, executable); const started = Date.now();
+  let result; try { result = await runBounded(executable, command.args, { cwd: plan.hostWorkingDirectory, env: command.environment }); } catch (error) {
+    state.attempts.push(normalizeAttemptFailure({ host, hostVersion: EXPECTED_HOST_VERSIONS[host], code: error instanceof HarnessError ? error.code : "command_failed", durationMs: Date.now() - started }));
+    await writeFile(plan.manifestPath, JSON.stringify(state, null, 2), "utf8"); throw error;
+  }
+  const lifecycle = await readEvents(plan); const excerpt = result.stdout.slice(0, MAX_EXCERPT_BYTES);
+  const attempt = { host, hostVersion: EXPECTED_HOST_VERSIONS[host], status: "passed", artifactSha256: state.artifact.sha256, distCliSha256: state.artifact.distCliSha256, exitCode: result.exitCode, durationMs: Date.now() - started, lifecycle, excerptSha256: hash(excerpt), excerptBytes: Buffer.byteLength(excerpt) };
+  try { validateAttempt(attempt, state.artifact); } catch (error) { state.attempts.push(normalizeAttemptFailure({ host, hostVersion: EXPECTED_HOST_VERSIONS[host], code: error.code ?? "evidence_invalid", durationMs: attempt.durationMs })); await writeFile(plan.manifestPath, JSON.stringify(state, null, 2), "utf8"); throw error; }
+  state.attempts.push(attempt); await writeFile(plan.manifestPath, JSON.stringify(state, null, 2), "utf8"); process.stdout.write(`${JSON.stringify({ ok: true, host, artifactSha256: attempt.artifactSha256, durationMs: attempt.durationMs })}\n`);
+}
+async function checkpoint(stateRoot) {
+  const state = JSON.parse(await readFile(join(stateRoot, "state.json"), "utf8"));
+  if (!state.attempts.some((attempt) => attempt.host === "claude" && attempt.status === "passed") || !state.attempts.some((attempt) => attempt.host === "opencode" && attempt.status === "passed")) fail("checkpoint_hosts_incomplete");
+  const plan = createHostPlan({ repositoryRoot, stateRoot, serverName: state.serverName });
+  const configPath = join(repositoryRoot, ".codex", "config.toml"); await mkdir(dirname(configPath), { recursive: true });
+  const args = [plan.probePath, plan.lifecyclePath, plan.installedCli, plan.cacheDirectory, plan.userConfigPath, plan.homeDirectory].map((value) => JSON.stringify(value)).join(", ");
+  await writeFile(configPath, `[mcp_servers.${state.serverName}]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${args}]\nrequired = true\nstartup_timeout_sec = 10\ntool_timeout_sec = 60\nenabled_tools = ${JSON.stringify(EXPECTED_TOOL_NAMES)}\n`, { encoding: "utf8", mode: 0o600 });
+  state.status = "codex_checkpoint"; await writeFile(plan.manifestPath, JSON.stringify(state, null, 2), "utf8"); process.stdout.write(`${JSON.stringify({ ok: true, serverName: state.serverName, pendingHost: "codex" })}\n`);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const [action, stateRoot] = process.argv.slice(2);
+  try { if (action === "prepare") await prepare(); else if ((action === "run-claude" || action === "run-opencode") && stateRoot) await runHost(action === "run-claude" ? "claude" : "opencode", stateRoot); else if (action === "checkpoint" && stateRoot) await checkpoint(stateRoot); else fail("usage"); }
+  catch (error) { process.stderr.write(`${JSON.stringify({ ok: false, code: error instanceof HarnessError ? error.code : "harness_failed" })}\n`); process.exitCode = 1; }
+}
