@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 and M7-002 accepted; M7-003 clean installation next
+> Status: M7 in progress; M7-001 and M7-002 accepted; M7-003 clean installation assigned
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -673,9 +673,9 @@ The format evidence supporting this boundary is in
 ## 13. M7 — Public beta hardening
 
 > Current state: in progress. M7-001 and M7-002 are accepted. The two medium
-> security findings are mitigated; M7-003 now proves clean package installation
-> and prepares current priority-Host compatibility evidence before CI,
-> publishing, and pilot claims are expanded.
+> security findings are mitigated; M7-003 is assigned to prove clean package
+> installation and prepare current priority-Host compatibility evidence before
+> CI, publishing, and pilot claims are expanded.
 
 ### Goals
 

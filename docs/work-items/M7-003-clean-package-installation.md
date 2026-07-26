@@ -4,7 +4,7 @@
 
 - Status: `assigned`
 - Milestone: `M7 — Public beta hardening`
-- Base commit: `<set by coordinator after this assignment is committed>`
+- Base commit: `6a18ca1c56b52b7d8b3ec9ad8b2ba2299f030fa2`
 - Branch: `codex/M7-003-clean-package-installation`
 - Worktree: Codex-managed isolated worktree for the assigned branch; record the
   absolute path in the worker handoff.
@@ -15,9 +15,6 @@
   priority-Host configuration guide without making a real Host or release
   claim.
 - Dependency: accepted M7-002 and Decision 33.
-
-The coordinator will replace the Base commit placeholder with the exact
-assignment commit before dispatch. The worker must start from that commit.
 
 ## Frozen artifact contract
 
