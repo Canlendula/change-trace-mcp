@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `assigned`
+- Status: `accepted`
 - Milestone: `M6 — Runtime and staging evidence`
 - Base commit: `2cadae39073e8b1bcafc714259a1ff1d0583b110`
 - Branch: `codex/M6-001-runtime-evidence-contract`
@@ -198,31 +198,31 @@ Reading other files is allowed. Writing outside this list is not.
 
 ## Acceptance criteria
 
-- [ ] Manifest, provenance, runtime-item, and collection Schemas implement the
+- [x] Manifest, provenance, runtime-item, and collection Schemas implement the
       exact vocabularies, strict shapes, bounds, and refinements above.
-- [ ] Available behavioral, available environment-metadata, and unavailable
+- [x] Available behavioral, available environment-metadata, and unavailable
       record variants reject fields belonging to the other variants.
-- [ ] A staging outage/unavailable record cannot masquerade as a failed
+- [x] A staging outage/unavailable record cannot masquerade as a failed
       observation, and a parsed failed result remains an available record with
       outcome `failed`.
-- [ ] Manifest input cannot choose core identity/trust/redaction/provenance or
+- [x] Manifest input cannot choose core identity/trust/redaction/provenance or
       executable/credential/active-probe configuration.
-- [ ] Runtime items remain distinct from Git/local/external evidence through
+- [x] Runtime items remain distinct from Git/local/external evidence through
       allowed type, `observed_runtime`, provenance, type-kind mapping, and
       no-coexisting-external-provenance refinements.
-- [ ] Environment metadata is non-executed configuration evidence with null
+- [x] Environment metadata is non-executed configuration evidence with null
       outcome/timing; executed kinds require outcomes.
-- [ ] Producer consistency, unique record/evidence IDs, unique relationship
+- [x] Producer consistency, unique record/evidence IDs, unique relationship
       IDs, timing order, safe duration, truncation, and combined bounds pass
       boundary tests.
-- [ ] Existing non-runtime evidence and exported Schema behavior remain
+- [x] Existing non-runtime evidence and exported Schema behavior remain
       compatible except for the intentional optional `runtimeProvenance`
       addition.
-- [ ] `runtimeEvidenceManifest` and `runtimeEvidenceCollection` export
+- [x] `runtimeEvidenceManifest` and `runtimeEvidenceCollection` export
       deterministically as Draft 2020-12 with the assigned IDs.
-- [ ] Focused tests, type checking, two consecutive full suites, stdio smoke,
+- [x] Focused tests, type checking, two consecutive full suites, stdio smoke,
       package dry-run, base diff, and clean-worktree checks pass.
-- [ ] No dependency, collector, MCP, bundle, report, workflow, governance,
+- [x] No dependency, collector, MCP, bundle, report, workflow, governance,
       version, release, or npm-state change occurs.
 
 ## Required validation
@@ -397,17 +397,44 @@ request.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
+- Outcome: `accepted`
 - Reviewed branch head:
+  `adb9180035970631f26779057cc1a12f5a38d4ab`
 - Integration commits:
+  - `2b7b98e` — initial runtime contract implementation
+  - `a2f5af7` — initial worker handoff
+  - `30265f0` — core runtime-identity enforcement
+  - `fea6d46` — review-follow-up handoff
+  - `51d7e72` — structurally narrowed runtime item
+  - `a3dcc27` — final worker handoff
 
 ### Review findings
 
-- Pending.
+- The initial implementation enforced runtime identity only through
+  `RuntimeEvidenceCollection`. A runtime-provenance item supplied directly to
+  the generic `EvidenceItem` path could therefore claim a repository trust
+  level and a non-runtime type. The accepted follow-up moved trust, type-kind,
+  and dual-provenance invariants into the core evidence Schema.
+- The first follow-up still inferred optional runtime provenance and retained
+  generic type/trust unions on `RuntimeEvidenceItem`; its exported JSON Schema
+  also lacked those structural guarantees. The accepted follow-up uses
+  `safeExtend` to require runtime provenance and structurally narrow type and
+  trust while preserving the core refinements.
+- Independent coordinator validation passed:
+  - focused runtime/core/JSON-Schema suite: 3 files, 24 tests;
+  - TypeScript check;
+  - two consecutive full suites: 28 files, 282 tests each;
+  - stdio smoke with the unchanged eight-tool surface;
+  - package dry-run with 165 files;
+  - base-diff whitespace, scope, and clean-worktree checks.
+- No dependency, collector, MCP tool, bundle/report behavior, version, release,
+  or npm-state change was introduced.
 
 ### Required follow-up
 
-- Pending review.
+- Implement the confined runtime-manifest loader and normalization tool in the
+  next M6 work item. This acceptance makes no vendor-format or live-staging
+  compatibility claim.
 
 ### Roadmap and release impact
 
