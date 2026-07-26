@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 and M7-002 accepted; M7-003 clean installation assigned
+> Status: M7 in progress; M7-001 through M7-003 accepted; M7-004 real-Host validation awaits explicit authorization
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -180,8 +180,15 @@ The technical spike may revise this choice if Host compatibility or package star
   no-sandbox boundary retain their prior dispositions. Coordinator gates pass
   at 35 files / 356 tests, with nine-tool stdio and local advisory-CI smokes,
   a 196-file package dry-run, and a zero-vulnerability production audit.
-  M7-003 proceeds to clean package installation and priority-Host compatibility
-  without changing registry or release state.
+- M7-003 completed on 2026-07-26. A reusable one-tarball smoke now proves a
+  copied installation in an isolated consumer, production dependency
+  resolution, installed-Node and local-tarball npx launches, the exact
+  nine-tool surface, and the byte-stable M1 fixture. Codex, Claude Code, and
+  OpenCode v1/v2 configuration examples use exact-version placeholders and
+  make no live-Host claim. Coordinator gates pass at 36 files / 367 tests with
+  one Windows-inapplicable POSIX termination test skipped; the production
+  audit reports zero vulnerabilities. M7-004 remains the separately authorized
+  fresh-session compatibility check.
 
 ## 6. M0 — Project foundation
 
@@ -672,10 +679,10 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M7-001 and M7-002 are accepted. The two medium
-> security findings are mitigated; M7-003 is assigned to prove clean package
-> installation and prepare current priority-Host compatibility evidence before
-> CI, publishing, and pilot claims are expanded.
+> Current state: in progress. M7-001 through M7-003 are accepted. The two
+> medium security findings are mitigated, and clean package installation is
+> reproducible from an exact local artifact. M7-004 real-Host validation awaits
+> explicit authorization before CI, publishing, and pilot claims are expanded.
 
 ### Goals
 

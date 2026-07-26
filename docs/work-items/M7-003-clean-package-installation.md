@@ -332,20 +332,38 @@ make no registry write, and leave no retained cache/artifact/consumer state.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending | accepted | changes_requested | rejected`
-- Reviewed branch head:
-- Integration commit:
-- Final accepted-main artifact commit:
-- Final accepted-main artifact SHA-256:
+- Outcome: `accepted`
+- Reviewed branch head: `fc43a15901e34ff841817f57d7c8258ffdf0c502`
+- Integration commit: `fc43a15901e34ff841817f57d7c8258ffdf0c502`
+- Final accepted-main artifact commit: pending coordinator acceptance commit
+  and required clean-install rerun.
+- Final accepted-main artifact SHA-256: pending required clean-install rerun.
 
 ### Review findings
 
-- `<finding, or None>`
+- None. The reviewed branch stayed within its allowed paths, preserved package
+  metadata and public contracts, and maintained a reconstructible two-commit
+  artifact/evidence boundary.
+- Coordinator validation passed the build, 18-test focused gate, two complete
+  367-test suites, clean installation, stdio and advisory-CI smokes, package
+  dry-run, zero-vulnerability production audit, diff check, and clean-status
+  check. The single skipped test is the POSIX-only SIGTERM escalation case on
+  Windows.
+- Current primary documentation confirms the recorded Codex, Claude Code, and
+  OpenCode v1/v2 configuration forms. These mechanical examples do not support
+  a real-Host compatibility claim.
 
 ### Required follow-up
 
-- `<follow-up, or None>`
+- Commit the coordinator acceptance and packaged Roadmap update, rerun the
+  clean-install smoke from that exact accepted-main artifact state, and record
+  its final digest in the un-packaged evaluation record.
+- Keep M7-004 real Codex, Claude Code, and OpenCode sessions behind the explicit
+  model/API/user-configuration authorization boundary in Decision 33.
 
 ### Roadmap and release impact
 
-- `<coordinator assessment>`
+- M7-003 package mechanics and configuration-preparation criteria are accepted.
+  This advances construction-sequence item 3 only through clean installation;
+  real priority-Host compatibility remains M7-004. No release, registry, hosted
+  CI, version, or package-compatibility claim is authorized by this acceptance.
