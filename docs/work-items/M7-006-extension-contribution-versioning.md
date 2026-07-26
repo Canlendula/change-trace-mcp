@@ -263,40 +263,96 @@ install digest/summary, and any skipped validation in the handoff.
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress`
-- Handoff branch:
-- Worktree:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M7-006-extension-contribution-versioning`
+- Worktree: `C:\Users\C\.codex\worktrees\0d06\agent-e2e-mcp`
 - Implementation commits:
+  - `13f394ef52580777344085046f34610b1976efd1` — public guidance, package
+    allowlist, installed-tarball proof, and focused tests
 
 ### Implementation summary
 
-- Pending.
+- Added the five frozen public package entry points and linked them from the
+  root, external-adapter, and runtime-evidence READMEs.
+- Added public contribution, changelog, and versioning guidance without
+  changing package version or release state. `0.0.0-dev.0` is recorded only as
+  the verified 2026-07-22 M1 construction snapshot with no repository Git tag;
+  `0.0.0-dev.1` is not described as published, beta, stable, tagged, or
+  released.
+- Added practical adapter and converter authoring checklists that retain the
+  accepted M5/M6 explicit-reference, Host-owned process, untrusted-content,
+  preprocessing, manifest, privacy, and fixture-only boundaries.
+- Extended the exact clean-install tarball proof to require all five public
+  files, reject internal governance/task files, validate package-relative
+  Markdown links, and freeze mandatory public navigation mappings.
 
 ### Changed areas
 
-- Pending.
+- `CONTRIBUTING.md`, `CHANGELOG.md`, `docs/VERSIONING.md`
+- `docs/external-adapters/AUTHORING.md`,
+  `docs/runtime-evidence/CONVERTER_AUTHORING.md`, and README navigation
+- `package.json` package `files` entries only
+- `scripts/smoke-clean-install.mjs`, focused clean-install unit coverage, and
+  `tests/integration/public-documentation-package.test.ts`
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npm run check` | pass | TypeScript check completed. |
+| `npx vitest run tests/unit/clean-install-smoke.test.ts tests/integration/public-documentation-package.test.ts` | pass | 14 passed, 1 existing Windows-specific skip. |
+| `npm test` | pass | 39 files passed; 393 tests passed, 2 existing skips. |
+| `npm run smoke:stdio` | pass | Exact nine-tool surface and byte-stable M1 fixture. |
+| `npm run smoke:ci` | pass | `completed_no_findings`; CI smoke completed. |
+| `node scripts/smoke-clean-install.mjs` | pass | Exact local tarball installed and removed its complete temporary root. |
+| `npm run pack:check` | pass | Dry-run tarball contained 209 files. |
+| `npm audit --omit=dev --audit-level=high` | pass | `found 0 vulnerabilities`. |
+| `git diff --check` | pass | No whitespace errors. |
+| `git status --short` | pass | Allowed implementation changes only before commit; final status is clean after this handoff commit. |
 
 ### Package and smoke evidence
 
-- Pending.
+- Final clean-install summary: package `change-trace-mcp@0.0.0-dev.1`; tarball
+  `change-trace-mcp-0.0.0-dev.1.tgz`; 209 files; packed/unpacked bytes
+  `175325`/`862546`; npm shasum
+  `e350a5f1063bd0b9e9ab414add9977a4f8a1e5e3`; npm integrity
+  `sha512-ryCpdcXikn7pa5yTwW3FxB9tsvkF4U3sDUcBEH46XHlbTTkfG1KfLXEyZ5dJcoNaxizabJ2fhLowrSJKnO+9Dg==`;
+  independently computed SHA-256
+  `3913cb19df81b67cc15a91b0fa00e1857cbe91efa33f758707bdcec3d1e18c96`.
+- The smoke used Node `v24.0.0` and npm `11.3.0` on `win32`/`x64`, installed a
+  copied artifact with lifecycle scripts disabled, validated production
+  dependencies, exercised the equivalent local-tarball `npx` path, preserved
+  the exact nine-tool surface and M1 fixture, and validated the three packaged
+  CI fixture artifacts.
+- The installed tarball required all five frozen entry points and resolved
+  local links from all five plus the three entry READMEs. It freezes root README
+  links to each entry point and the two authoring README links. It rejects
+  `AGENTS.md`, `docs/CONTRIBUTING_WORKFLOW.md`, and `docs/work-items/**` from
+  the same tarball surface. External, fragment-only, and `<VERSION>` example
+  targets are ignored by the link check. Temporary artifact, consumer, cache,
+  configuration, npx, and subject roots were removed (`cleanup: true`).
 
 ### Public contract and documentation impact
 
-- Pending.
+- The package now gives external adapter authors, runtime converter authors,
+  public contributors, changelog maintainers, and package/Schema maintainers
+  navigable, packaged guidance. It introduces no tool, Schema, dependency,
+  credential, vendor, compatibility, release, or publication claim.
 
 ### Deviations from assignment
 
-- None.
+- Local development dependencies were absent at start. Restored them with
+  `npm install --ignore-scripts --no-package-lock --no-audit --no-fund`; this
+  wrote no lockfile and made no tracked dependency change. No validation was
+  skipped.
 
 ### Known limitations and risks
 
-- None.
+- This is local pre-integration tarball evidence only. It does not publish a
+  package, establish a registry/dist-tag/GitHub release fact, or make a new
+  Host, vendor, converter, adapter, or semantic-review compatibility claim.
+  The coordinator must regenerate package evidence after any later packaged
+  file changes during integration.
 
 ### Decisions or questions for coordinator
 
@@ -304,10 +360,10 @@ install digest/summary, and any skipped validation in the handoff.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, lockfile, license, tag, publish, release, or
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, lockfile, license, tag, publish, release, or
       dist-tag action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
