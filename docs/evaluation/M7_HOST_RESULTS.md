@@ -1,6 +1,7 @@
-# M7 real Host compatibility — checkpoint evidence
+# M7 real Host compatibility evidence
 
-> Status: worker final evidence, pending coordinator review. Codex Desktop's
+> Status: accepted real-Host evidence; accepted-main artifact regeneration is
+> pending the packaged coordinator Decision/Roadmap commit. Codex Desktop's
 > long-lived MCP ownership is recorded as Host-specific lifecycle behavior.
 
 ## Frozen artifact and installation

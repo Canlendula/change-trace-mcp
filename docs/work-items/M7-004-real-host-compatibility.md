@@ -339,18 +339,50 @@ acceptance.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
-- Reviewed branch head:
-- Integration commit:
+- Outcome: `accepted`
+- Reviewed branch head: `0d179b6b56639b51bfe1d5d3e58cf2628a65bb01`
+- Integration commit: initial fast-forward
+  `0d179b6b56639b51bfe1d5d3e58cf2628a65bb01`
+- Final accepted-main artifact commit: pending post-acceptance clean-install
+  smoke.
 
 ### Review findings
 
-- Pending.
+- No unresolved findings. The final branch stayed within the assigned paths,
+  removed its temporary Codex checkpoint, retained all failed attempts and
+  Host-specific lifecycle limitations, and committed a clean handoff.
+- Coordinator review found and the worker resolved lifecycle borrowing between
+  Host attempts, absent timeout/termination coverage, unsafe npm CLI fallback,
+  missing callable Codex recording/finalization, unverified executable
+  versions, and ignored non-zero preparation exits.
+- Independent coordinator validation passed the 19-case focused gate with 18
+  passes and one Windows-inapplicable skip, type checking, 37 files / 386
+  tests with two Windows-inapplicable skips, stdio and advisory-CI smokes,
+  package dry-run, and a zero-vulnerability production audit.
+- Two independent coordinator `prepare` runs reproduced the recorded
+  197-file tarball, npm integrity/shasum, tarball SHA-256, and installed
+  `dist/cli.js` SHA-256 exactly, then removed their temporary state roots.
+- Claude Code and OpenCode meet the automatic-close requirement. Codex Desktop
+  discovered the same nine tools and returned the exact fixture, but retained
+  the MCP process after turn completion and archive. Its exact-state cleanup
+  and zero-orphan result are accepted under Decision 34 without a graceful
+  one-shot claim.
 
 ### Required follow-up
 
-- Pending.
+- Regenerate the clean-install artifact from accepted `main` after the packaged
+  Decision and Roadmap acceptance changes, record its exact digest, and verify
+  that the installed `dist/cli.js` remains runtime-identical.
+- Keep future Host/version claims pinned to fresh evidence. In particular, the
+  recorded Claude `2.1.217` session does not claim compatibility for the
+  subsequently installed `2.1.220`.
+- Carry the Codex Desktop Host-held lifecycle limitation into the compatibility
+  matrix and operator guidance.
 
 ### Roadmap and release impact
 
-- Pending.
+- M7 construction-sequence item 3 is accepted: clean package mechanics and
+  real priority local-Host compatibility are complete. Item 4, packaged
+  provider-neutral GitHub/generic CI examples and sample fixtures, is next.
+- This acceptance changes no product Schema, MCP tool, dependency, version,
+  registry, hosted CI, tag, release, publish, or dist-tag state.

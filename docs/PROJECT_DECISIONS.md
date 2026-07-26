@@ -1163,3 +1163,53 @@ coordinator must regenerate and rerun the clean-install smoke from accepted
 `main`, then store the final digest and result in an un-packaged evaluation
 record. No later packaged-file change may be included in that final
 clean-install claim without rerunning it.
+
+## 34. M7 records real Host compatibility with Host-specific shutdown semantics
+
+M7-004 proves the frozen compatibility fixture through one installation of one
+local tarball. The evidence artifact was packed from clean commit
+`13e9d13c52590381434780e747c2eb9b4badcf76`, has SHA-256
+`7a27bf2f7399982015b162a649ef024668cb34b2fbebee34eac8e4eaa2ba7659`,
+and installs `dist/cli.js` with SHA-256
+`e828bf961baa7af827e3833d598d9bf3fe6922c7a873bebcb056878322ef4d3f`.
+The installation used a fresh cache and empty user config outside the
+checkout, disabled lifecycle scripts, and exposed exactly the frozen nine-tool
+surface.
+
+The accepted Host matrix is:
+
+- Claude Code `2.1.217`: exact discovery, one `{}` fixture call,
+  byte-identical fixture text, and automatic process close;
+- OpenCode `1.18.4`: the same exact discovery/call/result and automatic
+  process close;
+- Codex Desktop `26.707.3748.0`: the same exact discovery/call/result in a
+  fresh `gpt-5.6-terra`/`high` task, followed by Host-held MCP ownership rather
+  than a one-shot close.
+
+Codex Desktop's result is accepted with an explicit limitation. Turn
+completion and task archive did not emit a graceful `server_closed` event.
+The unique temporary-state marker identified the remaining probe/server pair;
+the pair was terminated explicitly, temporary state and checkpoint
+configuration were removed, and the final exact-match orphan count was zero.
+This evidence supports Codex launch and tool-call compatibility. It does not
+support a graceful one-shot shutdown claim for that Host.
+
+The compatibility claim is limited to the recorded Host versions, installed
+runtime, stdio protocol surface, exact fixture call, and observed lifecycle.
+It is not a semantic-review quality guarantee, provider benchmark, future
+Host-version promise, release authorization, or registry-package claim. Claude
+Code updated locally to `2.1.220` after the recorded session, so the claim
+remains pinned to the pre-session `2.1.217` observation.
+
+The reusable M7 harness now rejects mismatched executable versions, non-zero
+preparation commands, artifact/tool/result mismatches, duplicate or borrowed
+lifecycle events, unsafe finalization roots, and unbounded child processes or
+output. Claude Code and OpenCode must close automatically. Codex Desktop uses
+the separately recorded Host-held disposition plus exact operator cleanup.
+
+As with M7-003, Roadmap and Decision updates are packaged and therefore change
+the accepted-main tarball bytes. The coordinator must rerun the clean-install
+smoke after this Decision is committed. If the accepted-main
+`dist/cli.js` digest remains identical, the real-Host result applies to that
+runtime-equivalent accepted artifact; the exact real-Host tarball digest
+remains the pre-integration digest above.
