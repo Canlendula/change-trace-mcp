@@ -226,7 +226,7 @@ acceptance.
 - Status: `ready_for_review`
 - Handoff branch: `codex/M7-004-real-host-compatibility`
 - Worktree: `C:\Users\C\.codex\worktrees\79ab\agent-e2e-mcp`
-- Implementation commits: `a29488c5919ec82055877d7627209c0a3aa84eb0`; `df54c3781b785917f6a9fbea6df0326d70268cc0`; `2dde4cfedd8be48d8e693eb2fc993a2c204fee95`; `13e9d13c52590381434780e747c2eb9b4badcf76`; `bdfc05d479485abdb4f6b20435b965ac7d1f3940`; final handoff record follows this commit.
+- Implementation commits: `a29488c5919ec82055877d7627209c0a3aa84eb0`; `df54c3781b785917f6a9fbea6df0326d70268cc0`; `2dde4cfedd8be48d8e693eb2fc993a2c204fee95`; `13e9d13c52590381434780e747c2eb9b4badcf76`; `bdfc05d479485abdb4f6b20435b965ac7d1f3940`; `47df434c0821be8abc57b1b4388f481f7ae13fbb`; final handoff record follows this commit.
 
 ### Implementation summary
 
@@ -236,7 +236,13 @@ acceptance.
   validation, and checkpoint support.
 - Added offline tests for path planning, environment sanitization, strict Host
   command construction, lifecycle/result validation, failed-attempt accounting,
-  diagnostic classification, and cleanup.
+  diagnostic classification, bounded termination/output handling, CLI
+  resolution, Host-held Codex evidence, and finalization refusal/success.
+- Post-review hardening now resets lifecycle evidence per Host, validates exact
+  event counts, represents Codex Host-held cleanup explicitly, and offers a
+  safe callable finalization action. It also requires an exact executable
+  `--version` observation before future Host sessions. It was not used for the
+  already-manual real-session cleanup.
 - Prepared one committed local tarball and one isolated installation. Claude
   Code and OpenCode passed against that shared installed artifact. The fresh
   Codex task discovered the nine tools and returned the exact fixture. Codex
@@ -255,9 +261,9 @@ acceptance.
 
 | Command | Result | Notes |
 |---|---|---|
-| `npx vitest run tests/unit/smoke-real-hosts.test.ts` | passed | 9 offline tests |
+| `npx vitest run tests/unit/smoke-real-hosts.test.ts` | passed | 17 tests, 1 Windows-inapplicable skip |
 | `npm run check` | passed | before real Host calls |
-| `npm test` | passed | 376 passed, 1 Windows-inapplicable skip |
+| `npm test` | passed | 385 passed, 2 Windows-inapplicable skips (post-review hardening) |
 | `npm run smoke:stdio` | passed | nine tools and exact fixture |
 | `npm run smoke:ci` | passed | advisory smoke |
 | `npm run pack:check` | passed | package dry run |
@@ -274,6 +280,9 @@ acceptance.
   its nine-tool and exact-fixture checks; its distinct long-lived lifecycle and
   explicit zero-orphan cleanup are recorded without calling it a graceful
   one-shot close.
+- The tarball was packed from clean source commit
+  `13e9d13c52590381434780e747c2eb9b4badcf76`; its installed runtime digest is
+  the `dist/cli.js` unpacked from that exact integrity-bound artifact.
 
 ### Public contract and documentation impact
 
@@ -292,6 +301,9 @@ acceptance.
 - Codex Desktop retained its project MCP after turn completion and archive.
   Coordinator directed that this be recorded as Host-specific lifecycle
   behavior, with exact-state cleanup, rather than retried after the call.
+- The post-run Claude installation auto-updated from the pre-run observed
+  `2.1.217` to `2.1.220`; the earlier captured `claude --version` observation,
+  rather than a current binary check, supports the evidence session version.
 
 ### Known limitations and risks
 
@@ -299,6 +311,8 @@ acceptance.
   ended one of two exact-state pairs without a lifecycle close; the remaining
   pair required explicit exact-state cleanup. Its forced termination produced
   no probe exit code/signal, and final exact-match orphan count was zero.
+- The reusable `record-codex-held` and `finalize` CLI actions are post-review
+  hardening and did not run against the already-cleaned real state root.
 
 ### Decisions or questions for coordinator
 

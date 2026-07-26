@@ -15,9 +15,10 @@ and probe were removed after evidence finalization.
 | Field | Value |
 | --- | --- |
 | Package / source version | `change-trace-mcp` / `0.0.0-dev.1` |
+| Clean source commit | `13e9d13c52590381434780e747c2eb9b4badcf76` |
 | Tarball | `change-trace-mcp-0.0.0-dev.1.tgz` |
 | Tarball SHA-256 | `7a27bf2f7399982015b162a649ef024668cb34b2fbebee34eac8e4eaa2ba7659` |
-| Installed `dist/cli.js` SHA-256 | `e828bf961baa7af827e3833d598d9bf3fe6922c7a873bebcb056878322ef4d3f` |
+| Installed `dist/cli.js` SHA-256 | `e828bf961baa7af827e3833d598d9bf3fe6922c7a873bebcb056878322ef4d3f` — runtime unpacked from the exact integrity-bound tarball |
 | npm shasum / integrity | `7891a4e3d7925bf1bcfa863cccacca7d3a0213c0` / `sha512-+9bEpmCtFZ4Uc9TwCnJ1gS7M7jzjkOZALhm+G7I4oOWjs7ebkSgrOqBFOqD5wXHNepx5uvdc5xXi5yt5DyuwEw==` |
 | Packed / unpacked bytes / files | `151622` / `787375` / `197` |
 | Installation checks | copied non-symlink package outside checkout; production `npm ls` passed |
@@ -34,6 +35,13 @@ Host output is capped under the temporary state root and is never committed.
 | Claude Code | `2.1.217` | passed | `8194 ms` | exact nine-tool discovery, fixture call/result, clean process close |
 | OpenCode | `1.18.4` | passed | `8551 ms` | exact nine-tool discovery, fixture call/result, clean process close |
 | Codex Desktop | `26.707.3748.0` | passed; Host-held lifecycle | `10965 ms` task / `2 ms` MCP call | exact nine-tool discovery and fixture call/result; no one-shot close event before archive |
+
+Version provenance: `claude --version` was observed as `2.1.217 (Claude
+Code)` before the evidence session. Coordinator later observed that the global
+Claude installation auto-updated to `2.1.220` after the successful run; no
+current version output is used to prove the earlier binary. The exact native
+OpenCode executable was checked non-billably after review and returned
+`1.18.4`. Codex Desktop `26.707.3748.0` is the fresh task/app observation.
 
 The bounded failed-attempt history is retained in temporary state: two
 shell-free launcher-resolution failures, one CLI diagnostic failure before the
@@ -54,7 +62,9 @@ forced termination; final process matching found zero remaining pairs. This is
 recorded as Codex Desktop's Host-held lifecycle behavior, not as a graceful
 one-shot close claim.
 
-For both completed Host attempts the observed tool set was exactly:
+All three Host records observed exactly this tool set. Claude Code and OpenCode
+are graceful one-shot sessions; Codex Desktop is the explicit Host-held record
+described above:
 
 ```text
 collect_external_evidence
@@ -79,9 +89,9 @@ text was byte-identical to:
 
 | Command | Result |
 | --- | --- |
-| `npx vitest run tests/unit/smoke-real-hosts.test.ts` | passed: 9 tests |
+| `npx vitest run tests/unit/smoke-real-hosts.test.ts` | passed: 17 tests, 1 Windows-inapplicable skip (post-review hardening) |
 | `npm run check` | passed |
-| `npm test` | passed: 376 tests, 1 Windows-inapplicable skip |
+| `npm test` | passed: 385 tests, 2 Windows-inapplicable skips (post-review hardening) |
 | `npm run smoke:stdio` | passed |
 | `npm run smoke:ci` | passed |
 | `npm run pack:check` | passed |
@@ -90,6 +100,7 @@ text was byte-identical to:
 | `node scripts/smoke-real-hosts.mjs run-claude <temporary-state>` | passed after recorded pre-call diagnostics |
 | `node scripts/smoke-real-hosts.mjs run-opencode <temporary-state>` | passed |
 | `node scripts/smoke-real-hosts.mjs checkpoint <temporary-state>` | passed; temporary configuration created |
+| exact native OpenCode executable `--version` | passed: `1.18.4` (non-billable post-review check) |
 
 ## Host lifecycle and cleanup
 
@@ -98,5 +109,18 @@ the project MCP process after the task turn completed and after thread archive;
 the coordinator has classified this as Host-specific long-lived behavior. No
 new Codex call was made. The temporary checkpoint configuration, artifact,
 consumer, npm cache, raw logs, state, and precisely matched remaining process
-pair were removed; the final exact-match orphan count was zero. Coordinator
-review owns the corresponding acceptance/Decision wording adjustment.
+pair were removed; the final exact-match orphan count was zero. The actual
+cleanup was manual and exact-state scoped: a command-line marker check selected
+only the unique temporary-state pair, `Stop-Process` terminated that remaining
+pair, and `cleanupStateRoot(...)` removed the state root. The new
+`node scripts/smoke-real-hosts.mjs record-codex-held <temporary-state> <thread-id> <turn-ms> <mcp-ms>`
+records only the latest lifecycle segment as an artifact-bound Host-held
+attempt. The paired `finalize <temporary-state>` action validates the expected
+Claude, OpenCode, and Codex dispositions plus generated checkpoint identity and
+safe temporary root before deleting them; neither action was used
+retrospectively.
+Post-review `runHost` hardening also observes each exact executable's
+non-billable `--version` before a semantic session and rejects a mismatch; it
+does not alter the historical Claude version provenance above.
+Coordinator review owns the corresponding acceptance/Decision wording
+adjustment.
