@@ -116,4 +116,4 @@ separate release decision.
 - [npm two-factor and proof-of-presence guidance](https://docs.npmjs.com/about-two-factor-authentication)
 - [GitHub Actions OIDC](https://docs.github.com/actions/concepts/security/openid-connect)
 - [GitHub deployment environments](https://docs.github.com/actions/how-tos/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment)
-- [Node.js 24.18.0 release archive](https://nodejs.org/en/download/archive/v24.18.0)
+- [Node.js 24.18.0 release note](https://nodejs.org/en/blog/release/v24.18.0)

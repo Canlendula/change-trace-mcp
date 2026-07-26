@@ -105,10 +105,10 @@ describe("M7 stage-only publishing contract", () => {
     const locations = { cache: "/temporary/cache", userConfig: "/temporary/npmrc" };
     const [executable, args] = npmCommand("publish", locations, ["/temporary/package.tgz", "--dry-run", "--tag", "next", "--access", "public"]);
     expect(executable).toBe(process.execPath);
-    expect(args).toEqual(expect.arrayContaining([
+    expect(args.slice(1)).toEqual([
       "publish", "--userconfig", locations.userConfig, "--cache", locations.cache,
       "--registry", "https://registry.npmjs.org/", "--ignore-scripts", "/temporary/package.tgz", "--dry-run", "--tag", "next", "--access", "public",
-    ]));
+    ]);
     expect(parseVersionStatus({ code: 0, stdout: JSON.stringify(version), stderr: "" }, packageName, version)).toBe("published");
     expect(parseVersionStatus({
       code: 1,
@@ -128,6 +128,7 @@ describe("M7 stage-only publishing contract", () => {
     expect(() => parsePackResult(JSON.stringify([packRecord({ files: undefined })]), packageName, version)).toThrow("pack_metadata_invalid");
     expect(() => parsePackResult(JSON.stringify([packRecord({ files: Array.from({ length: maxTarballFiles + 1 }, () => ({ path: "file" })) })]), packageName, version)).toThrow("pack_metadata_invalid");
     expect(() => parsePackResult(JSON.stringify([packRecord({ size: 100_000_000 })]), packageName, version)).toThrow("pack_metadata_invalid");
+    expect(() => parsePackResult(JSON.stringify([packRecord({ unpackedSize: 1_000_000_000 })]), packageName, version)).toThrow("pack_metadata_invalid");
   });
 
   it("checks the exact single tarball directory entry and on-disk size before hashing", async () => {
@@ -154,7 +155,7 @@ describe("M7 stage-only publishing contract", () => {
     expect(guide).toContain("local-dry-run-only");
     expect(guide).toContain("https://docs.npmjs.com/staged-publishing/");
     expect(guide).toContain("https://docs.npmjs.com/cli/v11/commands/npm-stage/");
-    expect(guide).toContain("https://nodejs.org/en/download/archive/v24.18.0");
+    expect(guide).toContain("https://nodejs.org/en/blog/release/v24.18.0");
     expect(guide).not.toMatch(/this task (?:configured|staged|approved|published)/iu);
   });
 });
