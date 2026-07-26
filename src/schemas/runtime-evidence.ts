@@ -230,17 +230,11 @@ function producersMatch(
   );
 }
 
-export const runtimeEvidenceItemSchema = evidenceItemSchema.superRefine(
-  (item, context) => {
-    if (item.runtimeProvenance === undefined) {
-      context.addIssue({
-        code: "custom",
-        message: "Runtime evidence requires runtime provenance",
-        path: ["runtimeProvenance"],
-      });
-    }
-  },
-);
+export const runtimeEvidenceItemSchema = evidenceItemSchema.safeExtend({
+  type: z.enum(["test_result", "runtime_observation", "configuration"]),
+  trustLevel: z.literal("observed_runtime"),
+  runtimeProvenance: runtimeProvenanceSchema,
+});
 
 export const runtimeEvidenceCollectionSchema = z
   .strictObject({

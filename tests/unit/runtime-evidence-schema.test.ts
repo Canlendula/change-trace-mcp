@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { z } from "zod";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 import {
   CORE_SCHEMA_VERSION,
@@ -9,11 +10,14 @@ import {
   runtimeAvailableBehavioralRecordSchema,
   runtimeAvailableEnvironmentRecordSchema,
   runtimeEvidenceCollectionSchema,
+  runtimeEvidenceItemSchema,
   runtimeEvidenceManifestSchema,
   runtimeProvenanceSchema,
   runtimeUnavailableRecordSchema,
   type EvidenceItem,
   type RuntimeEvidenceManifest,
+  type RuntimeEvidenceItem,
+  type RuntimeProvenance,
 } from "../../src/schemas/index.js";
 
 const hash = `sha256:${"a".repeat(64)}`;
@@ -544,6 +548,42 @@ describe("runtime manifest records", () => {
 });
 
 describe("runtime provenance and collection", () => {
+  it("requires runtime provenance structurally in runtime items", () => {
+    expectTypeOf<RuntimeEvidenceItem["runtimeProvenance"]>().toEqualTypeOf<
+      RuntimeProvenance
+    >();
+    expectTypeOf<RuntimeEvidenceItem["type"]>().toEqualTypeOf<
+      "test_result" | "runtime_observation" | "configuration"
+    >();
+    expectTypeOf<RuntimeEvidenceItem["trustLevel"]>().toEqualTypeOf<
+      "observed_runtime"
+    >();
+
+    const schema = z.toJSONSchema(runtimeEvidenceItemSchema, {
+      target: "draft-2020-12",
+      io: "output",
+      reused: "ref",
+    }) as {
+      required?: string[];
+      properties?: {
+        type?: { enum?: string[] };
+        trustLevel?: { const?: string };
+      };
+    };
+    expect(schema.required).toContain("runtimeProvenance");
+    expect(schema.properties?.type?.enum).toEqual([
+      "test_result",
+      "runtime_observation",
+      "configuration",
+    ]);
+    expect(schema.properties?.trustLevel?.const).toBe("observed_runtime");
+    const { runtimeProvenance: _omitted, ...withoutRuntimeProvenance } =
+      runtimeEvidenceItem();
+    expect(
+      runtimeEvidenceItemSchema.safeParse(withoutRuntimeProvenance).success,
+    ).toBe(false);
+  });
+
   it("adds strict optional runtime provenance without breaking generic evidence", () => {
     const itemWithUndefined = runtimeEvidenceItem({
       id: "evidence:generic",
