@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-003 accepted; M7-004 real-Host validation awaits explicit authorization
+> Status: M7 in progress; M7-001 through M7-003 accepted; M7-004 real-Host validation authorized and assigned
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -187,8 +187,13 @@ The technical spike may revise this choice if Host compatibility or package star
   OpenCode v1/v2 configuration examples use exact-version placeholders and
   make no live-Host claim. Coordinator gates pass at 36 files / 368 tests with
   one Windows-inapplicable POSIX termination test skipped; the production
-  audit reports zero vulnerabilities. M7-004 remains the separately authorized
-  fresh-session compatibility check.
+  audit reports zero vulnerabilities.
+- M7-004 was explicitly authorized and assigned on 2026-07-26. Its frozen
+  matrix uses one installed local tarball in fresh Codex Desktop
+  `26.707.3748.0`, Claude Code `2.1.217`, and OpenCode `1.18.4` sessions. The
+  test may use existing Host authentication and temporary project-level
+  configuration, while user/global configuration, credential disclosure,
+  publishing, hosted CI, tags, and releases remain out of scope.
 
 ## 6. M0 — Project foundation
 
@@ -681,8 +686,9 @@ The format evidence supporting this boundary is in
 
 > Current state: in progress. M7-001 through M7-003 are accepted. The two
 > medium security findings are mitigated, and clean package installation is
-> reproducible from an exact local artifact. M7-004 real-Host validation awaits
-> explicit authorization before CI, publishing, and pilot claims are expanded.
+> reproducible from an exact local artifact. M7-004 real-Host validation is
+> authorized and assigned under the temporary-configuration and
+> credential-safety boundary in its tracked work item.
 
 ### Goals
 

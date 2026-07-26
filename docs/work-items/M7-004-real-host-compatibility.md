@@ -4,7 +4,7 @@
 
 - Status: `assigned`
 - Milestone: `M7 — Public beta hardening`
-- Base commit: `<set by coordinator after this assignment is committed>`
+- Base commit: `cdb90a6c2c2c9963b69d332b5b957746e08b3405`
 - Branch: `codex/M7-004-real-host-compatibility`
 - Worktree: Codex-managed isolated worktree for the assigned branch; record the
   absolute path in the worker handoff.
@@ -15,8 +15,7 @@
 - Dependencies: accepted M7-003, Decision 33, and the user's explicit
   credential-bearing Host-call authorization on 2026-07-26.
 
-The coordinator will replace the Base commit placeholder with the exact
-assignment commit before dispatch. The worker must start from that commit.
+The worker must start from the exact Base commit above.
 
 ## Frozen evidence subject
 
