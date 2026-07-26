@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-004 accepted; M7-005 packaged provider-neutral CI examples assigned
+> Status: M7 in progress; M7-001 through M7-005 accepted; extension, contribution, changelog, and versioning guidance is next
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -199,12 +199,16 @@ The technical spike may revise this choice if Host compatibility or package star
   Windows-inapplicable POSIX skips, and the production audit reports zero
   vulnerabilities. Detailed evidence is in
   [`docs/evaluation/M7_HOST_RESULTS.md`](evaluation/M7_HOST_RESULTS.md).
-- M7-005 was assigned on 2026-07-26. It packages the provider-neutral advisory
-  runner, bounded status summarizer, CI documentation, and a deterministic
-  mechanics-only fixture. The installed-package smoke must run that fixture
-  through the installed runner and validate the exact three-artifact contract.
-  Hosted CI, inference, credentials, publication, versions, tags, and releases
-  remain out of scope.
+- M7-005 was accepted on 2026-07-26. The 204-file npm artifact now packages
+  only the provider-neutral advisory runner and summarizer plus the complete
+  CI documentation tree and deterministic mechanics-only fixture. The clean
+  install runs the installed runner and installed fixture from one local
+  tarball, producing `completed_no_findings` and exactly three managed
+  artifacts. Executable POSIX guards reject floating package selectors,
+  nested tooling/subject roots, and pre-populated package manifests. GitHub
+  and GitLab retain immutable-commit guidance while the portable mapping
+  requires a protected exact published SemVer. No hosted CI, inference,
+  credential, version, publication, tag, release, or dist-tag action occurred.
 
 ## 6. M0 — Project foundation
 
@@ -695,12 +699,14 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M7-001 through M7-004 are accepted. The two
+> Current state: in progress. M7-001 through M7-005 are accepted. The two
 > medium security findings are mitigated, clean package installation is
 > reproducible, and the three priority local Hosts pass the exact installed
-> fixture contract with Host-specific lifecycle evidence. M7-005 packaged
-> provider-neutral CI examples and sample fixtures are assigned under
-> Decision 35.
+> fixture contract with Host-specific lifecycle evidence. The provider-neutral
+> runner, bounded summarizer, GitHub/GitLab/portable examples, and
+> mechanics-only fixture are packaged under Decision 35. Construction now
+> proceeds to adapter/converter authoring, contribution, changelog, and
+> versioning guidance.
 
 ### Goals
 

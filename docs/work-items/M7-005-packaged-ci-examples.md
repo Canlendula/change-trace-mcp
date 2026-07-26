@@ -296,18 +296,54 @@ summary in the handoff.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
-- Reviewed branch head:
-- Integration commit:
+- Outcome: `accepted`
+- Reviewed branch head: `ea27c951b9c025f72dc39bfe4d40317e1ff3c1a1`
+- Integration commit: initial fast-forward
+  `ea27c951b9c025f72dc39bfe4d40317e1ff3c1a1`
+- Final accepted-main artifact commit: pending accepted-main smoke
+- Final accepted-main tarball SHA-256: pending accepted-main smoke
 
 ### Review findings
 
-- Pending.
+- No unresolved findings. The final branch stayed within the assigned paths,
+  changed only package `files` metadata, preserved versions, dependencies,
+  lockfile, exports, bin names, product contracts, historical evidence, and
+  hosted workflow state, and committed a clean handoff.
+- Coordinator review found and the worker resolved an initially hard-coded,
+  unpublished portable package version, source-checkout dependency expansion,
+  a redundant GitLab variable self-reference, and incomplete separation of
+  portable trusted-tooling and subject roots.
+- The accepted portable mapping now requires protected exact SemVer input,
+  installs under a dedicated empty CI-owned prefix, rejects tags/ranges/URLs,
+  rejects symlinked or nested roots and existing package manifests before npm
+  runs, and keeps the credential/MCP-child and exact-artifact boundaries.
+- Independent coordinator validation passed the 21-case focused gate with 20
+  passes and one Windows-inapplicable process-group skip. Both POSIX guard
+  cases executed on this Windows host through Git's `sh`. Type checking, 38
+  files / 391 tests with two platform-conditional skips, stdio and advisory-CI
+  smokes, package dry-run, and a zero-vulnerability production audit passed.
+- The independent pre-acceptance clean-install smoke reproduced the worker's
+  204-file tarball SHA-256
+  `c8b43b86c89ce3e846a8e00ff649f7a95ccb3a8f9261cd864ab12a951b6a21e6`,
+  installed from the copied local tarball, ran the installed runner and
+  fixture, produced `completed_no_findings` with exactly three artifacts, and
+  removed the complete temporary root.
 
 ### Required follow-up
 
-- Pending.
+- Keep `CHANGE_TRACE_PACKAGE_VERSION` in protected platform configuration and
+  set it only to an exact version that has actually been published. Floating
+  tags, ranges, URLs, paths, source-checkout install roots, and subject-owned
+  tooling roots remain unsupported.
+- Provider/platform mappings remain guidance until exercised in the named
+  platform. The deterministic fixture supports orchestration evidence only
+  and cannot qualify Host/model review quality.
 
 ### Roadmap and release impact
 
-- Pending.
+- M7 construction-sequence item 4 is accepted: the installed package exposes
+  the bounded provider-neutral CI contract and mechanics fixture. Item 5,
+  adapter/converter authoring, contribution, changelog, and versioning
+  guidance, is next.
+- This acceptance changes no product Schema, MCP tool, dependency, version,
+  registry, hosted CI, tag, release, publish, or dist-tag state.
