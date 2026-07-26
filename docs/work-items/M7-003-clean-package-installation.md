@@ -262,53 +262,73 @@ make no registry write, and leave no retained cache/artifact/consumer state.
 
 ## Worker handoff — worker owned
 
-- Status: `assigned | in_progress | ready_for_review | blocked | needs_decision`
-- Handoff branch:
-- Worktree:
-- Implementation commits:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M7-003-clean-package-installation`
+- Worktree: `C:\Users\C\.codex\worktrees\a099\agent-e2e-mcp`
+- Implementation commits: `8e71ef873fcc820d3ace79d56b97b7a9954f2b6f`; `6212b51a8e89a7b191549669687435f99ee77d20`; final handoff evidence commit follows this record.
 
 ### Implementation summary
 
-- `<summary>`
+- Added a reusable local-tarball clean-install smoke that uses a unique OS temporary root, one `npm pack --json` result, independent SHA-256, packed-path allow/deny checks, fresh cache and empty user config, lifecycle-script-disabled install/npx paths, sanitized environment, shell-free bounded children, and unconditional cleanup.
+- Added offline coverage for planning, environment sanitization, pack/launch/summary validation, temporary-root cleanup, timeout/output bounds, credential/config path rejection, npm CLI override/fallback, and POSIX SIGKILL escalation (platform-skipped on Windows).
+- Prepared exact-version configuration examples for Codex, Claude Code, installed OpenCode v1.18.4, and current OpenCode v2 without making a real Host claim.
 
 ### Changed areas
 
-- `<path and purpose>`
+- `scripts/smoke-clean-install.mjs` — reusable clean local-package smoke.
+- `tests/unit/clean-install-smoke.test.ts` — offline smoke helper and bounded-failure coverage.
+- `tests/unit/security-baseline.test.ts` — packaged guide/config integrity checks.
+- `docs/smoke-tests/README.md` and `docs/smoke-tests/config/*` — pinned registry, checkout, local-tarball, and version-separated Host preparation guidance.
+- `docs/evaluation/M7_INSTALL_RESULTS.md` — un-packaged pre-integration artifact evidence.
 
 ### Validation
 
-- `<initial failures and exact final commands/results>`
+- Initial failing test-first runs exposed path-separator/Windows-key behavior, missing temporary-root/summary/CLI fallback coverage, and broad credential-path coverage; each was corrected before the final run.
+- `npm run build` — passed.
+- `npx vitest run tests/unit/clean-install-smoke.test.ts tests/unit/security-baseline.test.ts tests/integration/stdio.test.ts` — passed: 18 passed, 1 Windows-inapplicable POSIX escalation test skipped.
+- `node scripts/smoke-clean-install.mjs` — passed from artifact commit `6212b51a8e89a7b191549669687435f99ee77d20`.
+- `npm run check` — passed.
+- `npm test` (run twice) — each passed: 367 passed, 1 Windows-inapplicable POSIX escalation test skipped.
+- `npm run smoke:stdio` — passed with all nine tools and the exact fixture.
+- `npm run smoke:ci` — passed: `outcome=completed_no_findings code=ok` and `smoke=ok`.
+- `npm run pack:check` — passed: 197 files, 151.4 kB packed / 786.2 kB unpacked.
+- `npm audit --omit=dev --audit-level=high` — passed: 0 vulnerabilities.
+- `git diff --check 6a18ca1c56b52b7d8b3ec9ad8b2ba2299f030fa2..HEAD` — passed.
+- `git status --short` — clean after the final evidence commit.
 
 ### Artifact and clean-install evidence
 
-- `<tarball fields, install/npx results, tools, fixture, and cleanup>`
+- Artifact commit: `6212b51a8e89a7b191549669687435f99ee77d20`.
+- Tarball: `change-trace-mcp-0.0.0-dev.1.tgz`; SHA-256 `11ba87bc0760f23c1ccac65635b4bb086155d4bb5d19b48ff0437a74bdb5a040`; npm shasum `07d540a59ff3dad5140bb73a8a2c80dd09e07153`; integrity `sha512-nL4vfgss0smKC321ro8AJB1qAFQODFLR13v6L9Z8IRjc9oM7dDn/U25OfcBCJOCwLvzwE5TJQt+CxHEaSEMKMA==`; packed/unpacked sizes `151369` / `786243`; 197 files.
+- Fresh consumer install, copied-package checks, production `npm ls`, installed-Node reference launch, and isolated local-tarball npx reference launch all passed. Both launches exposed exactly `collect_external_evidence`, `collect_local_evidence`, `collect_runtime_evidence`, `get_change_scope`, `get_compatibility_fixture`, `get_review_bundle`, `get_server_info`, `validate_findings`, and `write_report`, and returned the required byte-stable M1 fixture. Cleanup reported success; the OS temporary directory had no retained `change-trace-clean-install-*` root.
 
 ### Host configuration and claim audit
 
-- `<versions, syntax validation, and claims deliberately not made>`
+- Official primary references were accessed 2026-07-26. Codex TOML uses `mcp_servers`, exact-version npx, all nine tools, startup timeout, and per-tool timeout. Claude Code uses `--transport`/`--scope` before the server name and `--` before npx; the JSON example uses stdio command plus args. Installed OpenCode `1.18.4` retains its direct `mcp.<name>` v1 form; current v2 is separately placed under `mcp.servers` with `disabled: false`, timeout object, and `codemode: false`.
+- JSON parsing and integrity tests passed. No Codex, Claude Code, OpenCode, model, credential-bearing, or live Host session was started; no Host compatibility claim is made.
 
 ### Public contract and documentation impact
 
-- `<impact>`
+- Package metadata, dependency graph, lockfile, public source/tool/schema contracts, CI, and version remain unchanged. Packaged smoke documentation now distinguishes development checkout, a future exact pinned registry version, and maintainer local-tarball evidence. The evaluation record is intentionally excluded from the package; coordinator acceptance updates packaged Roadmap bytes and requires a new accepted-main smoke/digest.
 
 ### Deviations from assignment
 
-- `<deviation, or None>`
+- None.
 
 ### Known limitations and risks
 
-- `<limitation, or None>`
+- The clean-install proof is Windows/Node `v24.0.0`/npm `11.3.0` evidence. POSIX SIGTERM-ignore escalation is tested but skipped on Windows. It proves package mechanics and reference-client behavior only; real priority-Host evidence remains M7-004 work.
 
 ### Decisions or questions for coordinator
 
-- `<decision request, or None>`
+- None. The coordinator must rerun the clean-install smoke after acceptance changes the packaged Roadmap on `main`.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No dependency, lockfile, package metadata, version, CI, registry,
+- [x] Coordinator-only files were not modified.
+- [x] No dependency, lockfile, package metadata, version, CI, registry,
       release, credential, hosted-run, or real Host/model action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
