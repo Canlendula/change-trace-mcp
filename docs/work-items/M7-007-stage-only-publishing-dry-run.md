@@ -384,18 +384,42 @@ command is allowed.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending | accepted | changes_requested | rejected`
+- Outcome: `accepted`
 - Reviewed branch head:
+  `ef862e1de28a93d110513466891b09b98e4cd186`
 - Integration commit:
+  `ef862e1de28a93d110513466891b09b98e4cd186` (fast-forward)
 
 ### Review findings
 
-- `<finding, or None>`
+- The first review requested stricter inherited-environment isolation,
+  fail-closed npm version-status handling, real package file counts and
+  tarball bounds, setup-node cache/runtime pinning, direct behavior tests, and
+  exact staged-publishing references.
+- Commits `d9dbf51` and `d45f39d` resolved those findings. Independent review
+  confirmed the workflow has only a manual trigger, job-local permissions,
+  an absent/false repository-variable stop, exact tag/version/commit/
+  confirmation guards, stage-only `next`, and no credential or direct-publish
+  path.
+- Coordinator validation passed 7 focused tests and the complete 41-file
+  suite at 400 passed / 2 existing Windows-inapplicable skips. An additional
+  adversarial local dry-run injected invalid npm registry/config, token, proxy,
+  and unrelated credential variables; the helper still forced the public
+  registry and isolated configuration and produced the same 209-file digest.
 
 ### Required follow-up
 
-- `<follow-up, or None>`
+- Do not dispatch `stage`, configure the trusted publisher/environment/
+  repository variable, create a tag, or perform npm approval without a
+  separate coordinator/user release authorization and interactive
+  proof-of-presence.
+- Proceed to the M7 pilot kit and baseline metric schema as a separate work
+  item. Offline fixtures cannot satisfy the real multi-team, multi-week pilot
+  gate.
 
 ### Roadmap and release impact
 
-- `<coordinator assessment>`
+- M7 construction-sequence item 6 is accepted. This adds repository-only
+  release preparation and offline evidence; it does not change the package
+  version or establish OIDC, provenance, staging, approval, publication,
+  compatibility, release, or M7 completion.

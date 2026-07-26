@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-006 accepted; M7-007 stage-only publishing workflow and non-publishing dry-run assigned
+> Status: M7 in progress; M7-001 through M7-007 accepted; pilot-kit and baseline-metric preparation is next
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -219,6 +219,16 @@ The technical spike may revise this choice if Host compatibility or package star
   Git-tag, GitHub-release, and milestone facts separate. No runtime contract,
   dependency, version, registry, tag, release, publish, or dist-tag state
   changed.
+- M7-007 was accepted on 2026-07-26. A manual-only GitHub workflow separates
+  a credential-free dry-run job from a repository-variable- and
+  environment-guarded OIDC job that can only stage `next`. The future trusted
+  publisher is documented as stage-only and remains unconfigured. The local
+  helper uses a narrow child environment, exact temporary npm configuration,
+  fail-closed public-version lookup, one bounded tarball, and non-mutating
+  `npm publish --dry-run`. Coordinator review passes at 41 files / 400 tests
+  with two Windows-inapplicable POSIX skips. No hosted run, authentication,
+  trusted-publisher/environment/variable change, stage, approval,
+  publication, tag, release, or dist-tag action occurred.
 
 ## 6. M0 — Project foundation
 
@@ -709,15 +719,15 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M7-001 through M7-006 are accepted. The two
+> Current state: in progress. M7-001 through M7-007 are accepted. The two
 > medium security findings are mitigated, clean package installation is
 > reproducible, and the three priority local Hosts pass the exact installed
 > fixture contract with Host-specific lifecycle evidence. The provider-neutral
 > runner, bounded summarizer, GitHub/GitLab/portable examples, and
-> mechanics-only fixture are packaged under Decision 35. Construction now
-> proceeds through assigned M7-007 for a stage-only package publishing
-> workflow and non-publishing dry-run after accepting M7-006
-> extension/contribution/version guidance.
+> mechanics-only fixture are packaged under Decision 35. The stage-only
+> publishing workflow and non-publishing dry-run are accepted under Decision
+> 37. Construction now proceeds to the pilot kit and baseline metric schema;
+> real multi-team, multi-week evidence remains required.
 
 ### Goals
 
@@ -910,7 +920,7 @@ Progress as of 2026-07-26:
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
-| M7 public beta hardening | In progress; M7-001 through M7-006 are accepted and M7-007 stage-only publishing workflow/non-publishing dry-run is assigned |
+| M7 public beta hardening | In progress; M7-001 through M7-007 are accepted and pilot-kit/baseline-metric preparation is next |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
@@ -918,6 +928,6 @@ prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 `0.0.0-dev.0` until the next preview release is explicitly published.
 
 M7 security hardening, clean installation, real priority-Host compatibility,
-packaged provider-neutral CI examples, and public
-extension/contribution/version guidance are accepted. M7-007 covers publishing
-workflow preparation/dry-run; the real multi-team pilot remains after it.
+packaged provider-neutral CI examples, public extension/contribution/version
+guidance, and stage-only publishing workflow preparation/dry-run are
+accepted. The pilot kit, baseline metrics, and real multi-team pilot remain.
