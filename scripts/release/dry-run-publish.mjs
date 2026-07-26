@@ -116,7 +116,7 @@ function runBounded(executable, args, { cwd, env, allowFailure = false }) {
     child.once("error", () => settle(new DryRunError("command_unavailable")));
     child.once("close", (code) => {
       if (failure !== undefined) settle(new DryRunError(failure));
-      else if (code !== 0 && !allowFailure) settle(new DryRunError("command_failed"));
+      else if (code !== 0 && !allowFailure) settle(new DryRunError(`command_failed_${args[1] ?? "unknown"}`));
       else settle(undefined, { code, stdout, stderr });
     });
   });
