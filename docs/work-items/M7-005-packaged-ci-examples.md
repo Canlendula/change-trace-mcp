@@ -188,31 +188,75 @@ summary in the handoff.
 
 ## Worker handoff — worker owned
 
-- Status: `pending`
-- Handoff branch:
-- Implementation commits:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M7-005-packaged-ci-examples`
+- Worktree: `C:\Users\C\.codex\worktrees\1962\agent-e2e-mcp`
+- Implementation commits: `3f2ae5c58ba7d2270b863684897ac67c192471f2`
 
 ### Implementation summary
 
-- Pending.
+- Added the frozen CI package surface: the advisory runner, bounded status
+  summarizer, complete `docs/ci/` tree, GitLab/GitHub/portable guidance, and a
+  public deterministic mechanics-only Host fixture.
+- Extended the clean-install smoke to install one local tarball outside the
+  checkout, run the installed runner against the installed fixture in a fresh
+  subject/output directory, require `completed_no_findings`, exact three
+  artifacts, bounded schema/content checks, and complete temporary-root cleanup.
+- Added packaging and provider-neutral CI contract coverage. The focused test
+  path is `tests/integration/packaged-ci-surface.test.ts`.
 
 ### Changed areas
 
-- Pending.
+- `package.json` — added only `files` allowlist entries for the frozen CI
+  package surface.
+- `README.md`, `docs/ci/**` — packaged CI entry point, provider-neutral
+  guidance, portable mapping, and deterministic public fixture disclaimer.
+- `scripts/smoke-clean-install.mjs` — installed-package CI execution and
+  bounded artifact validation.
+- `tests/integration/provider-neutral-ci.test.ts`,
+  `tests/integration/packaged-ci-surface.test.ts`, and
+  `tests/unit/clean-install-smoke.test.ts` — contract and clean-install tests.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| Pending | Pending | Pending |
+| `npm ci --ignore-scripts --offline --no-audit --no-fund` | PASS | Bootstrap only; populated ignored dependencies from the local cache without lifecycle scripts or registry access. |
+| `npm run check` | PASS | TypeScript no-emit check passed. |
+| `npx vitest run tests/integration/provider-neutral-ci.test.ts tests/integration/packaged-ci-surface.test.ts tests/unit/clean-install-smoke.test.ts` | PASS | 3 files; 18 passed and 1 Windows-conditional test skipped. |
+| `npm test` | PASS | 38 files; 389 passed and 2 platform-conditional tests skipped. |
+| `npm run smoke:ci` | PASS | Deterministic runner smoke reported `completed_no_findings`. |
+| `npm run smoke:stdio` | PASS | Nine-tool stdio surface and byte-stable fixture passed. |
+| `node scripts/smoke-clean-install.mjs` | PASS | One local tarball installed outside the checkout; see smoke evidence below. |
+| `npm run pack:check` | PASS | Dry-run package contained 204 files, including the exact CI surface and no tests/workflows. |
+| `npm audit --omit=dev --audit-level=high` | PASS | `found 0 vulnerabilities`. |
+| `git diff --check` | PASS | No whitespace errors before commit. |
+| `git status --short` | PASS | Clean after the handoff commit. |
 
 ### Package and smoke evidence
 
-- Pending.
+- Clean-install summary had `ci: {"outcome":"completed_no_findings","artifacts":3}`;
+  its tarball SHA-256 was
+  `eaa128461cfd6011697ad4fc444e75ab41aa1f5265acc36aa37ed25eec865d39`.
+- The installed runner used the installed public fixture, emitted only
+  `change-trace-advisory outcome=completed_no_findings code=ok`, and accepted
+  exactly `release-review.md`, `release-review.json`, and
+  `release-review-status.json` in the fresh output directory.
+- The temporary root owns the consumer, fixture output, cache, empty npm
+  config, tarball, and npx consumer; the smoke reported `cleanup: true`.
+- Pre-review check for the exact root path
+  `.change-trace-gpt41-quality-QCwIXP` found it absent in this worktree, so no
+  deletion command was issued and no such path was staged.
 
 ### Public contract and documentation impact
 
-- Pending.
+- The npm artifact now exposes the provider-neutral runner, status summarizer,
+  CI examples, and mechanics-only public fixture. It does not bundle a Host,
+  provider, credentials, or semantic review capability.
+- GitHub, GitLab, and portable mappings keep explicit JSON argv, immutable or
+  exact tooling, separate trusted tooling and subject roots, Host-only
+  credentials with MCP-child sanitization, advisory behavior, and the exact
+  three artifact paths. Other vendors are mapping guidance only.
 
 ### Deviations from assignment
 
@@ -220,7 +264,9 @@ summary in the handoff.
 
 ### Known limitations and risks
 
-- None.
+- The deterministic fixture proves orchestration and artifact mechanics only;
+  it does not qualify an Agent Host, model, provider, vendor authentication, or
+  semantic review outcome.
 
 ### Decisions or questions for coordinator
 
@@ -228,10 +274,10 @@ summary in the handoff.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No dependency, lockfile, version, export, bin, registry, hosted CI,
+- [x] Coordinator-only files were not modified.
+- [x] No dependency, lockfile, version, export, bin, registry, hosted CI,
       model, credential, tag, release, publish, or dist-tag action occurred.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
