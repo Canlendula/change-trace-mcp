@@ -1421,3 +1421,99 @@ Primary references accessed 2026-07-26:
 - `https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow`;
 - `https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-npm`;
 - `https://nodejs.org/en/blog/release/v24.18.0`.
+
+## 38. M7 pilot evidence is opt-in, privacy-minimized, and threshold-free until real baselines exist
+
+M7-008 establishes a reusable pilot kit and a deterministic baseline-metric
+contract. It does not conduct a pilot or satisfy the M7 real-team gate. A
+qualifying pilot still requires 3 to 5 independent teams, at least three
+calendar weeks of advisory use, and representation of all three Roadmap
+profiles:
+
+1. requirements and documentation kept in the repository;
+2. explicit external requirements from Jira, Lark, or an equivalent system;
+3. pre-produced runtime evidence from a staging Web/API environment.
+
+The kit records one bounded JSON observation envelope with pseudonymous teams
+and individual review attempts. It contains no repository or organization
+name, URL, path, requirement/document text, diff, evidence excerpt, report
+body, prompt, model response, raw Host log, credential, email, user name, or
+free-form feedback. Raw operational evidence remains with each team under its
+own retention policy. Participation, data sharing, and keeping advisory CI
+enabled are opt-in decisions.
+
+Each team record contains only:
+
+- a stable pseudonymous team ID;
+- one of the three pilot profiles;
+- setup elapsed milliseconds to the first valid report, or `null` when not
+  observed;
+- observed whole calendar weeks;
+- whether advisory execution remains enabled at pilot end, or `null` when the
+  team has not made that decision;
+- an affirmative confirmation that the team approved the bounded metric
+  submission.
+
+Each run record contains only:
+
+- a pseudonymous run ID and team reference;
+- Host family/version and instruction version;
+- an outcome from the frozen bounded vocabulary;
+- duration, ReviewBundle context characters, and evidence-item count;
+- whether the accepted package/report Schemas validated;
+- total, valid-evidence, accepted/confirmed, dismissed/false-positive,
+  inconclusive, and unreviewed finding counts.
+
+The run outcomes are `completed_findings`, `completed_no_findings`,
+`inconclusive`, `failed_setup`, `failed_host`, and `failed_validation`.
+Completed runs count as successful only when Schema compatibility is true.
+Every attempted record stays in the denominator; failures cannot be omitted to
+improve the successful-run rate.
+
+Metric denominators are frozen before seeing real results:
+
+- setup median uses teams with a non-null setup measurement and separately
+  reports missing teams;
+- successful-run rate uses all run records;
+- duration, context characters, and evidence-item medians use successful runs;
+- valid-evidence-reference rate uses all findings;
+- accepted/confirmed and dismissed/false-positive rates use dispositioned
+  findings (`accepted + dismissed + inconclusive`);
+- inconclusive rate uses all findings and is additionally grouped by
+  `inconclusive` run outcome versus finding disposition;
+- retention uses teams with a non-null end-of-pilot decision;
+- cross-Host Schema compatibility uses all run records and reports exact Host
+  families separately.
+
+A zero denominator produces `null`, never `0` or a fabricated percentage.
+Counts, numerators, denominators, missingness, and ratios are all retained in
+the summary. Median calculation is deterministic: sort numeric inputs,
+select the middle for odd counts, and use the arithmetic mean of the two
+middle values for even counts.
+
+The repository-only summarizer accepts one explicit local file, caps input
+bytes, teams, runs, identifiers, versions, and counts, rejects unknown fields,
+duplicate IDs, dangling team references, inconsistent finding totals, and
+outcome/count contradictions, performs no network or subprocess call, writes
+no file, and emits one canonical bounded JSON line. A checked fixture and
+expected summary prove mechanics only.
+
+Thresholds remain explicitly `unfrozen`. Fixture values, local Host evidence,
+and the first team's data cannot become release or gate thresholds. The
+coordinator and project owner may freeze thresholds only after reviewing a
+complete real baseline across the qualifying team/profile/duration set. The
+pilot remains advisory throughout M7; no finding or aggregate metric blocks a
+merge by default.
+
+M7-008 adds repository-only pilot documents, Schema, fixture, summarizer, and
+offline tests. It performs no recruitment, external messaging, credentialed
+adapter/runtime access, Host/model call, hosted workflow run, telemetry,
+package-surface/version change, compatibility publication, or pilot claim.
+
+Primary references:
+
+- `docs/ROADMAP.md`, M7 pilot plan and beta exit metrics;
+- Decision 10, precision-first advisory policy;
+- Decision 13, quality-gate vocabulary;
+- Decision 31, no first-party telemetry and operator-owned retention;
+- `https://json-schema.org/draft/2020-12/`.

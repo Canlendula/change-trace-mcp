@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-007 accepted; pilot-kit and baseline-metric preparation is next
+> Status: M7 in progress; M7-001 through M7-007 accepted; M7-008 pilot kit and baseline metric schema assigned
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -726,8 +726,9 @@ The format evidence supporting this boundary is in
 > runner, bounded summarizer, GitHub/GitLab/portable examples, and
 > mechanics-only fixture are packaged under Decision 35. The stage-only
 > publishing workflow and non-publishing dry-run are accepted under Decision
-> 37. Construction now proceeds to the pilot kit and baseline metric schema;
-> real multi-team, multi-week evidence remains required.
+> 37. Construction now proceeds through assigned M7-008 for the pilot kit and
+> baseline metric schema; real multi-team, multi-week evidence remains
+> required.
 
 ### Goals
 
@@ -920,7 +921,7 @@ Progress as of 2026-07-26:
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
-| M7 public beta hardening | In progress; M7-001 through M7-007 are accepted and pilot-kit/baseline-metric preparation is next |
+| M7 public beta hardening | In progress; M7-001 through M7-007 are accepted and M7-008 pilot-kit/baseline-metric preparation is assigned |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
