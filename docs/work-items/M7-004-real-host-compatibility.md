@@ -223,10 +223,10 @@ acceptance.
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress`
+- Status: `ready_for_review`
 - Handoff branch: `codex/M7-004-real-host-compatibility`
 - Worktree: `C:\Users\C\.codex\worktrees\79ab\agent-e2e-mcp`
-- Implementation commits: `a29488c5919ec82055877d7627209c0a3aa84eb0`; `df54c374b3d2c72c3e20d76f3e152b5a04c445fe`; `2dde4cf`; `13e9d13`.
+- Implementation commits: `a29488c5919ec82055877d7627209c0a3aa84eb0`; `df54c3781b785917f6a9fbea6df0326d70268cc0`; `2dde4cfedd8be48d8e693eb2fc993a2c204fee95`; `13e9d13c52590381434780e747c2eb9b4badcf76`; `bdfc05d479485abdb4f6b20435b965ac7d1f3940`; final handoff record follows this commit.
 
 ### Implementation summary
 
@@ -238,9 +238,11 @@ acceptance.
   command construction, lifecycle/result validation, failed-attempt accounting,
   diagnostic classification, and cleanup.
 - Prepared one committed local tarball and one isolated installation. Claude
-  Code and OpenCode passed against that shared installed artifact. The required
-  branch-only Codex configuration is committed as a temporary checkpoint;
-  Codex validation remains pending coordinator creation of a fresh task.
+  Code and OpenCode passed against that shared installed artifact. The fresh
+  Codex task discovered the nine tools and returned the exact fixture. Codex
+  Desktop retained its project MCP process after turn completion and archive;
+  this Host-specific lifecycle observation and explicit cleanup are recorded
+  for coordinator review.
 
 ### Changed areas
 
@@ -248,8 +250,6 @@ acceptance.
   lifecycle instrumentation, validation, checkpoint, and cleanup harness.
 - `tests/unit/smoke-real-hosts.test.ts` — offline deterministic coverage.
 - `docs/evaluation/M7_HOST_RESULTS.md` — sanitized partial evidence.
-- `.codex/config.toml` — temporary branch-only Codex checkpoint; must be
-  removed after the fresh Codex task is imported.
 
 ### Validation
 
@@ -262,14 +262,18 @@ acceptance.
 | `npm run smoke:ci` | passed | advisory smoke |
 | `npm run pack:check` | passed | package dry run |
 | `npm audit --omit=dev --audit-level=high` | passed | 0 vulnerabilities |
-| artifact prepare / Claude / OpenCode harness commands | passed | one shared installation; Codex pending |
+| artifact prepare / Claude / OpenCode harness commands | passed | one shared installation |
+| fresh Codex task | passed | nine tools, exact fixture, `10965 ms` task / `2 ms` MCP call; Host-held lifecycle recorded |
 
 ### Real Host evidence
 
-- The exact artifact identity and sanitized Claude/OpenCode evidence are in
+- The exact artifact identity and sanitized Host evidence are in
   `docs/evaluation/M7_HOST_RESULTS.md`. Claude attempt history retains two
-  launcher-resolution failures and two pre-call CLI diagnostics; the final
-  Claude and single OpenCode sessions passed. Codex is intentionally pending.
+  launcher-resolution failures and two pre-call CLI diagnostics; its final
+  session and the single OpenCode session passed. The fresh Codex task passed
+  its nine-tool and exact-fixture checks; its distinct long-lived lifecycle and
+  explicit zero-orphan cleanup are recorded without calling it a graceful
+  one-shot close.
 
 ### Public contract and documentation impact
 
@@ -285,21 +289,22 @@ acceptance.
   retained in bounded temporary attempt history. The final retry used the
   documented native executable and passed; this is within the assignment's
   no-retry-after-MCP-call restriction.
+- Codex Desktop retained its project MCP after turn completion and archive.
+  Coordinator directed that this be recorded as Host-specific lifecycle
+  behavior, with exact-state cleanup, rather than retried after the call.
 
 ### Known limitations and risks
 
-- The Codex checkpoint must be consumed promptly. Its configuration contains
-  ephemeral absolute paths; deleting the temporary state or restarting into a
-  session that does not load the project configuration invalidates the run.
+- Codex Desktop did not emit a `server_closed` event before archive. Archive
+  ended one of two exact-state pairs without a lifecycle close; the remaining
+  pair required explicit exact-state cleanup. Its forced termination produced
+  no probe exit code/signal, and final exact-match orphan count was zero.
 
 ### Decisions or questions for coordinator
 
-- Create a new Codex Desktop task on this branch with `gpt-5.6-terra` and
-  `high` reasoning. Prompt: `Use only the M7 MCP server configured for this
-  task. Do not read, write, edit, or inspect repository files. Call
-  get_compatibility_fixture exactly once with {}. Return only its text result.`
-  Return the task outcome to this worker so it can validate the lifecycle,
-  remove `.codex/config.toml`, clean temporary state, and finalize the handoff.
+- Coordinator review should update the Host-specific lifecycle/acceptance
+  wording as directed: Claude/OpenCode require automatic close; Codex Desktop
+  records held behavior plus explicit, exact temporary-state cleanup.
 
 ### Protected-file confirmation
 
@@ -308,8 +313,9 @@ acceptance.
       copied, committed, or changed.
 - [x] No version, dependency, registry, hosted CI, tag, publish, dist-tag, or
       release action was performed.
-- [ ] Temporary Host state and the Codex checkpoint config were removed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Temporary Host state and the Codex checkpoint config were removed after
+      recording the Host-specific lifecycle observation.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 

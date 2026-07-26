@@ -87,6 +87,8 @@ describe("real Host compatibility harness helpers", () => {
     expect(() => harness.validateLifecycle(valid.slice(1))).toThrow("lifecycle_start_missing");
     expect(() => harness.validateLifecycle(valid.map((event) => event.type === "fixture_call" ? { ...event, arguments: { unexpected: true } } : event))).toThrow("fixture_arguments_invalid");
     expect(() => harness.validateLifecycle(valid.map((event: any) => event.type === "tools_list" ? { ...event, tools: event.tools.slice(1) } : event))).toThrow("tool_discovery_invalid");
+    expect(harness.latestLifecycleSession([{ type: "server_started" }, ...valid])).toEqual(valid);
+    expect(() => harness.latestLifecycleSession(valid.slice(0, -1))).toThrow("lifecycle_shutdown_invalid");
   });
 
   it("rejects a mismatched host, artifact, incomplete attempt, or unbounded excerpt", () => {

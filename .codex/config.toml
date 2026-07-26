@@ -1,7 +1,0 @@
-[mcp_servers.m7real_ae30cc20965e46f1]
-command = "D:\\nodejs\\node.exe"
-args = ["C:\\Users\\C\\AppData\\Local\\Temp\\change-trace-m7-real-VVN0kK\\probe.mjs", "C:\\Users\\C\\AppData\\Local\\Temp\\change-trace-m7-real-VVN0kK\\lifecycle.jsonl", "C:\\Users\\C\\AppData\\Local\\Temp\\change-trace-m7-real-VVN0kK\\consumer\\node_modules\\change-trace-mcp\\dist\\cli.js", "C:\\Users\\C\\AppData\\Local\\Temp\\change-trace-m7-real-VVN0kK\\npm-cache", "C:\\Users\\C\\AppData\\Local\\Temp\\change-trace-m7-real-VVN0kK\\npmrc", "C:\\Users\\C\\AppData\\Local\\Temp\\change-trace-m7-real-VVN0kK\\home"]
-required = true
-startup_timeout_sec = 10
-tool_timeout_sec = 60
-enabled_tools = ["collect_external_evidence","collect_local_evidence","collect_runtime_evidence","get_change_scope","get_compatibility_fixture","get_review_bundle","get_server_info","validate_findings","write_report"]

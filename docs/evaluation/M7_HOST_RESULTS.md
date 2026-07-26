@@ -1,7 +1,7 @@
 # M7 real Host compatibility — checkpoint evidence
 
-> Status: `in_progress` Codex checkpoint. This is worker evidence only and
-> does not make a Codex compatibility claim.
+> Status: worker final evidence, pending coordinator review. Codex Desktop's
+> long-lived MCP ownership is recorded as Host-specific lifecycle behavior.
 
 ## Frozen artifact and installation
 
@@ -10,7 +10,7 @@ exact local tarball in one fresh consumer outside the checkout. It used a fresh
 npm cache, an empty temporary npm user config, disabled install lifecycle
 scripts, and a sanitized allowlist environment for npm and the installed MCP
 child. The temporary state root, raw logs, consumer, cache, configs, tarball,
-and probe remain outside the repository until the pending Codex task completes.
+and probe were removed after evidence finalization.
 
 | Field | Value |
 | --- | --- |
@@ -33,7 +33,7 @@ Host output is capped under the temporary state root and is never committed.
 | --- | --- | --- | --- | --- |
 | Claude Code | `2.1.217` | passed | `8194 ms` | exact nine-tool discovery, fixture call/result, clean process close |
 | OpenCode | `1.18.4` | passed | `8551 ms` | exact nine-tool discovery, fixture call/result, clean process close |
-| Codex Desktop | `26.707.3748.0` | pending fresh task | — | branch-only project MCP configuration committed at this checkpoint |
+| Codex Desktop | `26.707.3748.0` | passed; Host-held lifecycle | `10965 ms` task / `2 ms` MCP call | exact nine-tool discovery and fixture call/result; no one-shot close event before archive |
 
 The bounded failed-attempt history is retained in temporary state: two
 shell-free launcher-resolution failures, one CLI diagnostic failure before the
@@ -41,7 +41,18 @@ MCP call, and one corrected CLI diagnostic failure before the MCP call. The
 diagnostic was resolved by adding Claude's documented `--verbose` requirement
 for `--output-format stream-json`; no failure reached
 `get_compatibility_fixture`, and no authentication, trust, 2FA, browser, or
-provider-selection prompt was observed.
+provider-selection prompt was observed. The Codex result came from fresh task
+`019f9e52-8a07-78e2-a6c7-f0ff30d0187a` using `gpt-5.6-terra` with `high`
+reasoning. It returned the required exact text and reported a completed tool
+call. Independent lifecycle inspection found no `server_closed` record after
+the result and two probe/server pairs parented by Codex Desktop. After the
+coordinator archived the validation task, one pair exited without a lifecycle
+close record and one pair remained. The remaining pair was identified only by
+the unique temporary state-root command-line marker and force-terminated during
+explicit cleanup. The probe therefore emitted no exit code or signal for that
+forced termination; final process matching found zero remaining pairs. This is
+recorded as Codex Desktop's Host-held lifecycle behavior, not as a graceful
+one-shot close claim.
 
 For both completed Host attempts the observed tool set was exactly:
 
@@ -78,14 +89,14 @@ text was byte-identical to:
 | `node scripts/smoke-real-hosts.mjs prepare` | passed |
 | `node scripts/smoke-real-hosts.mjs run-claude <temporary-state>` | passed after recorded pre-call diagnostics |
 | `node scripts/smoke-real-hosts.mjs run-opencode <temporary-state>` | passed |
-| `node scripts/smoke-real-hosts.mjs checkpoint <temporary-state>` | passed; Codex evidence pending |
+| `node scripts/smoke-real-hosts.mjs checkpoint <temporary-state>` | passed; temporary configuration created |
 
-## Required continuation
+## Host lifecycle and cleanup
 
-The next action must be a newly created Codex Desktop task with `gpt-5.6-terra`
-and `high` reasoning while this branch-only configuration and temporary state
-remain live. Its sole prompt must prohibit repository edits and direct it to
-use only the unique M7 MCP server, call `get_compatibility_fixture` once with
-`{}`, and return only the tool's text. The worker will then validate the
-Codex lifecycle entry, remove the checkpoint configuration, finalize this
-record, and clean every temporary artifact.
+Claude Code and OpenCode emitted normal lifecycle closes. Codex Desktop kept
+the project MCP process after the task turn completed and after thread archive;
+the coordinator has classified this as Host-specific long-lived behavior. No
+new Codex call was made. The temporary checkpoint configuration, artifact,
+consumer, npm cache, raw logs, state, and precisely matched remaining process
+pair were removed; the final exact-match orphan count was zero. Coordinator
+review owns the corresponding acceptance/Decision wording adjustment.

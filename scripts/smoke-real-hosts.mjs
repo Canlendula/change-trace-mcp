@@ -135,6 +135,16 @@ export function validateLifecycle(events) {
   if (!close || close.type !== "server_closed" || close.code !== 0 || close.signal !== null) fail("lifecycle_shutdown_invalid");
   return true;
 }
+export function latestLifecycleSession(events) {
+  if (!Array.isArray(events)) fail("lifecycle_invalid");
+  let session = [];
+  for (const event of events) {
+    if (event?.type === "server_started") session = [event];
+    else if (session.length > 0) session.push(event);
+  }
+  validateLifecycle(session);
+  return session;
+}
 export function validateAttempt(attempt, artifact) {
   if (!attempt || !["claude", "opencode", "codex"].includes(attempt.host) || attempt.hostVersion !== EXPECTED_HOST_VERSIONS[attempt.host]) fail("host_version_invalid");
   if (attempt.artifactSha256 !== artifact.sha256 || attempt.distCliSha256 !== artifact.distCliSha256) fail("artifact_binding_invalid");
