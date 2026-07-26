@@ -341,9 +341,10 @@ make no registry write, and leave no retained cache/artifact/consumer state.
 - Integration commits: initial fast-forward
   `fc43a15901e34ff841817f57d7c8258ffdf0c502`; cross-volume fix and handoff
   `555ffa5` / `3553dda`; Vite-loader fix and handoff `3ad1f06` / `25f2e23`.
-- Final accepted-main artifact commit: pending coordinator acceptance commit
-  and required clean-install rerun.
-- Final accepted-main artifact SHA-256: pending required clean-install rerun.
+- Final accepted-main artifact commit:
+  `eb0911d891cc7319d7f6dc77f6eccb76f21cf3c0`.
+- Final accepted-main artifact SHA-256:
+  `426179ff512430d88c46d247caaa5d6cfb7138845a04f889a735d115e9102949`.
 
 ### Review findings
 
@@ -361,17 +362,18 @@ make no registry write, and leave no retained cache/artifact/consumer state.
   368-test suites, clean installation, stdio and advisory-CI smokes, package
   dry-run, zero-vulnerability production audit, diff check, and clean-status
   check. The single skipped test is the POSIX-only SIGTERM escalation case on
-  Windows. Final coordinator main-worktree validation follows the packaged
-  Roadmap update.
+  Windows.
+- Final coordinator validation on `D:` passed the same 19-test focused gate and
+  two 368-test complete suites, plus build, type checking, the exact clean
+  install, stdio and advisory-CI smokes, package dry-run, zero-vulnerability
+  production audit, diff check, and clean status. The final tarball contains
+  197 files and has the accepted-main digest recorded above.
 - Current primary documentation confirms the recorded Codex, Claude Code, and
   OpenCode v1/v2 configuration forms. These mechanical examples do not support
   a real-Host compatibility claim.
 
 ### Required follow-up
 
-- Rerun the complete coordinator gates and clean-install smoke from the exact
-  accepted-main artifact state after this packaged Roadmap update, then record
-  its final digest in the un-packaged evaluation record.
 - Keep M7-004 real Codex, Claude Code, and OpenCode sessions behind the explicit
   model/API/user-configuration authorization boundary in Decision 33.
 

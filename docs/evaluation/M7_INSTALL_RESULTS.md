@@ -80,14 +80,45 @@ Both required the exact compatibility fixture:
 {"schemaVersion":"1.0.0","fixtureId":"m1-host-compatibility","ok":true,"scalar":"change-trace","values":[1,2,3],"nested":{"alpha":"A","beta":"B"}}
 ```
 
+## Final accepted-main evidence
+
+The coordinator reran the complete gate from accepted `main` after all packaged
+Roadmap changes and both portability fixes. The exact artifact state was:
+
+| Field | Value |
+| --- | --- |
+| Accepted-main artifact commit | `eb0911d891cc7319d7f6dc77f6eccb76f21cf3c0` |
+| Command | `node scripts/smoke-clean-install.mjs` |
+| Platform | `win32` / `x64` |
+| Node.js / npm | `v24.0.0` / `11.3.0` |
+| Tarball | `change-trace-mcp-0.0.0-dev.1.tgz` |
+| SHA-256 | `426179ff512430d88c46d247caaa5d6cfb7138845a04f889a735d115e9102949` |
+| npm shasum | `38669f416ee9d94abc9feadac8da72a81eab1e91` |
+| npm integrity | `sha512-4b4Qrj2IoWxSXatkQrqiygQcvRwfrJpa0Teni+mW2SN7k7p7mmh+PxyXSS/XeNlgvKU9tFpxXRITvgfLYcPDMw==` |
+| Packed / unpacked size | `151323` / `784672` bytes |
+| Packed file count | `197` |
+
+The final focused gate passed 19 tests with the POSIX-only termination test
+skipped on Windows. Both complete suites passed 368 tests with the same single
+platform skip. Build, type checking, installed-Node and local-tarball npx
+launches, stdio and advisory-CI smokes, package dry-run, production audit, diff
+check, and clean working-tree check passed. The production audit reported zero
+vulnerabilities.
+
+The accepted-main rerun process caught and resolved two portability defects
+before this final result: Windows cross-volume containment for a `D:` checkout
+and `C:` temporary root, and Vitest's default Vite-module-runner handling of an
+unused `.mjs` hashbang in the `D:` checkout. The final default commands pass in
+that target layout.
+
 ## Limitations and required follow-up
 
 This is package-mechanics evidence, not a real Codex, Claude Code, or OpenCode
 compatibility result. No model, Host session, user/global Host configuration,
 or credential-bearing process was started.
 
-`docs/ROADMAP.md` is packaged. Coordinator acceptance changes packaged Roadmap
-bytes, so coordinator acceptance requires a clean-install smoke rerun on
-accepted `main` and a new final digest/result in this un-packaged evaluation
-record. No later packaged-file change can be included in the final clean-install
-claim without another rerun.
+`docs/ROADMAP.md` is packaged. The final digest above includes the coordinator
+acceptance state at `eb0911d891cc7319d7f6dc77f6eccb76f21cf3c0`. No later
+packaged-file change can be included in this clean-install claim without another
+rerun. Real Codex, Claude Code, and OpenCode compatibility remains the separate
+M7-004 authorization boundary.
