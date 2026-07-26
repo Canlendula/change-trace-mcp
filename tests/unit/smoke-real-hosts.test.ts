@@ -68,7 +68,7 @@ describe("real Host compatibility harness helpers", () => {
   it("builds strict, ephemeral Claude and OpenCode commands", () => {
     const plan = harness.createHostPlan({ repositoryRoot: "C:/work/repo", stateRoot: "C:/temp/m7", serverName: "m7_real_123" });
     const claude = harness.createHostCommand("claude", plan, "C:/tools/claude.exe");
-    expect(claude.args).toEqual(expect.arrayContaining(["--mcp-config", plan.claudeConfigPath, "--strict-mcp-config", "--no-session-persistence", "--print"]));
+    expect(claude.args).toEqual(expect.arrayContaining(["--mcp-config", plan.claudeConfigPath, "--strict-mcp-config", "--no-session-persistence", "--print", "--verbose"]));
     expect(claude.args).not.toContain("--continue");
     const opencode = harness.createHostCommand("opencode", plan, "C:/tools/opencode.exe");
     expect(opencode.args).toEqual(["run", "--format", "json", "--dir", plan.hostWorkingDirectory, expect.any(String)]);

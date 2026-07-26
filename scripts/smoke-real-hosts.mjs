@@ -113,7 +113,7 @@ export function createHostCommand(host, plan, executable) {
   if (!isAbsolute(executable)) fail("host_executable_invalid");
   const prompt = hostPrompt(plan.serverName);
   if (host === "claude") return {
-    args: ["--print", "--output-format", "stream-json", "--no-session-persistence", "--mcp-config", plan.claudeConfigPath, "--strict-mcp-config", "--tools", EXPECTED_TOOL_NAMES.map((tool) => `mcp__${plan.serverName}__${tool}`).join(","), "--permission-mode", "dontAsk", prompt],
+    args: ["--print", "--verbose", "--output-format", "stream-json", "--no-session-persistence", "--mcp-config", plan.claudeConfigPath, "--strict-mcp-config", "--tools", EXPECTED_TOOL_NAMES.map((tool) => `mcp__${plan.serverName}__${tool}`).join(","), "--permission-mode", "dontAsk", prompt],
     environment: { ...process.env },
   };
   if (host === "opencode") return {
