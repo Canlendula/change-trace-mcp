@@ -33,6 +33,7 @@ describe("stdio MCP server", () => {
       expect(tools.map((tool) => tool.name).sort()).toEqual([
         "collect_external_evidence",
         "collect_local_evidence",
+        "collect_runtime_evidence",
         "get_change_scope",
         "get_compatibility_fixture",
         "get_review_bundle",

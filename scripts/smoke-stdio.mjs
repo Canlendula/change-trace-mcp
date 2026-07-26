@@ -30,6 +30,7 @@ if (command === undefined) {
     const { tools } = await client.listTools();
     const toolNames = tools.map((tool) => tool.name).sort();
     const requiredTools = [
+      "collect_runtime_evidence",
       "get_compatibility_fixture",
       "get_server_info",
     ];

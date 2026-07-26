@@ -16,6 +16,10 @@ import {
   collectLocalEvidenceInputSchema,
 } from "./evidence/local/collect-local-evidence.js";
 import {
+  RuntimeEvidenceCollectorError,
+  collectRuntimeEvidence,
+} from "./evidence/runtime/collect-runtime-evidence.js";
+import {
   createCompatibilityFixture,
   serializeCompatibilityFixture,
 } from "./fixtures/compatibility.js";
@@ -41,6 +45,8 @@ import {
   type ExternalAdapterRegistration,
 } from "./schemas/external-adapter.js";
 import { externalEvidenceCollectionSchema } from "./schemas/external-evidence.js";
+import { runtimeEvidenceCollectionSchema } from "./schemas/runtime-evidence.js";
+import { collectRuntimeEvidenceInputSchema } from "./schemas/runtime-collector.js";
 
 const serverInfoSchema = z.object({
   name: z.string(),
@@ -263,6 +269,44 @@ export function createServer(
             0,
             2_000,
           ),
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    "collect_runtime_evidence",
+    {
+      title: "Collect runtime evidence",
+      description:
+        "Read one explicit pre-produced local manifest and return bounded normalized runtime evidence. This tool does not run tests, browsers, probes, or artifact fetches.",
+      inputSchema: collectRuntimeEvidenceInputSchema,
+      outputSchema: runtimeEvidenceCollectionSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) => {
+      try {
+        const result = await collectRuntimeEvidence(input);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          structuredContent: result,
+        };
+      } catch (error) {
+        const result = {
+          error: "collect_runtime_evidence_failed",
+          code:
+            error instanceof RuntimeEvidenceCollectorError
+              ? error.code
+              : "normalization_failed",
         };
         return {
           content: [{ type: "text", text: JSON.stringify(result) }],

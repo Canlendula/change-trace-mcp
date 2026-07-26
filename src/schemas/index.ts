@@ -154,3 +154,7 @@ export {
   type RuntimeProvenance,
   type RuntimeSourceFormat,
 } from "./runtime-provenance.js";
+export {
+  collectRuntimeEvidenceInputSchema,
+  type CollectRuntimeEvidenceInput,
+} from "./runtime-collector.js";
