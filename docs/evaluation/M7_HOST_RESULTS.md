@@ -1,8 +1,8 @@
 # M7 real Host compatibility evidence
 
-> Status: accepted real-Host evidence; accepted-main artifact regeneration is
-> pending the packaged coordinator Decision/Roadmap commit. Codex Desktop's
-> long-lived MCP ownership is recorded as Host-specific lifecycle behavior.
+> Status: accepted real-Host evidence with final accepted-main artifact
+> binding. Codex Desktop's long-lived MCP ownership is recorded as
+> Host-specific lifecycle behavior.
 
 ## Frozen artifact and installation
 
@@ -170,3 +170,28 @@ file patch that deleted `.codex/config.toml`; its actual subsequent check was
 `if (Test-Path .codex\config.toml) { throw 'checkpoint_config_still_present' }`.
 No shell deletion command for that tracked file was executed, so none is
 claimed here.
+
+## Final accepted-main artifact binding
+
+The coordinator committed the packaged Decision 34 and Roadmap acceptance,
+then reran both the complete clean-install smoke and the artifact-preparation
+path from accepted `main`. The exact accepted artifact state is:
+
+| Field | Value |
+| --- | --- |
+| Accepted-main artifact commit | `d062e8f872c75b7d13b6af736a79b40ca04512a5` |
+| Platform / runtime | `win32` / `x64`; Node.js `v24.0.0`; npm `11.3.0` |
+| Tarball | `change-trace-mcp-0.0.0-dev.1.tgz` |
+| Tarball SHA-256 | `abb181502b83eb0d11df7baf15b36405186cb812e67782e4e6b39a42d6d492ce` |
+| npm shasum | `9d2551d56371b231329167d17975a623ced2b28b` |
+| npm integrity | `sha512-oAU8XdKjGPh3W7CJ2iDyW/2N9Bewqtxmzy3s7K1MocCF2/B0zI6C6D+uIqKq4tqhHfAc4IlQUFfL/lO4on611g==` |
+| Packed / unpacked bytes / files | `152684` / `788442` / `197` |
+| Installed `dist/cli.js` SHA-256 | `e828bf961baa7af827e3833d598d9bf3fe6922c7a873bebcb056878322ef4d3f` |
+
+The clean consumer install, production dependency tree, installed-Node launch,
+local-tarball npx launch, exact nine-tool discovery, byte-identical fixture,
+and temporary-root cleanup all passed. The accepted-main tarball differs from
+the real-Host tarball because the packaged Decision and Roadmap changed. Its
+installed `dist/cli.js` digest is byte-identical to the runtime exercised by
+all three real Hosts, so Decision 34 treats it as runtime-equivalent while
+retaining the exact pre-integration Host tarball digest.

@@ -343,8 +343,12 @@ acceptance.
 - Reviewed branch head: `0d179b6b56639b51bfe1d5d3e58cf2628a65bb01`
 - Integration commit: initial fast-forward
   `0d179b6b56639b51bfe1d5d3e58cf2628a65bb01`
-- Final accepted-main artifact commit: pending post-acceptance clean-install
-  smoke.
+- Final accepted-main artifact commit:
+  `d062e8f872c75b7d13b6af736a79b40ca04512a5`
+- Final accepted-main tarball SHA-256:
+  `abb181502b83eb0d11df7baf15b36405186cb812e67782e4e6b39a42d6d492ce`
+- Final accepted-main installed `dist/cli.js` SHA-256:
+  `e828bf961baa7af827e3833d598d9bf3fe6922c7a873bebcb056878322ef4d3f`
 
 ### Review findings
 
@@ -362,6 +366,11 @@ acceptance.
 - Two independent coordinator `prepare` runs reproduced the recorded
   197-file tarball, npm integrity/shasum, tarball SHA-256, and installed
   `dist/cli.js` SHA-256 exactly, then removed their temporary state roots.
+- After the packaged acceptance commit, the complete clean-install smoke and
+  M7 preparation path passed from accepted `main`. The tarball changed to
+  `abb181502b83eb0d11df7baf15b36405186cb812e67782e4e6b39a42d6d492ce`
+  while the installed runtime hash remained byte-identical to the three-Host
+  evidence subject.
 - Claude Code and OpenCode meet the automatic-close requirement. Codex Desktop
   discovered the same nine tools and returned the exact fixture, but retained
   the MCP process after turn completion and archive. Its exact-state cleanup
@@ -370,9 +379,6 @@ acceptance.
 
 ### Required follow-up
 
-- Regenerate the clean-install artifact from accepted `main` after the packaged
-  Decision and Roadmap acceptance changes, record its exact digest, and verify
-  that the installed `dist/cli.js` remains runtime-identical.
 - Keep future Host/version claims pinned to fresh evidence. In particular, the
   recorded Claude `2.1.217` session does not claim compatibility for the
   subsequently installed `2.1.220`.
