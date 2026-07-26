@@ -62,7 +62,7 @@ function normalizedPath(path) {
 
 function isWithin(parent, candidate) {
   const value = relative(resolve(parent), resolve(candidate));
-  return value === "" || (!value.startsWith(`..${sep}`) && value !== "..");
+  return value === "" || (!isAbsolute(value) && !value.startsWith(`..${sep}`) && value !== "..");
 }
 
 export function createSmokePlan({ repositoryRoot: sourceRoot, temporaryRoot, npmCliPath, npxCliPath }) {

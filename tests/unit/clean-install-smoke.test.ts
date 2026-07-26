@@ -60,6 +60,17 @@ describe("clean package installation smoke helpers", () => {
     expect(() => resolveCliPath("npm", "C:/does-not-exist/npm-cli.js")).toThrow("npm_cli_unavailable");
   });
 
+  it("treats a cross-volume Windows temporary root as outside the checkout", () => {
+    expect(() => createSmokePlan({
+      repositoryRoot: "D:/projects/agent-e2e-mcp",
+      temporaryRoot: "C:/Temp/change-trace-clean-install-123",
+    })).not.toThrow();
+    expect(() => createSmokePlan({
+      repositoryRoot: "D:/projects/agent-e2e-mcp",
+      temporaryRoot: "D:/projects/agent-e2e-mcp/.temporary",
+    })).toThrow("temporary_root_invalid");
+  });
+
   it("removes inherited npm, registry, and credential settings without duplicate Windows keys", () => {
     const environment = sanitizeEnvironment(
       {
