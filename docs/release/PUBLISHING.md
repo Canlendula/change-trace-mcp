@@ -50,6 +50,12 @@ that repository-only workflow, release guide, helper, and tests are absent.
 Static contract tests inspect workflow guards without a network request or a
 workflow dispatch.
 
+The unauthenticated helper can confirm a public version lookup only. It cannot
+see a pending staged candidate or prove that no staged reservation exists.
+Before authorizing stage, a coordinator must separately confirm the staged
+reservation state through the authorized npm review path; this preparation did
+not perform that confirmation.
+
 ## Future manual staging prerequisites
 
 Before a coordinator authorizes a stage request, require all of the following:
@@ -104,8 +110,10 @@ separate release decision.
 ## Primary references
 
 - [npm trusted publishers](https://docs.npmjs.com/trusted-publishers)
+- [npm staged publishing](https://docs.npmjs.com/staged-publishing/)
+- [npm stage command](https://docs.npmjs.com/cli/v11/commands/npm-stage/)
 - [npm publish command](https://docs.npmjs.com/cli/v11/commands/npm-publish)
 - [npm two-factor and proof-of-presence guidance](https://docs.npmjs.com/about-two-factor-authentication)
 - [GitHub Actions OIDC](https://docs.github.com/actions/concepts/security/openid-connect)
 - [GitHub deployment environments](https://docs.github.com/actions/how-tos/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment)
-- [Node.js release archive](https://nodejs.org/en/download/archive)
+- [Node.js 24.18.0 release archive](https://nodejs.org/en/download/archive/v24.18.0)

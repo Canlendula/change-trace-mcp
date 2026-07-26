@@ -1,10 +1,10 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { access, lstat, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -14,7 +14,13 @@ const tag = "next";
 const timeoutMs = 120_000;
 const maxOutputBytes = 128 * 1024;
 const maxDiagnosticBytes = 2_048;
-const credentialKey = /(?:^|_)(?:AUTH|TOKEN|PASSWORD|PASS|CREDENTIAL|SECRET|PRIVATE_KEY)(?:_|$)|^NPM_CONFIG_.*(?:AUTH|TOKEN|PASSWORD|PASS|CREDENTIAL|KEY|CERT)/iu;
+const maxTarballFiles = 1_024;
+const maxPackedBytes = 50 * 1024 * 1024;
+const maxUnpackedBytes = 250 * 1024 * 1024;
+const allowedEnvironmentKeys = new Set([
+  "path", "systemroot", "windir", "comspec", "pathext", "temp", "tmp", "tmpdir",
+  "lang", "language", "lc_all", "lc_messages",
+]);
 
 class DryRunError extends Error {
   constructor(code) {
@@ -47,7 +53,7 @@ function boundedDiagnostic(value) {
 function cleanEnvironment(environment, locations) {
   const result = {};
   for (const [key, value] of Object.entries(environment)) {
-    if (typeof value === "string" && !credentialKey.test(key)) result[key] = value;
+    if (typeof value === "string" && allowedEnvironmentKeys.has(key.toLowerCase())) result[key] = value;
   }
   return {
     ...result,
@@ -122,15 +128,15 @@ function runBounded(executable, args, { cwd, env, allowFailure = false }) {
   });
 }
 
-function npmArgs(command) {
-  return [npmCliPath, command, "--userconfig", "PLACEHOLDER", "--cache", "PLACEHOLDER", "--registry", registry, "--ignore-scripts"];
-}
-
 function npmCommand(command, locations, extras = []) {
-  const args = npmArgs(command);
-  args[3] = locations.userConfig;
-  args[5] = locations.cache;
-  return [process.execPath, [...args, ...extras]];
+  return [process.execPath, [
+    npmCliPath, command,
+    "--userconfig", locations.userConfig,
+    "--cache", locations.cache,
+    "--registry", registry,
+    "--ignore-scripts",
+    ...extras,
+  ]];
 }
 
 function parsePackResult(output, packageName, version) {
@@ -144,12 +150,33 @@ function parsePackResult(output, packageName, version) {
   const record = records[0];
   if (!record || record.name !== packageName || record.version !== version || typeof record.filename !== "string" ||
       !/^[A-Za-z0-9][A-Za-z0-9._-]*\.tgz$/u.test(record.filename) ||
-      !Number.isSafeInteger(record.size) || record.size < 1 || !Number.isSafeInteger(record.unpackedSize) || record.unpackedSize < 1 ||
+      !Number.isSafeInteger(record.size) || record.size < 1 || record.size > maxPackedBytes ||
+      !Number.isSafeInteger(record.unpackedSize) || record.unpackedSize < 1 || record.unpackedSize > maxUnpackedBytes ||
       !/^[a-f0-9]{40}$/u.test(record.shasum ?? "") || typeof record.integrity !== "string" ||
-      !/^(?:sha(?:1|256|384|512)-[A-Za-z0-9+/]+={0,2})(?:\s+sha(?:1|256|384|512)-[A-Za-z0-9+/]+={0,2})*$/u.test(record.integrity)) {
+      !/^(?:sha(?:1|256|384|512)-[A-Za-z0-9+/]+={0,2})(?:\s+sha(?:1|256|384|512)-[A-Za-z0-9+/]+={0,2})*$/u.test(record.integrity) ||
+      !Array.isArray(record.files) || record.files.length === 0 || record.files.length > maxTarballFiles ||
+      record.files.some((file) => !file || typeof file.path !== "string" || file.path.length === 0 || file.path.length > 240)) {
     throw new DryRunError("pack_metadata_invalid");
   }
   return record;
+}
+
+function parseVersionStatus(result, packageName, version) {
+  let value;
+  try {
+    value = JSON.parse(result.stdout);
+  } catch {
+    throw new DryRunError(result.code === 0 ? "view_json_invalid" : "version_status_unavailable");
+  }
+  if (result.code === 0) {
+    if (value === version) return "published";
+    throw new DryRunError("view_json_invalid");
+  }
+  const packageSpec = `${packageName}@${version}`;
+  const error = value && typeof value === "object" && !Array.isArray(value) ? value.error : undefined;
+  const message = typeof error?.summary === "string" ? `${error.summary}\n${error.detail ?? ""}` : "";
+  if (error?.code === "E404" && message.includes(packageSpec) && /(?:no match found|not in this registry)/iu.test(message)) return "unpublished";
+  throw new DryRunError("version_status_unavailable");
 }
 
 async function sourceIsClean(environment) {
@@ -160,16 +187,17 @@ async function sourceIsClean(environment) {
 async function isPublishedWithoutCredentials(packageName, version, locations, environment) {
   const [executable, args] = npmCommand("view", locations, [`${packageName}@${version}`, "version", "--json"]);
   const result = await runBounded(executable, args, { cwd: repositoryRoot, env: environment, allowFailure: true });
-  if (result.code !== 0) return false;
-  let value;
-  try {
-    value = JSON.parse(result.stdout);
-  } catch {
-    throw new DryRunError("view_json_invalid");
-  }
-  if (value === version || (Array.isArray(value) && value.includes(version))) return true;
-  if (typeof value !== "string" && !Array.isArray(value)) throw new DryRunError("view_json_invalid");
-  return false;
+  return parseVersionStatus(result, packageName, version) === "published";
+}
+
+async function validateTarball(artifactsDirectory, packed) {
+  const entries = await readdir(artifactsDirectory, { withFileTypes: true });
+  if (entries.length !== 1 || entries[0]?.name !== packed.filename || !entries[0].isFile()) throw new DryRunError("tarball_directory_invalid");
+  const tarballPath = resolve(artifactsDirectory, packed.filename);
+  if (!tarballPath.startsWith(`${resolve(artifactsDirectory)}${process.platform === "win32" ? "\\" : "/"}`)) throw new DryRunError("tarball_path_invalid");
+  const tarballStat = await stat(tarballPath);
+  if (!tarballStat.isFile() || tarballStat.size !== packed.size || tarballStat.size > maxPackedBytes) throw new DryRunError("tarball_size_invalid");
+  return tarballPath;
 }
 
 async function ensureRemoved(temporaryRoot) {
@@ -188,34 +216,23 @@ async function executeDryRun() {
   if (typeof sourcePackage.name !== "string" || typeof sourcePackage.version !== "string" || sourcePackage.name.length === 0 || sourcePackage.version.length === 0) {
     throw new DryRunError("package_identity_invalid");
   }
-  const preflightEnvironment = cleanEnvironment(process.env, {
-    home: tmpdir(), cache: tmpdir(), userConfig: join(tmpdir(), "change-trace-empty-npmrc"),
-  });
+  const preflightEnvironment = cleanEnvironment(process.env, { home: tmpdir(), cache: tmpdir(), userConfig: join(tmpdir(), "change-trace-empty-npmrc") });
   await sourceIsClean(preflightEnvironment);
   const temporaryRoot = await mkdtemp(join(tmpdir(), "change-trace-publish-dry-run-"));
   let result;
   let operationError;
   let cleanup = false;
   try {
-    const locations = {
-      cache: join(temporaryRoot, "cache"),
-      home: join(temporaryRoot, "home"),
-      userConfig: join(temporaryRoot, "npmrc"),
-      artifacts: join(temporaryRoot, "artifacts"),
-    };
+    const locations = { cache: join(temporaryRoot, "cache"), home: join(temporaryRoot, "home"), userConfig: join(temporaryRoot, "npmrc"), artifacts: join(temporaryRoot, "artifacts") };
     await Promise.all([mkdir(locations.cache), mkdir(locations.home), mkdir(locations.artifacts)]);
     await writeFile(locations.userConfig, "registry=https://registry.npmjs.org/\nignore-scripts=true\nalways-auth=false\n", { encoding: "utf8", mode: 0o600 });
     const environment = cleanEnvironment(process.env, locations);
-    if (await isPublishedWithoutCredentials(sourcePackage.name, sourcePackage.version, locations, environment)) {
-      throw new DryRunError("version_already_published");
-    }
+    if (await isPublishedWithoutCredentials(sourcePackage.name, sourcePackage.version, locations, environment)) throw new DryRunError("version_already_published");
     const [buildExecutable, buildArgs] = npmCommand("run", locations, ["build"]);
     await runBounded(buildExecutable, buildArgs, { cwd: repositoryRoot, env: environment });
     const [packExecutable, packArgs] = npmCommand("pack", locations, ["--json", "--pack-destination", locations.artifacts]);
     const packed = parsePackResult((await runBounded(packExecutable, packArgs, { cwd: repositoryRoot, env: environment })).stdout, sourcePackage.name, sourcePackage.version);
-    const tarballPath = resolve(locations.artifacts, packed.filename);
-    if (!tarballPath.startsWith(`${resolve(locations.artifacts)}${process.platform === "win32" ? "\\" : "/"}`)) throw new DryRunError("tarball_path_invalid");
-    await access(tarballPath);
+    const tarballPath = await validateTarball(locations.artifacts, packed);
     const sha256 = createHash("sha256").update(await readFile(tarballPath)).digest("hex");
     const [publishExecutable, publishArgs] = npmCommand("publish", locations, [tarballPath, "--dry-run", "--tag", tag, "--access", "public"]);
     await runBounded(publishExecutable, publishArgs, { cwd: repositoryRoot, env: environment });
@@ -229,7 +246,7 @@ async function executeDryRun() {
       operation: "npm publish --dry-run",
       tag,
       registry,
-      tarball: { fileCount: 1, packedSize: packed.size, unpackedSize: packed.unpackedSize, shasum: packed.shasum, integrity: packed.integrity, sha256 },
+      tarball: { tarballCount: 1, fileCount: packed.files.length, packedSize: packed.size, unpackedSize: packed.unpackedSize, shasum: packed.shasum, integrity: packed.integrity, sha256 },
       runtime: { node: process.version, npm: npmVersion },
       publishDryRun: true,
       cleanup: true,
@@ -246,7 +263,7 @@ async function executeDryRun() {
   return { ...result, cleanup };
 }
 
-export { cleanEnvironment, executeDryRun, npmCommand, parsePackResult, runBounded };
+export { DryRunError, cleanEnvironment, executeDryRun, maxTarballFiles, maxPackedBytes, maxUnpackedBytes, npmCommand, parsePackResult, parseVersionStatus, runBounded, validateTarball };
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {

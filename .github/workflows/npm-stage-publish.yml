@@ -13,15 +13,15 @@ on:
           - stage
       version:
         description: "Candidate package version."
-        required: true
+        required: false
         type: string
       commit:
         description: "Exact lowercase 40-hex commit for the candidate."
-        required: true
+        required: false
         type: string
       confirmation:
         description: "Required fixed confirmation for a stage request."
-        required: true
+        required: false
         type: string
 
 jobs:
@@ -41,10 +41,9 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24.18.0
-      - name: Pin npm
-        run: |
-          npm install --global npm@11.16.0 --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
-          test "$(npm --version)" = "11.16.0"
+          package-manager-cache: false
+      - name: Verify bundled npm
+        run: test "$(npm --version)" = "11.16.0"
       - name: Install dependencies without lifecycle scripts
         run: npm ci --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
       - name: Build and check candidate
@@ -70,6 +69,11 @@ jobs:
           ref: ${{ inputs.commit }}
           persist-credentials: false
           fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.0
+          package-manager-cache: false
       - name: Verify stage request guards
         env:
           INPUT_VERSION: ${{ inputs.version }}
@@ -84,14 +88,8 @@ jobs:
           PACKAGE_VERSION="$(node --input-type=module -e "import { readFile } from 'node:fs/promises'; process.stdout.write(JSON.parse(await readFile('package.json', 'utf8')).version)")"
           test "$PACKAGE_VERSION" = "$INPUT_VERSION"
           test "$INPUT_VERSION" != "0.0.0-dev.0"
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24.18.0
-      - name: Pin npm
-        run: |
-          npm install --global npm@11.16.0 --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
-          test "$(npm --version)" = "11.16.0"
+      - name: Verify bundled npm
+        run: test "$(npm --version)" = "11.16.0"
       - name: Install dependencies without lifecycle scripts
         run: npm ci --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
       - name: Build and check candidate
@@ -100,4 +98,4 @@ jobs:
           npm run check --ignore-scripts
           npm test --ignore-scripts
       - name: Stage candidate on npm
-        run: npm stage publish --tag next --access public --ignore-scripts --registry https://registry.npmjs.org/
+        run: npm stage publish . --tag next --access public --ignore-scripts --registry https://registry.npmjs.org/
