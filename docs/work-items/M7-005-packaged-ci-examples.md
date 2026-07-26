@@ -300,8 +300,10 @@ summary in the handoff.
 - Reviewed branch head: `ea27c951b9c025f72dc39bfe4d40317e1ff3c1a1`
 - Integration commit: initial fast-forward
   `ea27c951b9c025f72dc39bfe4d40317e1ff3c1a1`
-- Final accepted-main artifact commit: pending accepted-main smoke
-- Final accepted-main tarball SHA-256: pending accepted-main smoke
+- Final accepted-main artifact commit:
+  `5a02528bf07c76622813a556cce7bf02cadbb349`
+- Final accepted-main tarball SHA-256:
+  `283d71731bbb1106630afea316e0df29f16a503f4e4484e95c2450f11acce8bd`
 
 ### Review findings
 
@@ -328,6 +330,11 @@ summary in the handoff.
   installed from the copied local tarball, ran the installed runner and
   fixture, produced `completed_no_findings` with exactly three artifacts, and
   removed the complete temporary root.
+- After the packaged Roadmap acceptance commit, the same accepted-main smoke
+  passed with 204 files, packed/unpacked sizes 168772/842357 bytes, npm shasum
+  `6f5e909987563fd6669ae1c08906bfb4e05ae2c8`, integrity
+  `sha512-Tw5s95ktHiaQKmuuaYUeB/Q+9tJzMabddqmsy9yeb8qG1nvctBj4hWGlbZR5hVjkU+ZRCsxe6Mz6LUCGHQ8sPw==`,
+  `completed_no_findings`, exactly three artifacts, and complete cleanup.
 
 ### Required follow-up
 
