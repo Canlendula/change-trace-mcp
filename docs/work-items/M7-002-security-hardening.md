@@ -246,49 +246,111 @@ limitations, deviations, and decision requests.
 
 ## Worker handoff — worker owned
 
-- Status: `assigned | in_progress | ready_for_review | blocked | needs_decision`
-- Handoff branch:
-- Worktree:
-- Implementation commits:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M7-002-security-hardening`
+- Worktree: `C:\Users\C\.codex\worktrees\ab18\agent-e2e-mcp`
+- Implementation commits: `5eef5278ac853d3103776ad2f480e7a87c090651`
 
 ### Implementation summary
 
-- `<summary>`
+- Replaced every fixed-Git child environment with a fresh frozen allowlist,
+  canonicalizing Windows source keys and adding only `GIT_PAGER=cat`,
+  `GIT_TERMINAL_PROMPT=0`, and `LC_ALL=C` overrides.
+- Replaced the five named top-level MCP catch responses with the exact safe
+  `{"error":"<tool-specific value>","code":"operation_failed"}` envelope.
+- Replaced exception-derived partial-error messages with fixed safe messages
+  while retaining the existing codes and repository-relative paths.
+- Updated the M7 security inventory, threat model, and review to record
+  `FIND-M7-001` and `FIND-M7-002` as mitigated with direct implementation and
+  test evidence.
 
 ### Changed areas
 
-- `<path and purpose>`
+- `src/git/change-scope.ts`: fresh child environment and fixed Git partial error.
+- `src/tool-errors.ts`, `src/server.ts`: exact top-level safe envelopes.
+- `src/evidence/local/collect-local-evidence.ts`: fixed local partial errors.
+- `tests/unit/git-environment.test.ts`, `tests/unit/tool-errors.test.ts`,
+  `tests/unit/change-scope-edge-cases.test.ts`, `tests/unit/local-evidence.test.ts`,
+  `tests/unit/security-baseline.test.ts`: environment, error, wiring, and
+  inventory coverage.
+- `docs/security/control-inventory.json`, `docs/security/THREAT_MODEL.md`,
+  `docs/security/M7_SECURITY_REVIEW.md`: mitigations and residual-risk updates.
 
 ### Validation
 
-- `<command: result>`
+- Initial test-first evidence: before dependency installation the focused run
+  failed during Vitest startup because this isolated worktree had no
+  `node_modules`; after `npm ci`, the intended first run had 4 failed files / 5
+  failed tests / 12 passed tests: missing `operationFailed`,
+  `createGitEnvironment`, and fixed-message exports, plus poisoned parent Git
+  redirection. The strengthened pass then had 3 expected failures / 21 passes
+  until the wired partial-error constructors were implemented.
+- `npm run build`: passed.
+- `npx vitest run tests/unit/git-environment.test.ts tests/unit/tool-errors.test.ts tests/unit/change-scope-edge-cases.test.ts tests/unit/local-evidence.test.ts tests/unit/security-baseline.test.ts tests/integration/stdio.test.ts`: passed, 6 files / 31 tests.
+- `npm run check`: passed.
+- `npm test`: passed twice, each 35 files / 356 tests.
+- `npm run smoke:stdio`: passed; discovered all nine tools and returned the stable fixture.
+- `npm run smoke:ci`: passed; `completed_no_findings`, `code=ok`.
+- `npm run pack:check`: passed; dry-run package built successfully.
+- `npm audit --omit=dev --audit-level=high`: passed, `found 0 vulnerabilities`.
+- `git diff --check 8b11c55ff14a6b2a8268968c17954be5ffd45132..HEAD`: passed.
+- `git status --short`: clean after the handoff commit.
 
 ### Security and contract audit
 
-- `<environment, safe-error, import/capability, and finding evidence>`
+- Windows fixture emitted exactly `PATH`, `SystemRoot`, `USERPROFILE`, `TMP`,
+  `GIT_PAGER`, `GIT_TERMINAL_PROMPT`, and `LC_ALL`; case-variant inputs emitted
+  one canonical key each. POSIX emitted exactly `PATH`, `HOME`, `GIT_PAGER`,
+  `GIT_TERMINAL_PROMPT`, and `LC_ALL`; `Path` and empty `TMPDIR` were absent.
+- A real Git fixture still resolved its intended root with poisoned parent
+  `GIT_DIR`, `GIT_WORK_TREE`, `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_0`,
+  `GIT_CONFIG_VALUE_0`, `GIT_EXTERNAL_DIFF`, pager, prompt, trace, and
+  `NODE_OPTIONS` sentinels. `GIT_DIR` and `NODE_OPTIONS` were absent from the
+  emitted child environment.
+- Exact top-level envelopes are `{"error":"get_change_scope_failed","code":"operation_failed"}`,
+  `{"error":"collect_local_evidence_failed","code":"operation_failed"}`,
+  `{"error":"get_review_bundle_failed","code":"operation_failed"}`,
+  `{"error":"validate_findings_failed","code":"operation_failed"}`, and
+  `{"error":"write_report_failed","code":"operation_failed"}`. A source
+  synchronization test proves exactly those five server handlers call the safe
+  helper and that the affected server source contains no `error.message` or
+  `String(error)` projection.
+- Partial errors are `git_file_diff_failed` / `Git file diff could not be
+  collected.`, `document_root_unavailable` / `Document root could not be
+  accessed.`, and `document_read_failed` / `Document could not be read.`;
+  direct constructors and source wiring are tested, and a missing configured
+  root behavior test proves the fixed message with `docs/missing`.
+- No complete Host-environment spread remains in fixed-Git code. The strict
+  security baseline still accepts only the existing process/network boundaries.
+  `FIND-M7-001` and `FIND-M7-002` are `mitigated`; `FIND-M7-003` remains open
+  low and `FIND-M7-004` remains accepted informational.
 
 ### Public contract and documentation impact
 
-- `<impact>`
+- No public success Schema, tool name/input/annotation, root export, package
+  metadata, dependency, version, or release state changed. Error responses are
+  intentionally narrowed to Decision 32's fixed pre-1.0 safe behavior.
 
 ### Deviations from assignment
 
-- `<deviation, or None>`
+- None.
 
 ### Known limitations and risks
 
-- `<limitation, or None>`
+- The retained home/config path variables permit ordinary operator-managed
+  global, system, and repository Git configuration. This mitigation is not a
+  Git sandbox. Common-pattern redaction remains `FIND-M7-003`.
 
 ### Decisions or questions for coordinator
 
-- `<decision request, or None>`
+- None.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No dependency, lockfile, version, CI, release, npm, GitHub-setting,
+- [x] Coordinator-only files were not modified.
+- [x] No dependency, lockfile, version, CI, release, npm, GitHub-setting,
       credential, hosted-run, or live external-state action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
