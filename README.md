@@ -111,6 +111,14 @@ Runtime conversion remains Host/CI-owned. See the packaged
 [runtime-evidence guide](docs/runtime-evidence/README.md) and its strict
 [normalized manifest examples](docs/runtime-evidence/examples/).
 
+## Security and privacy
+
+This pre-beta package is a local stdio server and does not provide a sandbox.
+Read the [Security Policy](SECURITY.md), [security documentation index](docs/security/README.md),
+[threat model](docs/security/THREAT_MODEL.md), [privacy and telemetry statement](docs/security/PRIVACY.md),
+and [executable control inventory](docs/security/control-inventory.json) before
+using it with sensitive repositories, adapters, models, or CI artifacts.
+
 ## Contribution workflow
 
 This repository uses a coordinator/worker model with isolated worktrees,

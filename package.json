@@ -19,8 +19,10 @@
     "docs/external-adapters",
     "docs/runtime-evidence",
     "docs/smoke-tests",
+    "docs/security",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "SECURITY.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
