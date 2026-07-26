@@ -273,36 +273,90 @@ request.
 
 ## Worker handoff — worker owned
 
-- Status: `not_started`
+- Status: `ready_for_review`
 - Implementation commit(s):
+  - `0b6844311305328fbfcce22d7f9ee526a7c03f95`
 - Branch head: resolve from Git; do not self-reference this handoff commit.
 
 ### Implementation summary
 
-- Pending.
+- Added strict, provider-neutral runtime producer, source-format, kind,
+  outcome, non-production environment, provenance, manifest-record, manifest,
+  runtime-item, and normalized collection Schemas and inferred types.
+- Added the optional `EvidenceItem.runtimeProvenance` and a core invariant
+  preventing external and runtime provenance from coexisting.
+- Enforced the three manifest variants, runtime type/trust/kind mapping,
+  producer consistency, unique IDs, relationship and outcome bounds, safe
+  duration, timestamp order, truncation consistency, and unavailable-source
+  separation.
+- Exported all new Zod contracts through `src/schemas/index.ts` and added the
+  assigned deterministic Draft 2020-12 manifest and collection documents.
+- Added focused tests covering positive cases, strict-object and injection
+  rejection, inert injection-shaped summaries, exact vocabularies, all
+  boundaries and refinements, existing generic/external evidence
+  compatibility, and deterministic JSON Schema export.
 
 ### Validation
 
-- Pending.
+- Test-first prerequisite:
+  - Initial focused invocation could not load `vitest` because the isolated
+    worktree had no `node_modules`; it failed at startup with
+    `ERR_MODULE_NOT_FOUND`. `npm ci` installed the already-locked dependencies
+    into the ignored worktree directory, changed no package metadata, and
+    reported 0 vulnerabilities.
+- Test-first contract failure:
+  - `npx vitest run tests/unit/runtime-evidence-schema.test.ts tests/unit/core-schemas.test.ts tests/unit/json-schema.test.ts`
+  - Failed as intended: 1 failed / 2 passed files, 13 failed / 7 passed tests.
+    All 13 new tests reached missing runtime Schema/export behavior; existing
+    core and JSON Schema tests remained green.
+- Final focused validation:
+  - `npx vitest run tests/unit/runtime-evidence-schema.test.ts tests/unit/core-schemas.test.ts tests/unit/json-schema.test.ts`
+  - Passed: 3 files, 23 tests.
+- `npm run check`
+  - Passed with no TypeScript errors.
+- First `npm test`
+  - Passed: 28 files, 281 tests.
+- Second consecutive `npm test`
+  - Passed: 28 files, 281 tests.
+- `npm run smoke:stdio`
+  - Passed; server advertised the existing eight tools and returned the
+    expected M1 compatibility fixture.
+- `npm run pack:check`
+  - Passed; dry-run tarball contained 165 files, including the compiled runtime
+    Schema declarations and modules.
+- `git diff --check 2cadae39073e8b1bcafc714259a1ff1d0583b110..HEAD`
+  - Passed with no whitespace errors.
+- `git status --short`
+  - Passed after the handoff commit; no output.
 
 ### Deviations from assignment
 
-- None reported.
+- None.
 
 ### Known limitations and risks
 
-- Pending.
+- This slice defines and validates Schemas only. It does not parse vendor
+  formats, read manifests, normalize records, collect evidence, register an MCP
+  tool, or modify bundle/report behavior.
+- Zod `superRefine` rules such as timestamp ordering, producer equality,
+  cross-array combined bounds, and relationship uniqueness are enforced by the
+  executable Zod Schemas. JSON Schema export is deterministic and carries the
+  structural constraints, but Draft 2020-12 cannot express every executable
+  cross-field rule emitted by these refinements.
+- No live vendor, staging, production, POSIX, or network compatibility claim is
+  made by this Schema-only task.
 
 ### Decisions or questions for coordinator
 
-- None reported.
+- None. The frozen public fields and vocabularies were implementable without a
+  dependency, circular import, or contract change.
 
 ### Protected-file confirmation
 
-- [ ] Only allowed paths changed.
-- [ ] No dependency, collector, MCP, bundle, report, workflow, governance,
+- [x] Only allowed paths changed.
+- [x] No dependency, collector, MCP, bundle, report, workflow, governance,
       version, release, or npm-state change was performed.
-- [ ] All intended handoff changes are committed and the worktree is clean.
+- [x] All intended handoff changes are committed and the worktree is clean.
 
 ## Coordinator review — coordinator owned
 
