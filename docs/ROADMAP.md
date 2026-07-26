@@ -147,8 +147,11 @@ The technical spike may revise this choice if Host compatibility or package star
 - M6 started on 2026-07-26. Decision 27 selects a strict normalized runtime
   manifest for pre-produced evidence and keeps test execution, browser
   management, active probing, and vendor-private report objects outside the
-  core. M6-001 will establish the Schema before collectors or converters are
-  implemented.
+  core. M6-001 is accepted: the strict manifest, provenance, normalized
+  collection, core runtime identity invariants, and deterministic JSON Schema
+  exports pass 282 tests. Decision 28 fixes M6-002 as a single explicit,
+  repository-confined manifest reader with safe normalization and no subject
+  execution.
 
 ## 6. M0 — Project foundation
 
@@ -808,12 +811,13 @@ Progress as of 2026-07-26:
 | M3 cross-Host exit gate | Complete; Codex Desktop, Claude Code, and OpenCode each pass 9 of 9 on instruction `1.4.0` |
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
-| M6 runtime evidence | In progress; Decision 27 selects the normalized pre-produced runtime manifest boundary |
+| M6 runtime evidence | In progress; M6-001 contract accepted and M6-002 confined collector boundary fixed by Decisions 27–28 |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
 prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 `0.0.0-dev.0` until the next preview release is explicitly published.
 
-The selected sequence is M6 runtime and staging evidence. M6-001 establishes
-the strict normalized Schema before collectors, converters, or MCP changes.
+The selected sequence is M6 runtime and staging evidence. M6-001 established
+the strict normalized Schema; M6-002 adds the confined explicit-manifest
+collector and MCP tool without bundle/report or converter changes.

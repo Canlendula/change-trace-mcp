@@ -761,3 +761,64 @@ M6 will proceed in bounded slices:
    end-to-end exit evidence.
 
 The Schema remains provisional until the M8 compatibility freeze.
+
+## 28. M6 reads one explicit, confined runtime manifest per collection
+
+The first runtime collector accepts exactly one repository-relative manifest
+path together with an explicit Git repository root. It does not discover
+reports, scan artifact directories, infer filenames, or accept a command,
+browser action, URL to fetch, credential, trust level, or active-probe
+configuration.
+
+The collector resolves the exact Git root through the existing fixed,
+read-only Git-root check. The manifest path must use forward slashes, remain
+inside that root, exclude `.git`, and traverse no symbolic-link segment. The
+target must remain the same regular file across a bounded open/read check.
+Files larger than 4,194,304 bytes are rejected before normalization. Decoding
+uses fatal UTF-8, JSON parsing accepts one complete value, and the result must
+pass the strict M6-001 manifest Schema.
+
+Failures cross the MCP boundary only as
+`collect_runtime_evidence_failed` plus one stable code:
+
+- `invalid_input`;
+- `repository_unavailable`;
+- `manifest_not_found`;
+- `manifest_file_unsafe`;
+- `manifest_file_too_large`;
+- `manifest_read_failed`;
+- `manifest_encoding_invalid`;
+- `manifest_json_invalid`;
+- `manifest_schema_invalid`;
+- `normalization_failed`.
+
+Messages, paths, file content, producer summaries, artifact locators, and
+schema diagnostics are not copied into error output or logs.
+
+For available records, normalization:
+
+- derives a stable core evidence ID from normalized producer, format, record,
+  source, kind, and environment identity;
+- maps test records to `test_result`, API/browser/other observations to
+  `runtime_observation`, and environment metadata to `configuration`;
+- assigns `observed_runtime`, the collection timestamp, redaction metadata,
+  and the accepted structured runtime provenance;
+- hashes the complete pre-redaction summary only when the producer did not
+  declare it truncated;
+- redacts common credential patterns and applies the existing evidence-excerpt
+  bound;
+- preserves artifact entries only as bounded `SourceReference` values and
+  never opens or fetches them.
+
+Unavailable records become `MissingEvidence`. `not_found`, `inaccessible`,
+`unsupported`, and `truncated` map directly; `malformed` maps to
+`unsupported`. Their reasons are redacted and bounded. They never create a
+failed runtime observation.
+
+The always-discoverable `collect_runtime_evidence` MCP tool returns one
+`RuntimeEvidenceCollection`. It is read-only, non-destructive, locally
+bounded, and has `openWorldHint: false`. It may perform the accepted fixed Git
+root verification and file read; it launches no tests, application code,
+browsers, API probes, deployments, converter commands, or arbitrary
+repository commands. Bundle relationships and final-report presentation
+remain reserved for M6-003.
