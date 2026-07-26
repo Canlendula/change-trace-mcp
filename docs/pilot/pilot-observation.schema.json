@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:change-trace-mcp:pilot-observation:1.0.0",
+  "title": "Change Trace pilot observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "pilotId", "teams", "runs"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "pilotId": { "$ref": "#/$defs/safeId" },
+    "teams": { "type": "array", "minItems": 1, "maxItems": 50, "items": { "$ref": "#/$defs/team" } },
+    "runs": { "type": "array", "minItems": 1, "maxItems": 10000, "items": { "$ref": "#/$defs/run" } }
+  },
+  "$defs": {
+    "safeId": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$" },
+    "count": { "type": "integer", "minimum": 0, "maximum": 10000 },
+    "findings": {
+      "type": "object", "additionalProperties": false,
+      "required": ["total", "validEvidenceReferences", "acceptedConfirmed", "dismissedFalsePositive", "inconclusive", "unreviewed"],
+      "properties": {
+        "total": { "$ref": "#/$defs/count" }, "validEvidenceReferences": { "$ref": "#/$defs/count" },
+        "acceptedConfirmed": { "$ref": "#/$defs/count" }, "dismissedFalsePositive": { "$ref": "#/$defs/count" },
+        "inconclusive": { "$ref": "#/$defs/count" }, "unreviewed": { "$ref": "#/$defs/count" }
+      }
+    },
+    "team": {
+      "type": "object", "additionalProperties": false,
+      "required": ["teamId", "profile", "setupElapsedMs", "observationWeeks", "advisoryEnabledAtEnd", "consentRecorded"],
+      "properties": {
+        "teamId": { "$ref": "#/$defs/safeId" },
+        "profile": { "enum": ["repository_documents", "external_requirements", "runtime_staging"] },
+        "setupElapsedMs": { "type": ["integer", "null"], "minimum": 0, "maximum": 604800000 },
+        "observationWeeks": { "type": "integer", "minimum": 0, "maximum": 52 },
+        "advisoryEnabledAtEnd": { "type": ["boolean", "null"] },
+        "consentRecorded": { "const": true }
+      }
+    },
+    "run": {
+      "type": "object", "additionalProperties": false,
+      "required": ["runId", "teamId", "hostFamily", "hostVersion", "instructionVersion", "outcome", "durationMs", "contextCharacters", "evidenceItemCount", "schemaCompatible", "findings"],
+      "properties": {
+        "runId": { "$ref": "#/$defs/safeId" }, "teamId": { "$ref": "#/$defs/safeId" },
+        "hostFamily": { "enum": ["codex", "claude_code", "opencode", "other"] },
+        "hostVersion": { "$ref": "#/$defs/safeId" }, "instructionVersion": { "$ref": "#/$defs/safeId" },
+        "outcome": { "enum": ["completed_findings", "completed_no_findings", "inconclusive", "failed_setup", "failed_host", "failed_validation"] },
+        "durationMs": { "type": "integer", "minimum": 0, "maximum": 86400000 },
+        "contextCharacters": { "type": "integer", "minimum": 0, "maximum": 10000000 },
+        "evidenceItemCount": { "$ref": "#/$defs/count" }, "schemaCompatible": { "type": "boolean" }, "findings": { "$ref": "#/$defs/findings" }
+      },
+      "allOf": [
+        { "if": { "properties": { "outcome": { "const": "completed_no_findings" } }, "required": ["outcome"] }, "then": { "properties": { "findings": { "properties": { "total": { "const": 0 } } } } } },
+        { "if": { "properties": { "outcome": { "const": "completed_findings" } }, "required": ["outcome"] }, "then": { "properties": { "findings": { "properties": { "total": { "minimum": 1 } } } } } }
+      ]
+    }
+  },
+  "description": "Repository-only, opt-in bounded metrics. The executable summarizer additionally enforces uniqueness, references, finding arithmetic, and outcome contradictions. Do not add names, URLs, paths, raw product content, notes, logs, credentials, or extension fields."
+}
