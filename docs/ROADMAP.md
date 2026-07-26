@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-005 accepted; extension, contribution, changelog, and versioning guidance is next
+> Status: M7 in progress; M7-001 through M7-005 accepted; M7-006 extension, contribution, changelog, and versioning guidance assigned
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -705,8 +705,8 @@ The format evidence supporting this boundary is in
 > fixture contract with Host-specific lifecycle evidence. The provider-neutral
 > runner, bounded summarizer, GitHub/GitLab/portable examples, and
 > mechanics-only fixture are packaged under Decision 35. Construction now
-> proceeds to adapter/converter authoring, contribution, changelog, and
-> versioning guidance.
+> proceeds through assigned M7-006 for adapter/converter authoring,
+> contribution, changelog, and versioning guidance.
 
 ### Goals
 
@@ -899,15 +899,14 @@ Progress as of 2026-07-26:
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
-| M7 public beta hardening | In progress; security baseline/fixes, clean installation, and real priority-Host compatibility are accepted; packaged CI examples are next |
+| M7 public beta hardening | In progress; M7-001 through M7-005 are accepted and M7-006 public extension/contribution/version guidance is assigned |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
 prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 `0.0.0-dev.0` until the next preview release is explicitly published.
 
-M7 security hardening, clean installation, and real priority-Host
-compatibility are accepted. The next construction slice packages
-provider-neutral GitHub and generic CI examples plus sample fixtures; extension
-guidance, publishing dry-run preparation, and the real multi-team pilot remain
-after it.
+M7 security hardening, clean installation, real priority-Host compatibility,
+and packaged provider-neutral CI examples are accepted. M7-006 now covers
+extension/contribution/version guidance; publishing dry-run preparation and
+the real multi-team pilot remain after it.

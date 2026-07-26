@@ -1257,3 +1257,74 @@ runner against the packaged public fixture. It must require
 `release-review-status.json`, a schema-valid report, and successful temporary
 cleanup. No hosted CI dispatch, model call, credential, package publish,
 version change, tag, release, or dist-tag action is authorized.
+
+## 36. M7 publishes separate extension, contribution, changelog, and version policies
+
+M7-006 closes the public documentation gap without changing runtime behavior
+or release state. The npm artifact will add:
+
+- a root `CONTRIBUTING.md` for public contributors;
+- a root `CHANGELOG.md` with an `Unreleased` section and the verified
+  `0.0.0-dev.0` construction snapshot;
+- a packaged `docs/VERSIONING.md`;
+- a packaged external-adapter authoring guide;
+- a packaged runtime-evidence converter authoring guide.
+
+The public contribution guide is distinct from
+`docs/CONTRIBUTING_WORKFLOW.md`. The latter remains repository coordination
+policy for assigned workers and does not become the public package entry
+point. Public contributors receive issue/PR, test, documentation, security,
+license-rights, and breaking-change expectations. No CLA, DCO, hosted check,
+or response-time promise may be claimed unless the repository actually
+enforces it. Security reports continue through `SECURITY.md`.
+
+Package versions follow Semantic Versioning 2.0.0. The package's public
+surface includes MCP tool names and inputs/outputs, exported runtime and JSON
+Schemas, CLI/bin and configuration behavior, report artifacts, packaged
+examples, and documented extension protocols. Before the first stable
+release, `0.0.0-dev.N` versions are construction snapshots and do not imply a
+stable compatibility promise. A later beta version/tag is selected only by
+the publishing task; M7-006 must not change the current
+`0.0.0-dev.1` source version, npm tags, registry state, or release metadata.
+
+Serialized contract `schemaVersion` values are independent from the npm
+package version. A compatible package release can keep a Schema version. An
+incompatible serialized change requires a new Schema version and migration
+notes as well as the appropriate package-version change. The provisional
+`1.0.0` Schema values remain subject to the M8 freeze and cannot be presented
+as a stable package `1.0.0` guarantee.
+
+The changelog uses fixed `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`,
+and `Security` headings as needed. Every public behavior or contract change
+must be recorded under `Unreleased` before release. Release entries are dated
+and immutable after publication except for clearly identified factual
+corrections. A registry artifact, Git tag, GitHub release, compatibility
+claim, and milestone declaration remain separate facts; documentation may
+claim only those that were actually verified.
+
+An external-adapter guide must preserve the M5 wrapper boundary: fixed
+Host-owned registration, shell-free bounded execution, allowlisted credential
+names, exact JSON stdin/stdout, explicit references, untrusted output,
+structured unavailable results, and fixture/live least-privilege testing.
+Adapter identity and version describe the wrapper contract and must change
+when that contract changes.
+
+A runtime-converter guide must preserve the M6 preprocessing boundary:
+deterministic bounded conversion outside the MCP core, a declared and
+separately versioned upstream mapping profile, no test/browser/probe execution
+by Change Trace, no raw bodies/secrets/logs, stable relationship IDs, explicit
+unavailable outcomes, and fixture-based tests. Support for one pinned upstream
+shape does not establish general vendor or format compatibility.
+
+The package smoke must require these public files from the exact installed
+tarball and reject broken repository-relative links among the newly published
+entry points. M7-006 may change only documentation, package file allowlisting,
+and focused package/documentation validation. It cannot change source,
+Schemas, dependencies, lockfiles, package version, hosted CI, credentials,
+tags, releases, publishing, or dist-tags.
+
+Primary references accessed 2026-07-26:
+
+- `https://semver.org/`;
+- `https://docs.npmjs.com/about-semantic-versioning/`;
+- `https://docs.npmjs.com/cli/dist-tag/`.
