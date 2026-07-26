@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M6 complete; M7 next
+> Status: M7 in progress; M7-001 security and privacy baseline next
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -655,6 +655,10 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
+> Current state: in progress. M6 is accepted. M7 starts with the security,
+> privacy, and failure-mode baseline before installation, CI, publishing, and
+> pilot claims are expanded.
+
 ### Goals
 
 - make installation predictable;
@@ -674,6 +678,27 @@ The format evidence supporting this boundary is in
 - contribution guide;
 - compatibility matrix;
 - changelog and versioning policy.
+
+### Construction sequence
+
+M7 proceeds through bounded, reviewable slices:
+
+1. publish the threat model, privacy/telemetry boundary, vulnerability
+   reporting path, and an executable security-control inventory;
+2. resolve any security finding that blocks installation or public-beta use;
+3. prove clean installation and compatibility for the priority local Hosts;
+4. package provider-neutral GitHub and generic CI examples plus sample
+   fixtures;
+5. complete adapter/converter authoring, contribution, changelog, and
+   versioning guidance;
+6. prepare and dry-run the package publishing workflow without treating a
+   dry-run as release authorization;
+7. establish the pilot kit and baseline metric schema, then gather real
+   multi-team, multi-week advisory feedback.
+
+The exact task count may expand when the security audit or clean-environment
+checks find a bounded follow-up. Local fixtures can validate mechanics, but
+they cannot satisfy the real-team pilot requirement.
 
 ### Pilot plan
 

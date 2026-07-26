@@ -948,3 +948,75 @@ guide. Compatibility claims are limited to the checked-in fixture profiles and
 recorded shape snapshot. General JUnit/Playwright/API vendor compatibility,
 converter SDKs, live staging pilots, and active browser/API probing remain M7
 or extension work.
+
+## 31. M7 starts with an auditable security and privacy baseline
+
+M7 hardening begins by documenting and testing the current trust boundaries
+before broadening installation, CI, publishing, or pilot claims. The first
+slice does not change a public Schema, MCP tool, package version, dependency,
+or release state.
+
+The baseline covers the complete deployed path:
+
+- a Host launches the local stdio server with the Host user's operating-system
+  privileges;
+- Git scope and repository-document collectors read explicit, bounded local
+  inputs;
+- the external-evidence tool may launch only a Host-configured adapter and is
+  the sole current MCP tool annotated as open-world;
+- the runtime collector reads one explicit pre-produced manifest and does not
+  execute tests, browsers, probes, deployments, or artifact fetches;
+- bundle and finding validation are in-memory transformations;
+- report writing is the sole destructive MCP tool and is confined to an
+  explicit repository-relative output directory;
+- the Agent Host, model provider, CI runner, configured adapters, source
+  systems, and artifact-retention settings remain separate operational trust
+  boundaries.
+
+The project publishes four linked artifacts:
+
+1. `SECURITY.md` defines the supported pre-1.0 state, coordinated disclosure
+   route, report contents, and scope. GitHub private vulnerability reporting
+   is used when the repository exposes that form. If it is unavailable, a
+   reporter may open a minimal issue asking for a private contact but must not
+   publish exploit details, credentials, or sensitive data.
+2. A threat model identifies protected assets, actors, entry points, trust
+   boundaries, accepted controls, residual risks, and out-of-scope Host or
+   provider behavior.
+3. A privacy and telemetry statement records data that may enter evidence and
+   reports, network/process boundaries, retention ownership, and deletion
+   behavior. The core currently adds no first-party telemetry and does not
+   transmit evidence by itself. Configured adapters, Agent Hosts, model
+   providers, CI systems, and user-selected source systems can process data
+   under their own policies.
+4. A machine-readable control inventory maps every public tool and major
+   non-tool surface to capabilities, sensitive-data exposure, failure
+   projection, control references, verification references, and residual
+   risk. A test validates its shape, coverage, referenced files, tool
+   annotations, package inclusion, and selected implementation invariants.
+
+The inventory is executable documentation, not a substitute for adversarial
+testing or a security audit. Common-pattern redaction is best-effort and must
+not be presented as a data-loss-prevention guarantee. Documentation must
+distinguish implemented controls, tested properties, operator
+responsibilities, and unresolved findings.
+
+The security review records findings by severity and disposition. Any
+high-severity issue, unexpected network/process capability, credential leak,
+path escape, unsafe write, or false capability annotation stops the slice at
+`needs_decision` or creates a dedicated hardening task. Lower-severity gaps may
+be queued explicitly, but cannot be silently described as mitigated.
+
+The construction order after this baseline is:
+
+1. bounded security fixes required by the audit;
+2. clean installation and Host compatibility;
+3. provider-neutral CI templates and sample fixtures;
+4. extension, contribution, changelog, and versioning guidance;
+5. reproducible publishing-workflow preparation and dry-run;
+6. pilot kit, baseline metrics, and real advisory pilots.
+
+Package publishing, a tag, a GitHub release, private vulnerability-reporting
+enablement, CI execution on hosted runners, credentials, and live pilot access
+remain coordinator/user-authorized actions. A dry-run, offline fixture, or
+local smoke test cannot be reported as a public release or a completed pilot.
