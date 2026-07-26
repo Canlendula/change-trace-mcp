@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 accepted; M7-002 security hardening next
+> Status: M7 in progress; M7-001 and M7-002 accepted; M7-003 clean installation next
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -172,8 +172,16 @@ The technical spike may revise this choice if Host compatibility or package star
   accepted informational local-stdio limitation. Its strict source-import
   guard prevents unreviewed process/network module boundaries. Coordinator
   gates pass at 33 files / 344 tests; no product behavior, dependency, version,
-  hosted CI, repository setting, publish, or release state changed. M7-002
-  resolves the two medium findings before installation claims expand.
+  hosted CI, repository setting, publish, or release state changed.
+- M7-002 completed on 2026-07-26. Fixed Git subprocesses now receive the
+  Decision 32 allowlisted environment, and the five named MCP handlers plus
+  three partial-success cases use fixed safe error projections. Both medium
+  findings are mitigated; the low redaction limitation and informational
+  no-sandbox boundary retain their prior dispositions. Coordinator gates pass
+  at 35 files / 356 tests, with nine-tool stdio and local advisory-CI smokes,
+  a 196-file package dry-run, and a zero-vulnerability production audit.
+  M7-003 proceeds to clean package installation and priority-Host compatibility
+  without changing registry or release state.
 
 ## 6. M0 — Project foundation
 
@@ -664,9 +672,10 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M7-001 is accepted. M7-002 resolves the two
-> medium security findings before installation, CI, publishing, and pilot
-> claims are expanded.
+> Current state: in progress. M7-001 and M7-002 are accepted. The two medium
+> security findings are mitigated; M7-003 now proves clean package installation
+> and prepares current priority-Host compatibility evidence before CI,
+> publishing, and pilot claims are expanded.
 
 ### Goals
 
