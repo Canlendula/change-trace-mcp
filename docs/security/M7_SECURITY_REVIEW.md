@@ -2,7 +2,7 @@
 
 ## Scope and method
 
-Reviewed 2026-07-26 against base `e5955fb27ba2bf93f70df20b6057043fdb8d1afa`.
+Reviewed 2026-07-26 against base `8b11c55ff14a6b2a8268968c17954be5ffd45132`.
 This project hardening review inspected source and failure-mode tests for stdio,
 nine annotations, Git, local documents, adapters, runtime manifests, bundles,
 findings, reports, package contents, and data flows. It is not an independent
@@ -30,8 +30,8 @@ supply-chain guarantee.
 
 | ID | Severity | Evidence and impact | Disposition | Follow-up |
 |---|---|---|---|---|
-| FIND-M7-001 | medium | `src/git/change-scope.ts` passes the Host environment to Git; Git environment configuration or credentials may be exposed to that subprocess. | open | Decide whether to use an explicit Git environment allowlist before public beta. |
-| FIND-M7-002 | medium | Git/local/report handlers can return bounded raw error text, including local paths or hostile subprocess text, to the same Host. | open | Define a consistent safe-error projection policy before less-trusted intermediaries receive results. |
+| FIND-M7-001 | medium | `createGitEnvironment` builds a fresh fixed-Git environment from the frozen cross-platform allowlist and overrides pager/prompt/locale; poisoned parent-environment collection is covered in `tests/unit/git-environment.test.ts`. | mitigated | Retain the allowlist for every fixed-Git invocation; retained home/config paths remain an operator boundary. |
+| FIND-M7-002 | medium | The five named MCP handlers use the exact `{error,code:"operation_failed"}` envelope; local/Git partial errors retain only fixed messages and repository-relative paths. `tests/unit/tool-errors.test.ts`, `tests/unit/local-evidence.test.ts`, and `tests/unit/change-scope-edge-cases.test.ts` guard the wiring. | mitigated | Keep new MCP failure paths on the fixed safe-error policy. |
 | FIND-M7-003 | low | `src/security/redact.ts` recognizes common patterns only; split, encoded, novel, or contextual secrets can remain. | open | Keep sensitive sources narrow; evaluate stronger redaction through an approved product/privacy decision. |
 | FIND-M7-004 | informational | Local stdio has no sandbox; Host and server use Host-level OS privileges. | accepted | Keep the documented least-privilege/external-sandbox guidance. |
 

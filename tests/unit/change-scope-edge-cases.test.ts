@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -5,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   collectChangeScope,
   DEFAULT_CHANGE_SCOPE_LIMITS,
+  gitFileDiffFailed,
 } from "../../src/git/change-scope.js";
 import { changeScopeSchema } from "../../src/schemas/change-scope.js";
 import { materializeGitFixture } from "../helpers/git-fixture.js";
@@ -24,6 +26,21 @@ async function collectFixture(name: string) {
 }
 
 describe("collectChangeScope edge cases", () => {
+  it("constructs and wires a fixed safe partial Git file-diff failure", async () => {
+    expect(gitFileDiffFailed("src/secret-path.ts")).toEqual({
+      code: "git_file_diff_failed",
+      message: "Git file diff could not be collected.",
+      path: "src/secret-path.ts",
+    });
+    const source = await readFile(
+      fileURLToPath(new URL("../../src/git/change-scope.ts", import.meta.url)),
+      "utf8",
+    );
+    expect(source).toContain("gitFileDiffFailed(changedPath.path)");
+    expect(source).not.toContain("error instanceof Error ? error.message");
+    expect(source).not.toContain("String(error)");
+  });
+
   it("preserves both paths for a rename", async () => {
     const { fixture, scope } = await collectFixture("rename");
 

@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
-const reviewedBaseCommit = "e5955fb27ba2bf93f70df20b6057043fdb8d1afa";
+const reviewedBaseCommit = "8b11c55ff14a6b2a8268968c17954be5ffd45132";
 const inventoryPath = "docs/security/control-inventory.json";
 const reviewPath = "docs/security/M7_SECURITY_REVIEW.md";
 

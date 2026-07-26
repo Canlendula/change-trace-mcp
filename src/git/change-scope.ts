@@ -17,14 +17,60 @@ import { redactCommonSecrets } from "../security/redact.js";
 const execFileAsync = promisify(execFile);
 const GIT_TIMEOUT_MILLISECONDS = 30_000;
 const MAX_GIT_STDERR_BYTES = 64_000;
+const GIT_ENVIRONMENT_KEYS = [
+  "PATH",
+  "SystemRoot",
+  "ComSpec",
+  "PATHEXT",
+  "WINDIR",
+  "HOME",
+  "USERPROFILE",
+  "HOMEDRIVE",
+  "HOMEPATH",
+  "XDG_CONFIG_HOME",
+  "TEMP",
+  "TMP",
+  "TMPDIR",
+] as const;
+
+export const GIT_FILE_DIFF_FAILED_MESSAGE = "Git file diff could not be collected.";
+
+export function gitFileDiffFailed(path: string) {
+  return {
+    code: "git_file_diff_failed",
+    message: GIT_FILE_DIFF_FAILED_MESSAGE,
+    path,
+  };
+}
 
 function gitArguments(args: readonly string[]): string[] {
   return ["--no-pager", "--no-optional-locks", ...args];
 }
 
-function gitEnvironment(): NodeJS.ProcessEnv {
+export function createGitEnvironment(
+  hostEnvironment: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform,
+): NodeJS.ProcessEnv {
+  const environment: NodeJS.ProcessEnv = {};
+  const sourceEntries = Object.entries(hostEnvironment);
+
+  for (const key of GIT_ENVIRONMENT_KEYS) {
+    const value =
+      platform === "win32"
+        ? sourceEntries.find(
+            ([sourceKey, sourceValue]) =>
+              sourceKey.toLowerCase() === key.toLowerCase() &&
+              sourceValue !== undefined &&
+              sourceValue.length > 0,
+          )?.[1]
+        : hostEnvironment[key];
+    if (value !== undefined && value.length > 0) {
+      environment[key] = value;
+    }
+  }
+
   return {
-    ...process.env,
+    ...environment,
     GIT_PAGER: "cat",
     GIT_TERMINAL_PROMPT: "0",
     LC_ALL: "C",
@@ -145,7 +191,7 @@ async function runGit(
   const { stdout } = await execFileAsync("git", gitArguments(args), {
     cwd: repositoryPath,
     encoding: "utf8",
-    env: gitEnvironment(),
+    env: createGitEnvironment(),
     maxBuffer,
     timeout: GIT_TIMEOUT_MILLISECONDS,
     windowsHide: true,
@@ -224,7 +270,7 @@ async function runGitBounded(
   return await new Promise((resolveOutput, rejectOutput) => {
     const child = spawn("git", gitArguments(args), {
       cwd: repositoryPath,
-      env: gitEnvironment(),
+      env: createGitEnvironment(),
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     });
@@ -699,15 +745,8 @@ export async function collectChangeScope(
           truncationReasons.add("total_diff_limit");
         }
       }
-    } catch (error) {
-      errors.push({
-        code: "git_file_diff_failed",
-        message: (error instanceof Error ? error.message : String(error)).slice(
-          0,
-          2_000,
-        ),
-        path: changedPath.path,
-      });
+    } catch {
+      errors.push(gitFileDiffFailed(changedPath.path));
     }
   }
 

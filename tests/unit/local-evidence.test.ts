@@ -1,4 +1,4 @@
-import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import {
   collectLocalEvidence,
   collectLocalEvidenceInputSchema,
+  localEvidencePartialError,
 } from "../../src/evidence/local/collect-local-evidence.js";
 import { collectChangeScope } from "../../src/git/change-scope.js";
 import { localEvidenceCollectionSchema } from "../../src/schemas/local-evidence.js";
@@ -29,6 +30,45 @@ async function prepareFixture() {
 }
 
 describe("collectLocalEvidence", () => {
+  it("uses fixed safe messages for unavailable roots and unreadable documents", async () => {
+    expect(localEvidencePartialError("document_root_unavailable", "docs/missing")).toEqual({
+      code: "document_root_unavailable",
+      message: "Document root could not be accessed.",
+      path: "docs/missing",
+    });
+    expect(localEvidencePartialError("document_read_failed", "docs/secret.md")).toEqual({
+      code: "document_read_failed",
+      message: "Document could not be read.",
+      path: "docs/secret.md",
+    });
+    const source = await readFile(
+      fileURLToPath(new URL("../../src/evidence/local/collect-local-evidence.ts", import.meta.url)),
+      "utf8",
+    );
+    expect(source).toContain('localEvidencePartialError("document_root_unavailable", documentRoot)');
+    expect(source).toContain('localEvidencePartialError("document_read_failed", candidate.path)');
+    expect(source).not.toContain("error instanceof Error ? error.message");
+    expect(source).not.toContain("String(error)");
+  });
+
+  it("reports a missing configured root with the fixed message and repository-relative path", async () => {
+    const { fixture, scope } = await prepareFixture();
+
+    try {
+      const collection = await collectLocalEvidence({
+        scope,
+        documentRoots: ["docs/missing"],
+      });
+      expect(collection.errors).toContainEqual({
+        code: "document_root_unavailable",
+        message: "Document root could not be accessed.",
+        path: "docs/missing",
+      });
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+
   it("collects deterministic, schema-valid local document evidence", async () => {
     const { fixture, scope } = await prepareFixture();
 

@@ -39,6 +39,22 @@ const HARD_LIMITS = {
   maxTotalExcerptCharacters: 1_000_000,
 } as const;
 
+export const LOCAL_EVIDENCE_SAFE_MESSAGES = {
+  document_root_unavailable: "Document root could not be accessed.",
+  document_read_failed: "Document could not be read.",
+} as const;
+
+export function localEvidencePartialError(
+  code: keyof typeof LOCAL_EVIDENCE_SAFE_MESSAGES,
+  path: string,
+) {
+  return {
+    code,
+    message: LOCAL_EVIDENCE_SAFE_MESSAGES[code],
+    path,
+  };
+}
+
 const relativePathSchema = z
   .string()
   .min(1)
@@ -510,12 +526,9 @@ export async function collectLocalEvidence(
           documentRoot,
         );
       }
-    } catch (error) {
-      pushError(
-        "document_root_unavailable",
-        error instanceof Error ? error.message : String(error),
-        documentRoot,
-      );
+    } catch {
+      const partialError = localEvidencePartialError("document_root_unavailable", documentRoot);
+      pushError(partialError.code, partialError.message, partialError.path);
     }
   }
 
@@ -634,12 +647,9 @@ export async function collectLocalEvidence(
         redactions: redacted.redactions,
       });
       remainingExcerptCharacters -= excerpt.text.length;
-    } catch (error) {
-      pushError(
-        "document_read_failed",
-        error instanceof Error ? error.message : String(error),
-        candidate.path,
-      );
+    } catch {
+      const partialError = localEvidencePartialError("document_read_failed", candidate.path);
+      pushError(partialError.code, partialError.message, partialError.path);
     }
   }
 

@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import { SERVER_NAME, SERVER_VERSION } from "./constants.js";
+import { operationFailed } from "./tool-errors.js";
 import {
   buildReviewBundle,
   buildReviewBundleInputSchema,
@@ -224,18 +225,8 @@ export function createServer(
           content: [{ type: "text", text: JSON.stringify(result) }],
           structuredContent: result,
         };
-      } catch (error) {
-        const result = {
-          error: "get_change_scope_failed",
-          message: (error instanceof Error ? error.message : String(error)).slice(
-            0,
-            2_000,
-          ),
-        };
-        return {
-          content: [{ type: "text", text: JSON.stringify(result) }],
-          isError: true,
-        };
+      } catch {
+        return operationFailed("get_change_scope_failed");
       }
     },
   );
@@ -262,18 +253,8 @@ export function createServer(
           content: [{ type: "text", text: JSON.stringify(result) }],
           structuredContent: result,
         };
-      } catch (error) {
-        const result = {
-          error: "collect_local_evidence_failed",
-          message: (error instanceof Error ? error.message : String(error)).slice(
-            0,
-            2_000,
-          ),
-        };
-        return {
-          content: [{ type: "text", text: JSON.stringify(result) }],
-          isError: true,
-        };
+      } catch {
+        return operationFailed("collect_local_evidence_failed");
       }
     },
   );
@@ -338,18 +319,8 @@ export function createServer(
           content: [{ type: "text", text: JSON.stringify(result) }],
           structuredContent: result,
         };
-      } catch (error) {
-        const result = {
-          error: "get_review_bundle_failed",
-          message: (error instanceof Error ? error.message : String(error)).slice(
-            0,
-            2_000,
-          ),
-        };
-        return {
-          content: [{ type: "text", text: JSON.stringify(result) }],
-          isError: true,
-        };
+      } catch {
+        return operationFailed("get_review_bundle_failed");
       }
     },
   );
@@ -376,18 +347,8 @@ export function createServer(
           content: [{ type: "text", text: JSON.stringify(result) }],
           structuredContent: result,
         };
-      } catch (error) {
-        const result = {
-          error: "validate_findings_failed",
-          message: (error instanceof Error ? error.message : String(error)).slice(
-            0,
-            2_000,
-          ),
-        };
-        return {
-          content: [{ type: "text", text: JSON.stringify(result) }],
-          isError: true,
-        };
+      } catch {
+        return operationFailed("validate_findings_failed");
       }
     },
   );
@@ -414,18 +375,8 @@ export function createServer(
           content: [{ type: "text", text: JSON.stringify(result) }],
           structuredContent: result,
         };
-      } catch (error) {
-        const result = {
-          error: "write_report_failed",
-          message: (error instanceof Error ? error.message : String(error)).slice(
-            0,
-            2_000,
-          ),
-        };
-        return {
-          content: [{ type: "text", text: JSON.stringify(result) }],
-          isError: true,
-        };
+      } catch {
+        return operationFailed("write_report_failed");
       }
     },
   );
