@@ -23,7 +23,7 @@ describe("pilot kit package boundary", () => {
   it("keeps all repository-only pilot-kit entry points out of the npm tarball", async () => {
     const destination = await mkdtemp(join(tmpdir(), "change-trace-pilot-pack-"));
     try {
-      const result = await execFileAsync(process.execPath, [npmCli, "pack", "--json", "--pack-destination", destination], { cwd: root });
+      const result = await execFileAsync(process.execPath, [npmCli, "pack", "--ignore-scripts", "--json", "--pack-destination", destination], { cwd: root });
       const records = JSON.parse(result.stdout) as Array<{ files: Array<{ path: string }> }>;
       expect(records).toHaveLength(1);
       const files = new Set(records[0]?.files.map((file) => file.path.replaceAll("\\", "/")) ?? []);

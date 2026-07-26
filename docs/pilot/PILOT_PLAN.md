@@ -14,6 +14,16 @@ stop it at the first valid report: a completed report whose accepted package
 and report Schemas validate. Record that elapsed value or `null` when it was
 not observed.
 
+## Qualifying baseline boundary
+
+A qualifying baseline requires 3 to 5 independent teams, at least three whole
+calendar weeks of advisory use for every team, and at least one team in each
+profile: `repository_documents`, `external_requirements`, and
+`runtime_staging`. Participation and continued advisory use remain opt-in.
+The mechanics fixture, local validation, existing Host evidence, the project
+owner, and the implementing worker do not qualify as pilot teams or weeks.
+This kit prepares collection only; it does not start or complete a pilot.
+
 ## Weekly operation and disposition
 
 Record every attempted run, including setup, Host, and validation failures.

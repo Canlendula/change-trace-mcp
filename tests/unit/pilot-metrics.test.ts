@@ -59,6 +59,9 @@ describe("pilot baseline metrics", () => {
     expect(summary.runs.successfulDurationMedianMs).toBeNull();
     expect(summary.setup).toEqual({ observedTeams: 0, missingTeams: 3, medianMs: null });
     expect(summary.findings.validEvidenceReferencesRate).toEqual({ numerator: 0, denominator: 0, value: null });
+    expect(summary.findings.acceptedConfirmedRate).toEqual({ numerator: 0, denominator: 0, value: null });
+    expect(summary.findings.dismissedFalsePositiveRate).toEqual({ numerator: 0, denominator: 0, value: null });
+    expect(summary.findings.inconclusiveRate).toEqual({ numerator: 0, denominator: 0, value: null });
     expect(summary.retention.enabledRate).toEqual({ numerator: 0, denominator: 0, value: null });
   });
 
@@ -66,6 +69,9 @@ describe("pilot baseline metrics", () => {
     const duplicate = await fixtureObservation();
     (duplicate.runs as Array<Record<string, unknown>>)[1]!.runId = "run-001";
     expect(() => validateObservation(duplicate)).toThrow("observation_invalid");
+    const duplicateTeam = await fixtureObservation();
+    (duplicateTeam.teams as Array<Record<string, unknown>>)[1]!.teamId = "team-alpha-001";
+    expect(() => validateObservation(duplicateTeam)).toThrow("observation_invalid");
     const dangling = await fixtureObservation();
     (dangling.runs as Array<Record<string, unknown>>)[0]!.teamId = "team-missing";
     expect(() => validateObservation(dangling)).toThrow("observation_invalid");
@@ -88,6 +94,15 @@ describe("pilot baseline metrics", () => {
     expect(definitions.safeId).toMatchObject({ minLength: 1, maxLength: 160, pattern: "^[A-Za-z0-9][A-Za-z0-9._:/-]*$" });
     expect((definitions.team! as Record<string, unknown>).properties).toMatchObject({ consentRecorded: { const: true } });
     expect((definitions.run! as Record<string, unknown>).properties).toMatchObject({ hostFamily: { enum: ["codex", "claude_code", "opencode", "other"] } });
+    expect(definitions.zeroFindings).toMatchObject({ properties: {
+      total: { const: 0 }, validEvidenceReferences: { const: 0 }, acceptedConfirmed: { const: 0 },
+      dismissedFalsePositive: { const: 0 }, inconclusive: { const: 0 }, unreviewed: { const: 0 },
+    } });
+    const clauses = (definitions.run! as { allOf?: Array<Record<string, unknown>> }).allOf;
+    expect(clauses).toEqual(expect.arrayContaining([
+      expect.objectContaining({ if: { properties: { outcome: { const: "completed_no_findings" } }, required: ["outcome"] }, then: { properties: { findings: { $ref: "#/$defs/zeroFindings" } } } }),
+      expect.objectContaining({ if: { properties: { outcome: { enum: ["inconclusive", "failed_setup", "failed_host", "failed_validation"] } }, required: ["outcome"] }, then: { properties: { findings: { $ref: "#/$defs/zeroFindings" } } } }),
+    ]));
   });
 
   it("requires exactly one safe file and does not disclose supplied content in errors", async () => {

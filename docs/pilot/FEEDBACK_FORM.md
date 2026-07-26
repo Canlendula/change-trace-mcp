@@ -8,6 +8,9 @@ product content.
 
 - `schemaVersion`: `1.0.0`
 - `pilotId`: bounded pseudonymous ID
+- `teams`: 1 to 50 records; `teamId` values must be unique
+- `runs`: 1 to 10,000 records; `runId` values must be unique and every run
+  `teamId` must reference one listed team
 
 ## Per team
 
@@ -31,7 +34,9 @@ product content.
 - `schemaCompatible`: `true` or `false`
 - `findings.total`, `validEvidenceReferences`, `acceptedConfirmed`,
   `dismissedFalsePositive`, `inconclusive`, and `unreviewed`: whole numbers
-  `0..10000`, with the required arithmetic in the schema contract
+  `0..10000`; `validEvidenceReferences <= total`; and
+  `acceptedConfirmed + dismissedFalsePositive + inconclusive + unreviewed`
+  must equal `total`
 
 For a completed-no-findings run, total is zero; for a completed-findings run,
 total is positive; for any other outcome every finding count is zero.

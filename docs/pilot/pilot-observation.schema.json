@@ -23,6 +23,15 @@
         "inconclusive": { "$ref": "#/$defs/count" }, "unreviewed": { "$ref": "#/$defs/count" }
       }
     },
+    "zeroFindings": {
+      "type": "object",
+      "required": ["total", "validEvidenceReferences", "acceptedConfirmed", "dismissedFalsePositive", "inconclusive", "unreviewed"],
+      "properties": {
+        "total": { "const": 0 }, "validEvidenceReferences": { "const": 0 },
+        "acceptedConfirmed": { "const": 0 }, "dismissedFalsePositive": { "const": 0 },
+        "inconclusive": { "const": 0 }, "unreviewed": { "const": 0 }
+      }
+    },
     "team": {
       "type": "object", "additionalProperties": false,
       "required": ["teamId", "profile", "setupElapsedMs", "observationWeeks", "advisoryEnabledAtEnd", "consentRecorded"],
@@ -48,8 +57,9 @@
         "evidenceItemCount": { "$ref": "#/$defs/count" }, "schemaCompatible": { "type": "boolean" }, "findings": { "$ref": "#/$defs/findings" }
       },
       "allOf": [
-        { "if": { "properties": { "outcome": { "const": "completed_no_findings" } }, "required": ["outcome"] }, "then": { "properties": { "findings": { "properties": { "total": { "const": 0 } } } } } },
-        { "if": { "properties": { "outcome": { "const": "completed_findings" } }, "required": ["outcome"] }, "then": { "properties": { "findings": { "properties": { "total": { "minimum": 1 } } } } } }
+        { "if": { "properties": { "outcome": { "const": "completed_no_findings" } }, "required": ["outcome"] }, "then": { "properties": { "findings": { "$ref": "#/$defs/zeroFindings" } } } },
+        { "if": { "properties": { "outcome": { "const": "completed_findings" } }, "required": ["outcome"] }, "then": { "properties": { "findings": { "properties": { "total": { "minimum": 1 } } } } } },
+        { "if": { "properties": { "outcome": { "enum": ["inconclusive", "failed_setup", "failed_host", "failed_validation"] } }, "required": ["outcome"] }, "then": { "properties": { "findings": { "$ref": "#/$defs/zeroFindings" } } } }
       ]
     }
   },
