@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-004 accepted; packaged provider-neutral CI examples are next
+> Status: M7 in progress; M7-001 through M7-004 accepted; M7-005 packaged provider-neutral CI examples assigned
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -199,6 +199,12 @@ The technical spike may revise this choice if Host compatibility or package star
   Windows-inapplicable POSIX skips, and the production audit reports zero
   vulnerabilities. Detailed evidence is in
   [`docs/evaluation/M7_HOST_RESULTS.md`](evaluation/M7_HOST_RESULTS.md).
+- M7-005 was assigned on 2026-07-26. It packages the provider-neutral advisory
+  runner, bounded status summarizer, CI documentation, and a deterministic
+  mechanics-only fixture. The installed-package smoke must run that fixture
+  through the installed runner and validate the exact three-artifact contract.
+  Hosted CI, inference, credentials, publication, versions, tags, and releases
+  remain out of scope.
 
 ## 6. M0 — Project foundation
 
@@ -692,8 +698,9 @@ The format evidence supporting this boundary is in
 > Current state: in progress. M7-001 through M7-004 are accepted. The two
 > medium security findings are mitigated, clean package installation is
 > reproducible, and the three priority local Hosts pass the exact installed
-> fixture contract with Host-specific lifecycle evidence. Construction now
-> proceeds to packaged provider-neutral CI examples and sample fixtures.
+> fixture contract with Host-specific lifecycle evidence. M7-005 packaged
+> provider-neutral CI examples and sample fixtures are assigned under
+> Decision 35.
 
 ### Goals
 

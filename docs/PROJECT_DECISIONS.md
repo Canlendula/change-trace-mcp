@@ -1213,3 +1213,47 @@ smoke after this Decision is committed. If the accepted-main
 `dist/cli.js` digest remains identical, the real-Host result applies to that
 runtime-equivalent accepted artifact; the exact real-Host tarball digest
 remains the pre-integration digest above.
+
+## 35. M7 packages the provider-neutral CI contract without bundling a reviewer
+
+M7-005 turns the accepted M4 advisory-CI mechanics into an installed-package
+surface. The npm artifact will include exactly the provider-neutral advisory
+runner, the bounded status summarizer, `docs/ci`, and a deterministic public CI
+fixture. It will not package the historical provider experiments, test suite,
+live repository workflows, credentials, or a model/Agent runtime.
+
+The public fixture is a mechanics-only Host substitute. It writes one bounded,
+schema-valid no-finding report pair so the installed advisory runner can prove
+configuration, confinement, status normalization, the exact three-artifact
+contract, and cleanup without inference or provider access. Documentation and
+tests must label it as orchestration evidence; it cannot support a semantic
+review or Host/model quality claim.
+
+The packaged examples preserve the M4 trust split:
+
+- Change Trace supplies the deterministic runner, validation, advisory outcome
+  classification, bounded summary, and artifact contract;
+- the consumer installs an exact package version or checks out an immutable
+  trusted tooling revision separately from the subject repository;
+- the consumer supplies and quality-qualifies its own headless Host/model;
+- provider credentials reach only the selected Host process, while that Host
+  must sanitize the MCP child environment and keep credentials out of argv,
+  logs, prompts, reports, status, and artifacts;
+- the platform owns triggers, protected environments, retention, comments,
+  checks, and any merge policy.
+
+GitHub Actions remains the concrete hosted example, and GitLab remains one
+concrete generic-pipeline example. A portable POSIX-shell example documents
+how the same command/artifact contract maps to self-managed GitLab, Gitee Go,
+Jenkins, Bitbucket Pipelines, Azure Pipelines, Forgejo, and comparable runners.
+Those mappings are portability guidance, not certified platform-Agent
+integrations.
+
+Installed-package validation must pack and install one local tarball under the
+existing credential-free clean-install boundary, then launch the packaged
+runner against the packaged public fixture. It must require
+`completed_no_findings`, exactly
+`release-review.md`, `release-review.json`, and
+`release-review-status.json`, a schema-valid report, and successful temporary
+cleanup. No hosted CI dispatch, model call, credential, package publish,
+version change, tag, release, or dist-tag action is authorized.
