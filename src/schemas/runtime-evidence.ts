@@ -230,58 +230,13 @@ function producersMatch(
   );
 }
 
-function expectedEvidenceType(
-  kind: z.infer<typeof runtimeKindSchema>,
-): "test_result" | "runtime_observation" | "configuration" {
-  if (kind === "test_run" || kind === "test_case") {
-    return "test_result";
-  }
-  if (kind === "environment_metadata") {
-    return "configuration";
-  }
-  return "runtime_observation";
-}
-
 export const runtimeEvidenceItemSchema = evidenceItemSchema.superRefine(
   (item, context) => {
-    if (
-      item.type !== "test_result" &&
-      item.type !== "runtime_observation" &&
-      item.type !== "configuration"
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "Runtime evidence uses only runtime evidence types",
-        path: ["type"],
-      });
-    }
-    if (item.trustLevel !== "observed_runtime") {
-      context.addIssue({
-        code: "custom",
-        message: "Runtime evidence must use observed_runtime trust",
-        path: ["trustLevel"],
-      });
-    }
     if (item.runtimeProvenance === undefined) {
       context.addIssue({
         code: "custom",
         message: "Runtime evidence requires runtime provenance",
         path: ["runtimeProvenance"],
-      });
-      return;
-    }
-    if (item.externalProvenance !== undefined) {
-      context.addIssue({
-        code: "custom",
-        message: "Runtime and external provenance cannot coexist",
-        path: ["externalProvenance"],
-      });
-    }
-    if (item.type !== expectedEvidenceType(item.runtimeProvenance.kind)) {
-      context.addIssue({
-        code: "custom",
-        message: "Runtime evidence type must match its runtime kind",
-        path: ["type"],
       });
     }
   },

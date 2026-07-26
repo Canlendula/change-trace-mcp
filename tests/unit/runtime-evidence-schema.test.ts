@@ -557,6 +557,35 @@ describe("runtime provenance and collection", () => {
       runtimeEvidenceItem(),
     );
     expect(
+      evidenceItemSchema.safeParse({
+        ...runtimeEvidenceItem(),
+        type: "document",
+        trustLevel: "trusted_repository",
+      }).success,
+    ).toBe(false);
+    expect(
+      evidenceItemSchema.safeParse({
+        ...runtimeEvidenceItem(),
+        type: "document",
+      }).success,
+    ).toBe(false);
+    expect(
+      evidenceItemSchema.safeParse({
+        ...runtimeEvidenceItem(),
+        trustLevel: "trusted_repository",
+      }).success,
+    ).toBe(false);
+    expect(
+      evidenceItemSchema.safeParse({
+        ...runtimeEvidenceItem(),
+        type: "test_result",
+        runtimeProvenance: {
+          ...runtimeEvidenceItem().runtimeProvenance!,
+          kind: "api_observation",
+        },
+      }).success,
+    ).toBe(false);
+    expect(
       runtimeProvenanceSchema.safeParse({
         ...runtimeEvidenceItem().runtimeProvenance,
         unexpected: true,
