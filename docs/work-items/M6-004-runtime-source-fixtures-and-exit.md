@@ -231,32 +231,32 @@ allowed. Writing outside this list is not.
 
 ## Acceptance criteria
 
-- [ ] The strict fixture producer supports exactly four fixed profiles, has
+- [x] The strict fixture producer supports exactly four fixed profiles, has
       deterministic byte output, bounded input, and safe fixed failures.
-- [ ] The producer reads only its fixed adjacent fixtures and cannot perform
+- [x] The producer reads only its fixed adjacent fixtures and cannot perform
       caller-selected file/process/network/browser/API/deployment access.
-- [ ] JUnit-style and Playwright mapping tables produce every assigned outcome
+- [x] JUnit-style and Playwright mapping tables produce every assigned outcome
       without importing raw output/log/body fields.
-- [ ] API-smoke and staging profiles preserve bounded observed/environment
+- [x] API-smoke and staging profiles preserve bounded observed/environment
       metadata while omitting secrets and active-probe configuration.
-- [ ] All fixture outputs parse as strict manifests and all public collector
+- [x] All fixture outputs parse as strict manifests and all public collector
       results parse as strict runtime collections.
-- [ ] Runtime change/document relationships, outcome/timing/environment,
+- [x] Runtime change/document relationships, outcome/timing/environment,
       producer/format/source, unavailable provenance, and artifact references
       survive the complete stdio bundle/report path.
-- [ ] Inaccessible staging evidence remains unavailable/not observed and never
+- [x] Inaccessible staging evidence remains unavailable/not observed and never
       becomes a failed runtime evidence item or product finding.
-- [ ] Secret sentinels and forbidden JUnit/Playwright/API content are absent
+- [x] Secret sentinels and forbidden JUnit/Playwright/API content are absent
       from MCP output, bundle, JSON, Markdown, and server stderr.
-- [ ] Repeated identical report writes are byte-identical; the nine-tool set,
+- [x] Repeated identical report writes are byte-identical; the nine-tool set,
       M1 fixture, non-runtime bundle identity, and nine M3 replay digests remain
       unchanged.
-- [ ] The packaged guide/examples parse, stay bounded, accurately state the
+- [x] The packaged guide/examples parse, stay bounded, accurately state the
       offline normalized boundary, and make no general/live compatibility
       claim.
-- [ ] Focused tests, type checking, two consecutive full suites, stdio and CI
+- [x] Focused tests, type checking, two consecutive full suites, stdio and CI
       smoke, package dry-run, base diff, and clean-worktree checks pass.
-- [ ] No source/core contract, dependency, lockfile, script, engine, version,
+- [x] No source/core contract, dependency, lockfile, script, engine, version,
       CI workflow, governance, evaluation result, release, npm, or GitHub state
       changes.
 
@@ -481,20 +481,65 @@ package inventory, known limitations, deviations, and decision requests.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
+- Outcome: `accepted`
 - Reviewed branch head:
+  `46e1c4831d02d44875178c45811d05e9cfa1f3e7`
 - Integration commits:
+  - `db3eb55` — fixed offline profiles, complete stdio proof, packaged guide,
+    examples, and regression tests
+  - `8b47d00` — worker handoff
 
 ### Review findings
 
-- Pending.
+- The reviewed base-to-head diff stayed inside the assigned fixture, test,
+  runtime-guide, README, package-file, and worker-handoff paths. No `src/**`,
+  dependency, lockfile, script, engine, version, CI workflow, governance,
+  release, npm, or GitHub state changed.
+- The fixture producer accepts exactly four IDs plus bounded unique
+  relationships, reads only the selected fixed adjacent fixture, and emits one
+  deterministic strict manifest. Invalid, unknown, forbidden-field, invalid-ID,
+  duplicate-ID, and oversized requests return only the fixed failure token.
+- Static review found no environment-variable, arbitrary path, subject
+  artifact, child-process, network, browser, API, deployment, credential, or
+  active-probe capability in the producer. JUnit output/error/stack fields,
+  Playwright stdout/stderr/error/step/annotation/attachment bodies, and API
+  bodies/headers/cookies/tokens/logs are discarded before manifest output.
+- The built-stdio proof links all available and unavailable runtime records to
+  one supplied change ID and one retained requirement document ID. Twelve
+  available runtime sources and one structured unavailable staging record
+  survive collection, bundle, JSON, and Markdown with the assigned provenance,
+  timing, outcomes, environments, and reference-only artifacts.
+- Inaccessible staging evidence remains missing evidence labelled
+  unavailable/not observed. It never becomes a failed runtime item or finding.
+  API-summary and staging-reason secrets are redacted before collection output,
+  and all assigned secret/raw-content sentinels are absent from bundle,
+  reports, and server stderr.
+- The packaged guide and four examples parse under the accepted strict
+  manifest Schema, stay below the 4 MiB collector limit, and clearly restrict
+  compatibility to the checked-in offline profiles.
+- Independent coordinator validation passed:
+  - focused runtime fixture/core/replay/stdio suite: 10 files, 150 tests;
+  - TypeScript check;
+  - two consecutive full suites: 32 files, 340 tests each;
+  - stdio smoke with exactly nine tools and the byte-stable M1 fixture;
+  - advisory CI smoke with `completed_no_findings`;
+  - package dry-run with 186 files and all five runtime guide/example files;
+  - base-diff whitespace, allowed-path, temporary-junction, and clean-worktree
+    checks.
+- After integration on `main`, the full suite again passed 32 files / 340
+  tests and stdio smoke retained the exact nine-tool/M1 fixture result.
 
 ### Required follow-up
 
-- Pending review.
+- General converters, upstream-version compatibility matrices, credentialed or
+  live staging pilots, active browser/API probing, and converter authoring
+  guidance remain M7 extension and pilot work.
+- M8 must freeze the provisional v1 Schema/JSON Schema snapshots and document
+  compatibility policy before a stable release.
 
 ### Roadmap and release impact
 
-- M6 remains in progress. This task cannot complete the milestone or authorize
-  a version, release, or compatibility claim before coordinator review and
-  exit-evidence recording.
+- M6-004 is accepted and all M6 exit criteria pass for the pinned offline
+  normalized-runtime contract. The coordinator must record the final M6
+  evidence and Roadmap status; this acceptance does not authorize a package
+  version, tag, publish, or broader format/live compatibility claim.
