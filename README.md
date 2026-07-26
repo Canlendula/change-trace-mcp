@@ -105,10 +105,12 @@ get_change_scope ─┬→ collect_local_evidence ──────────
 External adapters are registered by the Host through
 `CHANGE_TRACE_EXTERNAL_ADAPTERS_FILE`; executable configuration and
 credentials are never MCP tool input. See the packaged
-[external-adapter guide](docs/external-adapters/README.md) and
+[external-adapter guide](docs/external-adapters/README.md), its practical
+[authoring checklist](docs/external-adapters/AUTHORING.md), and
 [copyable configuration](docs/external-adapters/config.json.example).
 Runtime conversion remains Host/CI-owned. See the packaged
-[runtime-evidence guide](docs/runtime-evidence/README.md) and its strict
+[runtime-evidence guide](docs/runtime-evidence/README.md),
+[converter authoring guide](docs/runtime-evidence/CONVERTER_AUTHORING.md), and its strict
 [normalized manifest examples](docs/runtime-evidence/examples/).
 
 ## Security and privacy
@@ -119,12 +121,17 @@ Read the [Security Policy](SECURITY.md), [security documentation index](docs/sec
 and [executable control inventory](docs/security/control-inventory.json) before
 using it with sensitive repositories, adapters, models, or CI artifacts.
 
-## Contribution workflow
+## Contributing
 
-This repository uses a coordinator/worker model with isolated worktrees,
-tracked task assignments, and coordinator-owned Roadmap and release decisions.
-See [`docs/CONTRIBUTING_WORKFLOW.md`](docs/CONTRIBUTING_WORKFLOW.md) before
-starting delegated implementation work.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for public issue, pull request,
+testing, documentation, security, and changelog guidance. The repository-only
+`docs/CONTRIBUTING_WORKFLOW.md` describes assigned coordinator/worker work; it
+is intentionally not included in the installed package.
+
+## Versioning and changes
+
+Read [VERSIONING.md](docs/VERSIONING.md) for package and Schema version
+boundaries, and [CHANGELOG.md](CHANGELOG.md) for unreleased public changes.
 
 ## Versioned schemas
 

@@ -9,6 +9,10 @@ The deterministic Lark and Jira/Confluence adapters under `tests/fixtures/`
 are contract fixtures. They prove the shared process and report boundary
 without network access. They do not establish live vendor compatibility.
 
+For a practical wrapper checklist, read [Adapter authoring](AUTHORING.md).
+This reference remains the canonical field-level description together with the
+[configuration example](config.json.example).
+
 ## Configure the stdio Host
 
 Set `CHANGE_TRACE_EXTERNAL_ADAPTERS_FILE` to the path of one Host-owned JSON

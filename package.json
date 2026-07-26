@@ -23,9 +23,12 @@
     "docs/ci",
     "scripts/ci/advisory-runner.mjs",
     "scripts/ci/summarize-advisory-status.mjs",
+    "CONTRIBUTING.md",
+    "CHANGELOG.md",
     "LICENSE",
     "README.md",
-    "SECURITY.md"
+    "SECURITY.md",
+    "docs/VERSIONING.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

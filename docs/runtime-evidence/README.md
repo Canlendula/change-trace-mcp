@@ -9,6 +9,11 @@ The core reads one explicit manifest. It does not discover reports, run a
 converter, execute tests, launch a browser, call an API, deploy an application,
 check staging reachability, inspect credentials, or access production.
 
+For implementation guidance outside the core, read
+[Converter authoring](CONVERTER_AUTHORING.md). This reference and its checked-in
+[normalized manifest examples](examples/) remain the canonical field-level
+contract.
+
 ## Public tool sequence
 
 First collect the change and requirement/document identities that the runtime

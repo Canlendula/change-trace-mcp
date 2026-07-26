@@ -33,8 +33,13 @@ const REQUIRED_PACKED_FILES = [
   "dist/index.js",
   "dist/index.d.ts",
   "README.md",
+  "CONTRIBUTING.md",
+  "CHANGELOG.md",
   "LICENSE",
   "SECURITY.md",
+  "docs/VERSIONING.md",
+  "docs/external-adapters/AUTHORING.md",
+  "docs/runtime-evidence/CONVERTER_AUTHORING.md",
   "docs/smoke-tests/README.md",
   "docs/smoke-tests/config/codex.toml.example",
   "docs/smoke-tests/config/claude.mcp.json.example",
@@ -48,6 +53,25 @@ const REQUIRED_PACKED_FILES = [
   "docs/ci/fixtures/deterministic-advisory-host.mjs",
   "scripts/ci/advisory-runner.mjs",
   "scripts/ci/summarize-advisory-status.mjs",
+];
+const PUBLIC_DOCUMENTATION_LINK_SOURCES = [
+  "README.md",
+  "CONTRIBUTING.md",
+  "CHANGELOG.md",
+  "docs/VERSIONING.md",
+  "docs/external-adapters/README.md",
+  "docs/external-adapters/AUTHORING.md",
+  "docs/runtime-evidence/README.md",
+  "docs/runtime-evidence/CONVERTER_AUTHORING.md",
+];
+const REQUIRED_PUBLIC_DOCUMENTATION_LINKS = [
+  ["README.md", "CONTRIBUTING.md"],
+  ["README.md", "CHANGELOG.md"],
+  ["README.md", "docs/VERSIONING.md"],
+  ["README.md", "docs/external-adapters/AUTHORING.md"],
+  ["README.md", "docs/runtime-evidence/CONVERTER_AUTHORING.md"],
+  ["docs/external-adapters/README.md", "docs/external-adapters/AUTHORING.md"],
+  ["docs/runtime-evidence/README.md", "docs/runtime-evidence/CONVERTER_AUTHORING.md"],
 ];
 const CI_ARTIFACT_NAMES = ["release-review.md", "release-review.json", "release-review-status.json"];
 const MAX_CI_ARTIFACT_BYTES = 10 * 1024 * 1024;
@@ -162,12 +186,55 @@ export function validatePackedFiles(files) {
   for (const required of REQUIRED_PACKED_FILES) {
     if (!packed.has(required)) throw smokeError("packed_file_missing");
   }
-  const forbidden = /^(?:src|tests|node_modules|\.git|\.github|docs\/work-items)(?:\/|$)|(?:^|\/)(?:\.env(?:\.[^/]+)?|\.npmrc|npmrc|\.yarnrc|\.pnpmrc|\.pypirc|\.netrc|\.gitconfig|package-lock\.json|\.gitignore|auth(?:entication)?(?:\.[^/]+)?|tokens?(?:\.[^/]+)?|secrets?(?:\.[^/]+)?|credentials?(?:\.[^/]+)?)(?:$|\/)/iu;
+  const forbidden = /^(?:AGENTS\.md|docs\/CONTRIBUTING_WORKFLOW\.md|src|tests|node_modules|\.git|\.github|docs\/work-items)(?:\/|$)|(?:^|\/)(?:\.env(?:\.[^/]+)?|\.npmrc|npmrc|\.yarnrc|\.pnpmrc|\.pypirc|\.netrc|\.gitconfig|package-lock\.json|\.gitignore|auth(?:entication)?(?:\.[^/]+)?|tokens?(?:\.[^/]+)?|secrets?(?:\.[^/]+)?|credentials?(?:\.[^/]+)?)(?:$|\/)/iu;
   if (files.some((file) => forbidden.test(normalizedPath(file)))) throw smokeError("packed_file_forbidden");
   const permittedCiScripts = new Set(["scripts/ci/advisory-runner.mjs", "scripts/ci/summarize-advisory-status.mjs"]);
   if (files.some((file) => normalizedPath(file).startsWith("scripts/ci/") && !permittedCiScripts.has(normalizedPath(file)))) {
     throw smokeError("packed_ci_script_forbidden");
   }
+}
+
+function isExternalOrFragmentLink(target) {
+  return target.startsWith("#") || target.startsWith("//") || /^[a-z][a-z0-9+.-]*:/iu.test(target);
+}
+
+export async function validatePublicDocumentationLinks(packageDirectory) {
+  let checkedLinks = 0;
+  const resolvedLinks = new Set();
+  for (const source of PUBLIC_DOCUMENTATION_LINK_SOURCES) {
+    let markdown;
+    try {
+      markdown = await readFile(join(packageDirectory, source), "utf8");
+    } catch {
+      throw smokeError("public_docs_source_missing");
+    }
+    const linkPattern = /\[[^\]]*\]\(\s*(?:<([^>\n]+)>|([^\s)]+))(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)/gu;
+    for (const match of markdown.matchAll(linkPattern)) {
+      const target = (match[1] ?? match[2] ?? "").trim();
+      if (target.length === 0 || isExternalOrFragmentLink(target) || match[0].includes("<VERSION>")) continue;
+      const pathTarget = target.split(/[?#]/u, 1)[0];
+      if (pathTarget.length === 0) continue;
+      let decodedTarget;
+      try {
+        decodedTarget = decodeURIComponent(pathTarget);
+      } catch {
+        throw smokeError("public_docs_link_invalid");
+      }
+      const destination = resolve(packageDirectory, dirname(source), decodedTarget);
+      if (!isWithin(packageDirectory, destination)) throw smokeError("public_docs_link_invalid");
+      try {
+        await access(destination);
+      } catch {
+        throw smokeError("public_docs_link_invalid");
+      }
+      resolvedLinks.add(`${source}\u0000${normalizedPath(relative(packageDirectory, destination))}`);
+      checkedLinks += 1;
+    }
+  }
+  for (const [source, target] of REQUIRED_PUBLIC_DOCUMENTATION_LINKS) {
+    if (!resolvedLinks.has(`${source}\u0000${target}`)) throw smokeError("public_docs_navigation_missing");
+  }
+  return { sources: PUBLIC_DOCUMENTATION_LINK_SOURCES.length, checkedLinks };
 }
 
 export async function validateInstalledCiArtifacts(outputDirectory) {
@@ -397,6 +464,7 @@ async function executeSmoke() {
     await writeFile(join(plan.consumerDirectory, "package.json"), JSON.stringify({ private: true, name: "change-trace-clean-consumer", version: "1.0.0" }), "utf8");
     await runBounded(npmCommand, [npmCliPath, "install", "--ignore-scripts", "--no-audit", "--no-fund", "--no-package-lock", "--cache", plan.cacheDirectory, "--userconfig", plan.userConfigPath, tarballPath], { cwd: plan.consumerDirectory, env: installEnvironment });
     const installedDirectory = await assertInstalledPackage(plan, sourcePackage);
+    await validatePublicDocumentationLinks(installedDirectory);
     await runBounded(npmCommand, [npmCliPath, "ls", "--omit=dev", "--json", "--no-audit", "--no-fund", "--userconfig", plan.userConfigPath], { cwd: plan.consumerDirectory, env: installEnvironment });
     const installedLaunch = validateLaunchResult((await runBounded(process.execPath, [referenceClientPath, process.execPath, join(installedDirectory, "dist", "cli.js")], { cwd: plan.consumerDirectory, env: installEnvironment })).stdout);
     const npxLaunch = validateLaunchResult((await runBounded(process.execPath, [referenceClientPath, process.execPath, npxCliPath, "--yes", "--package", tarballPath, "--", sourcePackage.name], { cwd: plan.npxDirectory, env: installEnvironment })).stdout);

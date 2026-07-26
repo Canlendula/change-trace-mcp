@@ -1,4 +1,4 @@
-import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -18,6 +18,7 @@ const {
   validateLaunchResult,
   validateInstalledCiArtifacts,
   validatePackedFiles,
+  validatePublicDocumentationLinks,
   withTemporaryRoot,
 } = await import(smokeModulePath);
 
@@ -141,8 +142,13 @@ describe("clean package installation smoke helpers", () => {
       "dist/index.js",
       "dist/index.d.ts",
       "README.md",
+      "CONTRIBUTING.md",
+      "CHANGELOG.md",
       "LICENSE",
       "SECURITY.md",
+      "docs/VERSIONING.md",
+      "docs/external-adapters/AUTHORING.md",
+      "docs/runtime-evidence/CONVERTER_AUTHORING.md",
       "docs/smoke-tests/README.md",
       "docs/smoke-tests/config/codex.toml.example",
       "docs/smoke-tests/config/claude.mcp.json.example",
@@ -159,11 +165,44 @@ describe("clean package installation smoke helpers", () => {
     ];
     expect(() => validatePackedFiles(required)).not.toThrow();
     expect(() => validatePackedFiles([...required, "src/cli.ts"])).toThrow("packed_file_forbidden");
+    expect(() => validatePackedFiles([...required, "AGENTS.md"])).toThrow("packed_file_forbidden");
+    expect(() => validatePackedFiles([...required, "docs/CONTRIBUTING_WORKFLOW.md"])).toThrow("packed_file_forbidden");
+    expect(() => validatePackedFiles([...required, "docs/work-items/M7-006-extension-contribution-versioning.md"])).toThrow("packed_file_forbidden");
     expect(() => validatePackedFiles([...required, "scripts/ci/opencode-advisory-host.mjs"])).toThrow("packed_ci_script_forbidden");
     for (const forbidden of [".env", ".env.production", "auth.json", "token.txt", "secret.env", "credentials.json", ".npmrc", ".netrc"]) {
       expect(() => validatePackedFiles([...required, forbidden])).toThrow("packed_file_forbidden");
     }
     expect(() => validatePackedFiles(required.slice(1))).toThrow("packed_file_missing");
+  });
+
+  it("validates only resolvable package-relative public documentation links", async () => {
+    const root = await mkdtemp(join(tmpdir(), "change-trace-public-docs-"));
+    const sources = [
+      "README.md", "CONTRIBUTING.md", "CHANGELOG.md", "docs/VERSIONING.md",
+      "docs/external-adapters/README.md", "docs/external-adapters/AUTHORING.md",
+      "docs/runtime-evidence/README.md", "docs/runtime-evidence/CONVERTER_AUTHORING.md",
+    ];
+    try {
+      for (const source of sources) {
+        const directory = source.includes("/") ? source.slice(0, source.lastIndexOf("/")) : ".";
+        await mkdir(join(root, directory), { recursive: true });
+        await writeFile(join(root, directory, "target.md"), "target\n", "utf8");
+      }
+      const navigation = new Map([
+        ["README.md", "[contributing](CONTRIBUTING.md) [changelog](CHANGELOG.md) [versioning](docs/VERSIONING.md) [adapter](docs/external-adapters/AUTHORING.md) [converter](docs/runtime-evidence/CONVERTER_AUTHORING.md)"],
+        ["docs/external-adapters/README.md", "[authoring](AUTHORING.md)"],
+        ["docs/runtime-evidence/README.md", "[authoring](CONVERTER_AUTHORING.md)"],
+      ]);
+      for (const source of sources) {
+        const links = navigation.get(source) ?? "";
+        await writeFile(join(root, source), `[local](target.md) ${links} [external](https://example.invalid) [fragment](#section) [example](https://example.invalid/<VERSION>)\n`, "utf8");
+      }
+      await expect(validatePublicDocumentationLinks(root)).resolves.toEqual({ sources: 8, checkedLinks: 15 });
+      await writeFile(join(root, "README.md"), "[broken](missing.md)\n", "utf8");
+      await expect(validatePublicDocumentationLinks(root)).rejects.toThrow("public_docs_link_invalid");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   it("requires the exact nine-tool launch result and byte-stable fixture", () => {
