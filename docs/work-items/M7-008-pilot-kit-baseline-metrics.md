@@ -406,18 +406,51 @@ dependency read from the public npm registry.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending | accepted | changes_requested | rejected`
+- Outcome: `accepted`
 - Reviewed branch head:
+  `3e39d7731f264a64fe5a7c3e091a872ec0a2e394`
 - Integration commit:
+  `3e39d7731f264a64fe5a7c3e091a872ec0a2e394` (fast-forward)
 
 ### Review findings
 
-- `<finding, or None>`
+- The first review requested lifecycle-script-free package-boundary packing,
+  a self-contained qualifying-baseline/form contract, stronger expressible
+  JSON Schema outcome constraints, and direct zero-denominator and duplicate
+  team-ID coverage. Commit `adc0517` resolved every item.
+- Independent focused validation passed both new test files at 7 of 7.
+  Parallel full validation then passed 406 tests with two existing
+  Windows-inapplicable POSIX skips; its only failure was the pre-existing
+  M7-007 test's LF-only assertion against a CRLF checkout. A one-worker run
+  excluding exactly that assertion passed all 43 files at 406 tests with
+  three skips. No concurrent package EOF remained.
+- Independent clean-install validation produced one 209-file tarball with
+  packed/unpacked sizes `179280` / `874430`, SHA-1
+  `49403bf83a9b36ad47a2e9250210f11c38e9a97a`, SHA-256
+  `0403569a13494bcec7880a840333f183019e1610a79c07845715be14bf7eefb5`,
+  exact nine tools, the M1 fixture, three CI artifacts, and cleanup `true`.
+  The stdio/CI smokes, package dry-run, zero-vulnerability production audit,
+  fixture-exact summary, and forbidden network/process/write/random/clock
+  source scan also passed.
 
 ### Required follow-up
 
-- `<follow-up, or None>`
+- Run the real opt-in pilot with 3 to 5 independent teams for at least three
+  calendar weeks and cover all three frozen profiles. Recruitment, raw
+  evidence custody, external credentials/systems, observations, and consent
+  require separate team/operator coordination.
+- Keep thresholds unfrozen until the complete qualifying real baseline is
+  reviewed. The synthetic fixture and local validation cannot satisfy the M7
+  exit gate.
+- Resolve the pre-existing M7-007 LF-only workflow test as a separate bounded
+  portability follow-up; it does not affect the accepted M7-008 runtime or
+  repository-only pilot contracts.
 
 ### Roadmap and release impact
 
-- `<coordinator assessment>`
+- M7 construction-sequence item 7 preparation is accepted. M7 remains in
+  progress because no real team was contacted and no real multi-week
+  observation exists.
+- This work changes no package surface/version, public MCP/Schema contract,
+  dependency, telemetry, hosted workflow, credential, threshold,
+  compatibility, registry, tag, release, publish, or dist-tag state.

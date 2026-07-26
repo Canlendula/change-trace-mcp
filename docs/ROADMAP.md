@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-007 accepted; M7-008 pilot kit and baseline metric schema assigned
+> Status: M7 in progress; M7-001 through M7-008 accepted; real multi-team pilot evidence remains
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -229,6 +229,17 @@ The technical spike may revise this choice if Host compatibility or package star
   with two Windows-inapplicable POSIX skips. No hosted run, authentication,
   trusted-publisher/environment/variable change, stage, approval,
   publication, tag, release, or dist-tag action occurred.
+- M7-008 was accepted on 2026-07-26. The repository-only pilot kit freezes
+  opt-in onboarding, weekly operation, safety stops, offboarding, bounded
+  privacy-minimized observations, and deterministic baseline metrics without
+  setting thresholds. The synthetic three-profile fixture proves mechanics
+  only. Coordinator validation passes 406 tests with two intentional POSIX
+  skips after excluding one pre-existing Windows CRLF-only assertion; the focused
+  contract tests, 209-file package boundary, exact nine-tool/M1/CI smokes,
+  clean install, temporary cleanup, and production audit pass. No team was
+  contacted, no real observation was created, and no Host/model, hosted
+  workflow, credential, package, version, threshold, compatibility, registry,
+  tag, release, or publication state changed.
 
 ## 6. M0 — Project foundation
 
@@ -719,16 +730,16 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M7-001 through M7-007 are accepted. The two
+> Current state: in progress. M7-001 through M7-008 are accepted. The two
 > medium security findings are mitigated, clean package installation is
 > reproducible, and the three priority local Hosts pass the exact installed
 > fixture contract with Host-specific lifecycle evidence. The provider-neutral
 > runner, bounded summarizer, GitHub/GitLab/portable examples, and
 > mechanics-only fixture are packaged under Decision 35. The stage-only
 > publishing workflow and non-publishing dry-run are accepted under Decision
-> 37. Construction now proceeds through assigned M7-008 for the pilot kit and
-> baseline metric schema; real multi-team, multi-week evidence remains
-> required.
+> 37. The pilot kit, privacy-minimized observation contract, and deterministic
+> baseline metric summarizer are accepted under Decision 38. Real multi-team,
+> multi-week evidence remains required before M7 can complete.
 
 ### Goals
 
@@ -921,7 +932,7 @@ Progress as of 2026-07-26:
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
-| M7 public beta hardening | In progress; M7-001 through M7-007 are accepted and M7-008 pilot-kit/baseline-metric preparation is assigned |
+| M7 public beta hardening | In progress; M7-001 through M7-008 are accepted and the real multi-team, multi-week pilot remains |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
@@ -930,5 +941,5 @@ prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 
 M7 security hardening, clean installation, real priority-Host compatibility,
 packaged provider-neutral CI examples, public extension/contribution/version
-guidance, and stage-only publishing workflow preparation/dry-run are
-accepted. The pilot kit, baseline metrics, and real multi-team pilot remain.
+guidance, stage-only publishing workflow preparation/dry-run, pilot kit, and
+baseline metric mechanics are accepted. The real multi-team pilot remains.
