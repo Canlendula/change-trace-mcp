@@ -313,6 +313,9 @@ acceptance.
   no probe exit code/signal, and final exact-match orphan count was zero.
 - The reusable `record-codex-held` and `finalize` CLI actions are post-review
   hardening and did not run against the already-cleaned real state root.
+- `docs/evaluation/M7_HOST_RESULTS.md` records the precise sanitized manual
+  PowerShell inspection, PID-selection, forced cleanup, state removal, and
+  zero-orphan recheck transcript used before those reusable actions existed.
 
 ### Decisions or questions for coordinator
 

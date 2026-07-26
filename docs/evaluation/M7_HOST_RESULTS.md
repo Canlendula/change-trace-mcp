@@ -124,3 +124,48 @@ non-billable `--version` before a semantic session and rejects a mismatch; it
 does not alter the historical Claude version provenance above.
 Coordinator review owns the corresponding acceptance/Decision wording
 adjustment.
+
+### Actual manual Codex cleanup transcript
+
+The real evidence root had already been cleaned before the post-review
+`record-codex-held` and `finalize` actions existed. The following is the exact
+PowerShell command form used for the bounded post-archive inspection and
+manual cleanup, with the non-secret temporary absolute prefix replaced by
+`<temp>` only. The unique marker is retained verbatim.
+
+```powershell
+$stateRoot = '<temp>\change-trace-m7-real-VVN0kK'
+$m7 = Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" |
+  Where-Object { $_.CommandLine -like '*change-trace-m7-real-VVN0kK*' }
+$m7 | ForEach-Object {
+  [pscustomobject]@{
+    ProcessId = $_.ProcessId
+    ParentProcessId = $_.ParentProcessId
+    role = if ($_.CommandLine -like '*probe.mjs*') { 'probe' } else { 'server' }
+  }
+}
+```
+
+The first inspection found two exact probe/server pairs. After archive, the
+same query found one pair. The actual cleanup then reselected only that marker
+and required exactly two processes before force termination:
+
+```powershell
+$targets = Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" |
+  Where-Object { $_.CommandLine -like '*change-trace-m7-real-VVN0kK*' } |
+  Select-Object -ExpandProperty ProcessId
+if (@($targets).Count -ne 2) { throw 'unexpected_m7_process_count' }
+Stop-Process -Id $targets -Force
+node --input-type=module -e "import { cleanupStateRoot } from './scripts/smoke-real-hosts.mjs'; await cleanupStateRoot('<temp>\\change-trace-m7-real-VVN0kK');"
+if (Test-Path $stateRoot) { throw 'temporary_state_cleanup_failed' }
+$remaining = Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" |
+  Where-Object { $_.CommandLine -like '*change-trace-m7-real-VVN0kK*' }
+if ($remaining) { throw 'm7_orphan_cleanup_failed' }
+```
+
+The final command completed with `temporary_state_cleanup=passed` and
+`m7_orphan_processes=0`. The branch checkpoint was removed by the tracked
+file patch that deleted `.codex/config.toml`; its actual subsequent check was
+`if (Test-Path .codex\config.toml) { throw 'checkpoint_config_still_present' }`.
+No shell deletion command for that tracked file was executed, so none is
+claimed here.
