@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M5 complete; M6 next
+> Status: M5 complete; M6 in progress
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -144,6 +144,11 @@ The technical spike may revise this choice if Host compatibility or package star
   `30172390638` passed and its downloaded report parsed with the current
   `reportSchema`; detailed failure and replacement evidence is recorded in
   [`docs/evaluation/M5_RESULTS.md`](evaluation/M5_RESULTS.md).
+- M6 started on 2026-07-26. Decision 27 selects a strict normalized runtime
+  manifest for pre-produced evidence and keeps test execution, browser
+  management, active probing, and vendor-private report objects outside the
+  core. M6-001 will establish the Schema before collectors or converters are
+  implemented.
 
 ## 6. M0 — Project foundation
 
@@ -597,6 +602,34 @@ Add behavioral evidence without turning the project into a browser-testing platf
 - failed access is `inconclusive`, not a product failure;
 - destructive or production actions are prohibited by default.
 
+### Revised implementation strategy
+
+M6 uses a strict normalized runtime manifest rather than exposing complete
+JUnit, Playwright, CI-platform, or browser-MCP payloads as the core contract.
+Converters remain bounded and format/version-specific.
+
+The normalized boundary preserves:
+
+- producer and input-format identity;
+- test, API, browser, environment, or other runtime kind;
+- executed outcome and nullable timing;
+- non-production environment and source identity;
+- related Git change IDs and related requirement/document evidence IDs;
+- bounded summaries, artifact references, and truncation;
+- explicit missing access without converting a staging outage into a product
+  failure.
+
+Implementation order:
+
+1. strict manifest, provenance, and collection Schemas plus JSON Schema;
+2. confined explicit-manifest collection and MCP integration;
+3. review-bundle relationships/identity and final-report provenance;
+4. JUnit, Playwright, API-smoke, and staging fixtures with end-to-end exit
+   evidence.
+
+The format evidence supporting this boundary is in
+[`docs/evaluation/M6_RUNTIME_FORMAT_LANDSCAPE.md`](evaluation/M6_RUNTIME_FORMAT_LANDSCAPE.md).
+
 ### Exit criteria
 
 - runtime evidence can be linked to the requirement and change IDs;
@@ -775,11 +808,12 @@ Progress as of 2026-07-26:
 | M3 cross-Host exit gate | Complete; Codex Desktop, Claude Code, and OpenCode each pass 9 of 9 on instruction `1.4.0` |
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
+| M6 runtime evidence | In progress; Decision 27 selects the normalized pre-produced runtime manifest boundary |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
 prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 `0.0.0-dev.0` until the next preview release is explicitly published.
 
-The selected sequence has completed M5 external-document integration. The next
-construction milestone is M6 runtime and staging evidence.
+The selected sequence is M6 runtime and staging evidence. M6-001 establishes
+the strict normalized Schema before collectors, converters, or MCP changes.

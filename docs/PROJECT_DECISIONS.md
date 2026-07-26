@@ -697,3 +697,67 @@ than live vendor credentials:
 These fixtures prove the shared contract and security boundary. They are not
 claims of live vendor API compatibility; real credentialed pilots remain an
 M7 activity.
+
+## 27. M6 normalizes pre-produced runtime evidence
+
+M6 accepts pre-produced, read-only runtime results through a strict normalized
+manifest. The Change Trace core does not launch test suites, browsers, API
+probes, deployments, or arbitrary subject-repository commands as part of
+runtime evidence collection.
+
+The stable core boundary is format-neutral. Bounded converters may map JUnit
+XML, Playwright JSON or report metadata, API-smoke output, browser-MCP
+observations, and CI summaries into the manifest. The core Schema does not
+copy a complete upstream vendor report object. This keeps changes in
+Playwright reporters, JUnit dialects, and CI platform parsing rules outside
+the normalized public contract. Supporting official format evidence is
+recorded in
+[`docs/evaluation/M6_RUNTIME_FORMAT_LANDSCAPE.md`](evaluation/M6_RUNTIME_FORMAT_LANDSCAPE.md).
+
+Every available normalized runtime record carries:
+
+- a stable producer identity and declared source format;
+- a runtime kind distinguishing test runs/cases, API observations, browser
+  observations, environment metadata, and other bounded observations;
+- an explicit outcome for executed behavior;
+- source and non-production environment identity;
+- nullable start/completion time and duration;
+- related Git change IDs and related requirement/document evidence IDs;
+- a bounded summary plus bounded references to external or local artifacts;
+- explicit truncation metadata.
+
+Unavailable, inaccessible, unsupported, malformed, and truncated source
+records remain explicit missing evidence. A staging outage or unreadable
+artifact does not become a failed product observation. Conversely, a
+successfully parsed test or probe that reports a failed outcome remains
+observed runtime evidence; the Agent may evaluate it only with its linked
+requirements, changes, environment, and other evidence.
+
+Normalization assigns core evidence IDs, hashes, `observed_runtime` trust,
+redactions, and safe missing-evidence reasons. A producer cannot select its
+core trust level or inject executable configuration. Runtime evidence uses
+only `test_result`, `runtime_observation`, or `configuration` evidence types
+and cannot also claim external-document provenance.
+
+Screenshots, traces, videos, HTML reports, and raw logs are not copied into
+the review bundle or final report. The normalized record may retain bounded
+`SourceReference` entries for those artifacts. The core does not fetch those
+references or manage a browser.
+
+Production execution and destructive actions remain outside the M6 default
+contract. The initial environment vocabulary covers local, CI, staging, and
+other explicitly non-production contexts. Already-produced production
+evidence and active probing require a later security decision.
+
+M6 will proceed in bounded slices:
+
+1. normalized runtime manifest, provenance, and collection Schemas with
+   deterministic JSON Schema exports;
+2. a confined, explicit local-manifest collector and MCP tool that performs no
+   subject execution;
+3. review-bundle identity/relationship validation and final-report runtime
+   provenance;
+4. bounded JUnit/Playwright/API/staging fixtures, converter decisions, and
+   end-to-end exit evidence.
+
+The Schema remains provisional until the M8 compatibility freeze.
