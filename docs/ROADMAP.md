@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-008 accepted; M7-009 test-portability follow-up assigned
+> Status: M7 in progress; M7-001 through M7-009 accepted; real multi-team pilot evidence remains
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -240,6 +240,13 @@ The technical spike may revise this choice if Host compatibility or package star
   contacted, no real observation was created, and no Host/model, hosted
   workflow, credential, package, version, threshold, compatibility, registry,
   tag, release, or publication state changed.
+- M7-009 was accepted on 2026-07-26. The M7-007 repository-text test helper
+  now normalizes ordinary Windows CRLF checkouts to LF before running every
+  unchanged release workflow safety assertion. Coordinator validation passes
+  all 43 files at 407 tests with the two existing Windows-inapplicable POSIX
+  skips. No workflow, `.gitattributes`, Git setting, product, package,
+  dependency, public contract, external state, pilot, or release behavior
+  changed.
 
 ## 6. M0 — Project foundation
 
@@ -730,9 +737,9 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M7-001 through M7-008 are accepted. M7-009 is
-> assigned to restore line-ending-independent release-contract validation
-> before the real pilot. The two
+> Current state: in progress. M7-001 through M7-009 are accepted. The
+> repository construction and local verification slices are complete; real
+> multi-team, multi-week pilot evidence remains. The two
 > medium security findings are mitigated, clean package installation is
 > reproducible, and the three priority local Hosts pass the exact installed
 > fixture contract with Host-specific lifecycle evidence. The provider-neutral
@@ -934,7 +941,7 @@ Progress as of 2026-07-26:
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
-| M7 public beta hardening | In progress; M7-001 through M7-008 are accepted, M7-009 test portability is assigned, and the real pilot remains |
+| M7 public beta hardening | In progress; M7-001 through M7-009 are accepted and the real multi-team, multi-week pilot remains |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
@@ -944,4 +951,5 @@ prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 M7 security hardening, clean installation, real priority-Host compatibility,
 packaged provider-neutral CI examples, public extension/contribution/version
 guidance, stage-only publishing workflow preparation/dry-run, pilot kit, and
-baseline metric mechanics are accepted. The real multi-team pilot remains.
+baseline metric mechanics are accepted. Release-contract tests are
+line-ending independent. The real multi-team pilot remains.
