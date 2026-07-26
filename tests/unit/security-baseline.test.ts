@@ -483,4 +483,37 @@ describe("M7 security and privacy baseline", () => {
       ["src/git/change-scope.ts", ["node:child_process"]],
     ]);
   });
+
+  it("keeps packaged clean-install guidance pinned and separates OpenCode v1 from v2", async () => {
+    const guide = await readRepositoryFile("docs/smoke-tests/README.md");
+    expect(guide).toContain("change-trace-mcp@<VERSION>");
+    expect(guide).toContain("0.0.0-dev.1");
+    expect(guide).toContain("does not start Codex, Claude Code, or OpenCode");
+    expect(guide).toContain("v1.18.4");
+    expect(guide).toContain("mcp.servers");
+    expect(guide).not.toMatch(/change-trace-mcp@latest/u);
+
+    const codex = await readRepositoryFile("docs/smoke-tests/config/codex.toml.example");
+    expect(codex).toContain("[mcp_servers.change_trace]");
+    expect(codex).toContain("startup_timeout_sec");
+    expect(codex).toContain("tool_timeout_sec");
+    for (const toolName of toolNames) expect(codex).toContain(`\"${toolName}\"`);
+
+    const claude = JSON.parse(await readRepositoryFile("docs/smoke-tests/config/claude.mcp.json.example")) as Record<string, unknown>;
+    expect(claude).toMatchObject({ mcpServers: { "change-trace": { type: "stdio", command: "npx", args: ["-y", "change-trace-mcp@<VERSION>"] } } });
+
+    const openCodeV1 = JSON.parse(await readRepositoryFile("docs/smoke-tests/config/opencode.json.example")) as Record<string, unknown>;
+    const openCodeV2 = JSON.parse(await readRepositoryFile("docs/smoke-tests/config/opencode-v2.json.example")) as Record<string, unknown>;
+    expect(openCodeV1).toHaveProperty("mcp.change-trace.command", ["npx", "-y", "change-trace-mcp@<VERSION>"]);
+    expect(openCodeV1).not.toHaveProperty("mcp.servers");
+    expect(openCodeV1).toHaveProperty("mcp.change-trace.enabled", true);
+    expect(openCodeV1).toHaveProperty("mcp.change-trace.timeout", 10000);
+    expect(openCodeV1).not.toHaveProperty("mcp.change-trace.disabled");
+    expect(openCodeV1).not.toHaveProperty("mcp.change-trace.codemode");
+    expect(openCodeV2).toHaveProperty("mcp.servers.change-trace.command", ["npx", "-y", "change-trace-mcp@<VERSION>"]);
+    expect(openCodeV2).toHaveProperty("mcp.servers.change-trace.disabled", false);
+    expect(openCodeV2).toHaveProperty("mcp.servers.change-trace.codemode", false);
+    expect(openCodeV2).toHaveProperty("mcp.servers.change-trace.timeout", { startup: 10000, catalog: 10000, execution: 60000 });
+    expect(openCodeV2).not.toHaveProperty("mcp.servers.change-trace.enabled");
+  });
 });

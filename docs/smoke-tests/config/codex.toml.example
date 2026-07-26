@@ -1,13 +1,9 @@
 [mcp_servers.change_trace]
-command = "node"
-args = ["dist/cli.js"]
-cwd = "/absolute/path/to/change-trace-mcp"
+command = "npx"
+args = ["-y", "change-trace-mcp@<VERSION>"]
 required = true
-startup_timeout_sec = 10.0
-tool_timeout_sec = 30.0
-enabled_tools = ["get_server_info", "get_compatibility_fixture", "get_change_scope", "collect_local_evidence", "get_review_bundle", "validate_findings"]
+startup_timeout_sec = 10
+tool_timeout_sec = 60
+enabled_tools = ["collect_external_evidence", "collect_local_evidence", "collect_runtime_evidence", "get_change_scope", "get_compatibility_fixture", "get_review_bundle", "get_server_info", "validate_findings", "write_report"]
 
-# After publishing, the command can be replaced with:
-# command = "npx"
-# args = ["-y", "change-trace-mcp@<VERSION>"]
-# Remove cwd when the package no longer depends on a local checkout.
+# Set an approval policy only after reviewing the server and your project.

@@ -1,115 +1,125 @@
-# M1 Host smoke tests
+# Package installation and Host configuration preparation
 
-These checks verify that one packaged stdio MCP server initializes, advertises
-the same tool surface, and returns the same deterministic fixture in each
-target Host.
+This guide separates package-mechanics evidence from real Host compatibility.
+The M7 clean-install smoke starts the local tarball with the reference MCP
+client; it does not start Codex, Claude Code, or OpenCode, and it makes no
+compatibility claim for any Host.
 
 ## Expected fixture
 
-The Host must call `get_compatibility_fixture` with `{}` and receive this exact
-text payload:
+The reference client calls `get_compatibility_fixture` with `{}` and requires
+this exact text payload:
 
 ```json
 {"schemaVersion":"1.0.0","fixtureId":"m1-host-compatibility","ok":true,"scalar":"change-trace","values":[1,2,3],"nested":{"alpha":"A","beta":"B"}}
 ```
 
-`get_server_info` is intentionally environment-dependent and is used only for
-startup diagnostics.
+The package currently exposes these nine tools: `collect_external_evidence`,
+`collect_local_evidence`, `collect_runtime_evidence`, `get_change_scope`,
+`get_compatibility_fixture`, `get_review_bundle`, `get_server_info`,
+`validate_findings`, and `write_report`.
 
-## Reference client
+## Three launch paths
 
-From a local checkout:
+### Development checkout only
+
+Use this only while developing this checkout. It launches `dist/cli.js` from
+the repository rather than proving package installation.
 
 ```sh
 npm install
 npm run smoke:stdio
 ```
 
-The smoke client can also test another launch command:
+### Future published package, exact version only
+
+After a coordinator-authorized publish, configure an exact released version:
 
 ```sh
-node scripts/smoke-stdio.mjs npx -y change-trace-mcp@<VERSION>
+npx -y change-trace-mcp@<VERSION>
 ```
 
-The command exits non-zero unless initialization, tool discovery, and fixture
-comparison all succeed.
+Replace `<VERSION>` with an actual published version. Do not substitute the
+source version `0.0.0-dev.1`, and do not use an unpinned `latest` launch.
 
-## Codex
+### Maintainer local tarball evidence
 
-Copy the relevant block from [`config/codex.toml.example`](config/codex.toml.example)
-into the project or user `config.toml`, replace the checkout path, then start a
-fresh Codex task. Ask Codex to call `get_compatibility_fixture` once and return
-only its text payload.
-
-The current Codex configuration reference supports stdio `command`, `args`,
-`cwd`, startup/tool timeouts, and an `enabled_tools` allowlist. See the
-[official Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp).
-
-## Claude Code
-
-For a local checkout, either adapt
-[`config/claude.mcp.json.example`](config/claude.mcp.json.example) or add the
-server without editing a configuration file:
+From a checkout with dependencies installed, run the reusable clean artifact
+smoke:
 
 ```sh
-claude mcp add --transport stdio --scope local change-trace -- node /absolute/path/to/change-trace-mcp/dist/cli.js
-claude mcp list
+node scripts/smoke-clean-install.mjs
 ```
 
-In an authenticated one-shot session, restrict the allowed tool to
-`mcp__change-trace__get_compatibility_fixture` and request the expected
-fixture. The `--` separator before the executable is required. Project-scoped
-servers require workspace trust/approval. See the
-[official Claude Code MCP reference](https://code.claude.com/docs/en/mcp).
+It runs `npm pack --json` once, hashes that local tarball, installs it into a
+fresh temporary consumer using an empty user config, fresh cache, and disabled
+lifecycle scripts, then checks both the installed Node launch and an isolated
+local-tarball `npx --package <tarball> -- change-trace-mcp` launch. Its one-line
+JSON output is pre-integration package evidence. It creates no registry or
+Host state and removes its temporary files before returning.
 
-## OpenCode
+## Codex configuration preparation
 
-Set `OPENCODE_CONFIG` to the absolute path of a copy of
-[`config/opencode.json.example`](config/opencode.json.example), replace the
-checkout path, and run:
+Use the Codex desktop MCP-server UI to add a STDIO server, or add the same
+exact-version launch with the CLI:
 
 ```sh
-opencode mcp list
-opencode run "Call change-trace get_compatibility_fixture once and return only its text result."
+codex mcp add change-trace -- npx -y change-trace-mcp@<VERSION>
 ```
 
-OpenCode local MCP configuration uses a command array and supports per-server
-working directories and discovery timeouts. See the
-[official OpenCode MCP documentation](https://opencode.ai/docs/mcp-servers/).
+For TOML configuration, copy
+[`config/codex.toml.example`](config/codex.toml.example) into the relevant
+Codex configuration. Codex supports project configuration only for trusted
+projects. Restart the desktop app after a UI change or start a new task after a
+configuration change so the server is initialized again. The example sets a
+10-second startup timeout and a 60-second per-tool timeout, exposes all nine
+tools, and deliberately leaves approval policy to the operator's local policy.
 
-## GitHub Actions published-package smoke
+These instructions follow the [Codex MCP guide](https://developers.openai.com/codex/mcp/)
+and [Codex configuration reference](https://developers.openai.com/codex/config-reference/),
+accessed 2026-07-26. They are configuration preparation only.
 
-The required M1 cloud check runs
-[`m1-published-package-smoke.yml`](../../.github/workflows/m1-published-package-smoke.yml)
-on a standard `ubuntu-latest` runner. It starts the public package from a clean
-temporary directory and uses the same reference smoke client to verify MCP
-initialization, tool discovery, and the exact fixture value.
+## Claude Code configuration preparation
 
-Run it from the Actions page with **Run workflow**, or with GitHub CLI:
+For a local scope, keep every Claude option before the server name and use `--`
+before the executable:
 
-```text
-gh workflow run "M1 published package smoke"
+```sh
+claude mcp add --transport stdio --scope local change-trace -- npx -y change-trace-mcp@<VERSION>
 ```
 
-## Optional GitHub Copilot code review
+[`config/claude.mcp.json.example`](config/claude.mcp.json.example) is the
+equivalent stdio command plus argument-array form for a project `.mcp.json`.
+Claude Code distinguishes local, project, and user scopes. Project-scoped
+servers are shared through `.mcp.json` and require workspace trust/interactive
+approval before use; local and user scopes remain local-user configuration.
+No Claude Code session was started to validate this example.
 
-After a package version is published, paste the adapted contents of
-[`config/github-repository-mcp.json.example`](config/github-repository-mcp.json.example)
-into **Repository settings → Copilot → Cloud agent → Model Context Protocol
-(MCP)**, then leave MCP tools enabled for code review. Ask for a review that
-explicitly requests the compatibility fixture and inspect the linked session
-logs for the server/tool call.
+See the [official Claude Code MCP documentation](https://code.claude.com/docs/en/mcp),
+accessed 2026-07-26.
 
-GitHub's repository MCP environment supports tools only, runs local servers in
-an ephemeral cloud environment, and currently exposes MCP-backed code review as
-public preview. This paid-Host check is deferred to M4 and does not count as an
-M1 pass until a linked session log proves the tool call. See GitHub's official guides for
-[repository MCP configuration](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers)
-and [Copilot code review](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/request-a-code-review/use-code-review).
+## OpenCode configuration preparation
 
-## Recording results
+The locally installed OpenCode is **v1.18.4**. Its v1-compatible configuration
+is [`config/opencode.json.example`](config/opencode.json.example), where named
+servers are directly beneath `mcp`. Keep this file version-labeled; do not give
+the v2 structure to the installed v1 CLI.
 
-Update [`RESULTS.md`](RESULTS.md) with the Host version, operating environment,
-launch method, initialization result, fixture result, and any timeout or
-shutdown observations. A connection-only check does not count as a complete M1
-Host pass; the fixture must also match.
+Current OpenCode v2 configuration instead places named servers beneath
+`mcp.servers`; use the separate
+[`config/opencode-v2.json.example`](config/opencode-v2.json.example). Both
+examples use a local command array and an exact package-version placeholder.
+The v2 example uses `disabled: false`, separate startup/catalog/execution
+timeouts, and `codemode: false` so the nine native MCP tools remain exposed.
+JSON parsing is mechanical configuration preparation only; it does not prove a
+Host launched or called the server.
+
+See the [OpenCode v2 MCP-server documentation](https://opencode.ai/v2/docs/mcp-servers),
+accessed 2026-07-26.
+
+## Historical M1 records
+
+[`RESULTS.md`](RESULTS.md) preserves historical M1 Host observations. This M7
+guide does not replace them with a new Host pass. Any future real-Host evidence
+must use a fresh session and record the installed artifact, startup, tool
+discovery, exact fixture, timeout, and shutdown observations.

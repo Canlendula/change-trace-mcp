@@ -2,9 +2,10 @@
   "mcpServers": {
     "change-trace": {
       "type": "stdio",
-      "command": "node",
+      "command": "npx",
       "args": [
-        "/absolute/path/to/change-trace-mcp/dist/cli.js"
+        "-y",
+        "change-trace-mcp@<VERSION>"
       ]
     }
   }

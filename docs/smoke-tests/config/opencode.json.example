@@ -3,10 +3,7 @@
   "mcp": {
     "change-trace": {
       "type": "local",
-      "command": [
-        "node",
-        "/absolute/path/to/change-trace-mcp/dist/cli.js"
-      ],
+      "command": ["npx", "-y", "change-trace-mcp@<VERSION>"],
       "enabled": true,
       "timeout": 10000
     }
