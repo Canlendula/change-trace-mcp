@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M5 complete; M6 in progress
+> Status: M6 complete; M7 next
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -159,6 +159,12 @@ The technical spike may revise this choice if Host compatibility or package star
   the M1 fixture. Decision 30 fixes M6-004 as pinned offline mapping fixtures
   and a complete stdio exit proof; general converters and live staging remain
   outside the milestone claim.
+- M6 completed on 2026-07-26. The four offline profiles traverse the complete
+  built-stdio change/document/runtime/bundle/validation/report path, preserve
+  observed and unavailable provenance, and pass two coordinator full suites
+  at 32 files / 340 tests. No GitHub Actions run, dependency, version, tag,
+  publish, or release action was created. Detailed evidence is recorded in
+  [`docs/evaluation/M6_RESULTS.md`](evaluation/M6_RESULTS.md).
 
 ## 6. M0 — Project foundation
 
@@ -818,15 +824,14 @@ Progress as of 2026-07-26:
 | M3 cross-Host exit gate | Complete; Codex Desktop, Claude Code, and OpenCode each pass 9 of 9 on instruction `1.4.0` |
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
-| M6 runtime evidence | In progress; M6-001/M6-002/M6-003 accepted, with bounded converter fixtures and exit evidence remaining |
+| M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
 prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 `0.0.0-dev.0` until the next preview release is explicitly published.
 
-The selected sequence is M6 runtime and staging evidence. M6-001 established
-the strict normalized Schema, M6-002 added the confined explicit-manifest
-collector and MCP tool, and M6-003 accepted relationship validation,
-unavailable provenance, bundle identity, and final-report presentation.
-M6-004 remains the converter-fixture and end-to-end exit-evidence task.
+M6 runtime and staging evidence is complete for the pinned offline normalized
+contract. The next milestone is M7 public beta hardening: installation,
+security/failure review, extension guidance, compatibility documentation, and
+real pilot feedback.
