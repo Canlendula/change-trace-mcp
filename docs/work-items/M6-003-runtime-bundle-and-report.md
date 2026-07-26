@@ -244,29 +244,29 @@ Reading other files is allowed. Writing outside this list is not.
 
 ## Acceptance criteria
 
-- [ ] Generic missing evidence remains strict and compatible; runtime
+- [x] Generic missing evidence remains strict and compatible; runtime
       collections/bundles/reports require and preserve the assigned structured
       unavailable provenance with exact status mapping.
-- [ ] Runtime available and unavailable change/document relations reject
+- [x] Runtime available and unavailable change/document relations reject
       unknown, runtime, non-document, and bypass-path targets.
-- [ ] Candidate/missing ordering is deterministic and preserves pre-M6
+- [x] Candidate/missing ordering is deterministic and preserves pre-M6
       relative order.
-- [ ] A retained runtime item cannot reference a static document omitted by
+- [x] A retained runtime item cannot reference a static document omitted by
       bundle limits; dependent omission is reflected in truncation.
-- [ ] Conditional bundle identity changes for every assigned runtime available
+- [x] Conditional bundle identity changes for every assigned runtime available
       or missing provenance/relationship change and excludes retrieval time.
-- [ ] All legacy non-runtime bundle IDs, M3 replay hashes/scores, tool fixture,
+- [x] All legacy non-runtime bundle IDs, M3 replay hashes/scores, tool fixture,
       and report outputs remain unchanged.
-- [ ] Report JSON and Markdown distinguish observed runtime outcomes from
+- [x] Report JSON and Markdown distinguish observed runtime outcomes from
       unavailable/not-observed records and preserve all assigned bounded
       provenance without copying excerpts/artifact content.
-- [ ] Report Schemas reject dual provenance and wrong runtime
+- [x] Report Schemas reject dual provenance and wrong runtime
       type/trust/kind mapping.
-- [ ] JSON Schema exports remain deterministic and expose the new strict
+- [x] JSON Schema exports remain deterministic and expose the new strict
       variants.
-- [ ] Focused tests, type checking, two consecutive full suites, stdio smoke,
+- [x] Focused tests, type checking, two consecutive full suites, stdio smoke,
       package dry-run, base diff, and clean-worktree checks pass.
-- [ ] No converter, live access, execution, artifact read, Finding, review
+- [x] No converter, live access, execution, artifact read, Finding, review
       instruction, CI, dependency, version, governance, release, npm, or
       GitHub change occurs.
 
@@ -429,19 +429,55 @@ legacy bundle ID and all nine frozen M3 replay digests remain unchanged.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
+- Outcome: `accepted`
 - Reviewed branch head:
+  `41f1a1908ddb4662c50e248d446d313314f99fec`
 - Integration commits:
+  - `ad760b5` — runtime bundle relationships, conditional identity, report
+    provenance, and focused regression tests
+  - `08a4672` — worker handoff
 
 ### Review findings
 
-- Pending.
+- The reviewed base-to-head diff stayed inside the assigned Schema, runtime
+  normalizer, bundle, report, server-description, test, and worker-handoff
+  paths. No protected governance, package, dependency, version, release, npm,
+  GitHub, CI, converter, or live-access state changed.
+- Generic missing evidence remains strict and available from both its legacy
+  direct-module export and the package Schema barrel. Runtime collections
+  require structured unavailable provenance, enforce producer consistency,
+  and preserve the exact malformed-to-unsupported status normalization.
+- Bundle construction validates available and unavailable runtime relations
+  against the complete supplied ChangeScope and non-runtime document set.
+  Candidate ordering follows Decision 29, and a runtime item is omitted and
+  counted in truncation when an excerpt limit removes its static target.
+- Runtime-sensitive identity includes related change/document IDs and the full
+  bounded available or unavailable provenance while excluding retrieval time.
+  The conditional serialization leaves the accepted non-runtime bundle ID and
+  all nine frozen M3 replay digests unchanged.
+- Report JSON uses strict mutually exclusive static/runtime source variants.
+  Markdown distinguishes observed outcomes from unavailable/not-observed
+  records, applies the accepted containment helpers to dynamic runtime values,
+  and does not copy excerpts, selection reasons, raw artifacts, commands,
+  credentials, or logs.
+- Independent coordinator validation passed:
+  - focused Schema/collector/bundle/report/replay/stdio suite: 9 files,
+    144 tests;
+  - TypeScript check;
+  - two consecutive full suites: 30 files, 332 tests each;
+  - stdio smoke with exactly nine tools and the byte-identical M1 fixture;
+  - package dry-run with 181 files;
+  - base-diff whitespace, scope, temporary-file, and clean-worktree checks.
 
 ### Required follow-up
 
-- Pending review.
+- M6-004 must add bounded format converters and tracked end-to-end fixtures
+  for the selected JUnit, Playwright, API-smoke, and staging evidence paths,
+  then record M6 exit-gate evidence without introducing test execution or live
+  staging/browser access into the core.
 
 ### Roadmap and release impact
 
-- M6 remains in progress. This task cannot complete the milestone or authorize
-  a release.
+- M6-003 is accepted. M6 remains in progress until the converter/fixture exit
+  gate passes; this task does not authorize a version, tag, package publish, or
+  compatibility claim.

@@ -154,7 +154,9 @@ The technical spike may revise this choice if Host compatibility or package star
   execution. M6-002 is accepted: the ninth MCP tool passes the confined-file,
   redaction, normalization, stdio, and package gates at 322 tests. Decision 29
   fixes M6-003 relationship, unavailable-provenance, bundle-identity, and
-  final-report behavior.
+  final-report behavior. M6-003 is accepted: its strict runtime bundle/report
+  paths pass 332 tests while preserving all nine frozen M3 replay digests and
+  the M1 fixture.
 
 ## 6. M0 — Project foundation
 
@@ -814,7 +816,7 @@ Progress as of 2026-07-26:
 | M3 cross-Host exit gate | Complete; Codex Desktop, Claude Code, and OpenCode each pass 9 of 9 on instruction `1.4.0` |
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
-| M6 runtime evidence | In progress; M6-001/M6-002 accepted and M6-003 bundle/report contract fixed by Decisions 27–29 |
+| M6 runtime evidence | In progress; M6-001/M6-002/M6-003 accepted, with bounded converter fixtures and exit evidence remaining |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
@@ -822,6 +824,7 @@ prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 `0.0.0-dev.0` until the next preview release is explicitly published.
 
 The selected sequence is M6 runtime and staging evidence. M6-001 established
-the strict normalized Schema and M6-002 added the confined explicit-manifest
-collector and MCP tool. M6-003 now integrates relationship validation,
+the strict normalized Schema, M6-002 added the confined explicit-manifest
+collector and MCP tool, and M6-003 accepted relationship validation,
 unavailable provenance, bundle identity, and final-report presentation.
+M6-004 remains the converter-fixture and end-to-end exit-evidence task.
