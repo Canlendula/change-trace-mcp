@@ -13,6 +13,10 @@ import { findingValidationResultSchema } from "./finding-validation.js";
 import { localEvidenceCollectionSchema } from "./local-evidence.js";
 import { reportSchema } from "./report.js";
 import { reviewBundleSchema } from "./review-bundle.js";
+import {
+  runtimeEvidenceCollectionSchema,
+  runtimeEvidenceManifestSchema,
+} from "./runtime-evidence.js";
 
 export type JsonSchemaDocument = Readonly<Record<string, unknown>> & {
   readonly $id: string;
@@ -30,6 +34,8 @@ export type CoreJsonSchemas = {
   readonly externalAdapterRequest: JsonSchemaDocument;
   readonly externalAdapterResponse: JsonSchemaDocument;
   readonly externalEvidenceCollection: JsonSchemaDocument;
+  readonly runtimeEvidenceManifest: JsonSchemaDocument;
+  readonly runtimeEvidenceCollection: JsonSchemaDocument;
 };
 
 export function exportCoreJsonSchemas(): CoreJsonSchemas {
@@ -79,6 +85,14 @@ export function exportCoreJsonSchemas(): CoreJsonSchemas {
     externalEvidenceCollection: {
       $id: `urn:change-trace-mcp:schema:external-evidence-collection:${CORE_SCHEMA_VERSION}`,
       ...z.toJSONSchema(externalEvidenceCollectionSchema, options),
+    },
+    runtimeEvidenceManifest: {
+      $id: `urn:change-trace-mcp:schema:runtime-evidence-manifest:${CORE_SCHEMA_VERSION}`,
+      ...z.toJSONSchema(runtimeEvidenceManifestSchema, options),
+    },
+    runtimeEvidenceCollection: {
+      $id: `urn:change-trace-mcp:schema:runtime-evidence-collection:${CORE_SCHEMA_VERSION}`,
+      ...z.toJSONSchema(runtimeEvidenceCollectionSchema, options),
     },
   };
 }

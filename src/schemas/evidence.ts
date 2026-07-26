@@ -9,6 +9,7 @@ import {
   timestampSchema,
 } from "./common.js";
 import { externalProvenanceSchema } from "./external-provenance.js";
+import { runtimeProvenanceSchema } from "./runtime-provenance.js";
 
 export const evidenceTypeSchema = z.enum([
   "git_diff",
@@ -54,6 +55,19 @@ export const evidenceItemSchema = z
     truncation: evidenceTruncationSchema,
     redactions: z.array(redactionSchema).max(100),
     externalProvenance: externalProvenanceSchema.optional(),
+    runtimeProvenance: runtimeProvenanceSchema.optional(),
+  })
+  .superRefine((item, context) => {
+    if (
+      item.externalProvenance !== undefined &&
+      item.runtimeProvenance !== undefined
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "External and runtime provenance cannot coexist",
+        path: ["runtimeProvenance"],
+      });
+    }
   })
   .meta({
     id: `urn:change-trace-mcp:schema:evidence-item:${CORE_SCHEMA_VERSION}`,
