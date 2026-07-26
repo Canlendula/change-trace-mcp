@@ -151,7 +151,10 @@ The technical spike may revise this choice if Host compatibility or package star
   collection, core runtime identity invariants, and deterministic JSON Schema
   exports pass 282 tests. Decision 28 fixes M6-002 as a single explicit,
   repository-confined manifest reader with safe normalization and no subject
-  execution.
+  execution. M6-002 is accepted: the ninth MCP tool passes the confined-file,
+  redaction, normalization, stdio, and package gates at 322 tests. Decision 29
+  fixes M6-003 relationship, unavailable-provenance, bundle-identity, and
+  final-report behavior.
 
 ## 6. M0 — Project foundation
 
@@ -811,7 +814,7 @@ Progress as of 2026-07-26:
 | M3 cross-Host exit gate | Complete; Codex Desktop, Claude Code, and OpenCode each pass 9 of 9 on instruction `1.4.0` |
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
-| M6 runtime evidence | In progress; M6-001 contract accepted and M6-002 confined collector boundary fixed by Decisions 27–28 |
+| M6 runtime evidence | In progress; M6-001/M6-002 accepted and M6-003 bundle/report contract fixed by Decisions 27–29 |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
@@ -819,5 +822,6 @@ prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 `0.0.0-dev.0` until the next preview release is explicitly published.
 
 The selected sequence is M6 runtime and staging evidence. M6-001 established
-the strict normalized Schema; M6-002 adds the confined explicit-manifest
-collector and MCP tool without bundle/report or converter changes.
+the strict normalized Schema and M6-002 added the confined explicit-manifest
+collector and MCP tool. M6-003 now integrates relationship validation,
+unavailable provenance, bundle identity, and final-report presentation.

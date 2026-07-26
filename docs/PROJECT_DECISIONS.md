@@ -822,3 +822,61 @@ root verification and file read; it launches no tests, application code,
 browsers, API probes, deployments, converter commands, or arbitrary
 repository commands. Bundle relationships and final-report presentation
 remain reserved for M6-003.
+
+## 29. Runtime relationships and unavailable provenance survive the bundle
+
+M6-003 adds runtime collections to review-bundle construction as a bounded,
+explicit input. A bundle accepts at most 16 `RuntimeEvidenceCollection`
+objects. Existing local, external, generic additional, and Git evidence
+behavior remains compatible.
+
+Every runtime available item and runtime unavailable record must reference only
+change IDs present in the supplied `ChangeScope`. Its related evidence IDs
+must resolve to non-runtime `document` evidence supplied through local,
+external, or generic additional evidence. Runtime-to-runtime relationships,
+unknown IDs, and links to Git, commit, or configuration items are rejected.
+
+Static relationship targets are ordered before runtime candidates. The
+candidate order is:
+
+1. local evidence;
+2. external evidence;
+3. non-runtime additional evidence;
+4. available evidence from explicit runtime collections;
+5. runtime-provenance additional evidence;
+6. generated Git evidence.
+
+If a static relationship target is omitted by the bundle item or excerpt
+limits, a runtime item that depends on it is also omitted. A retained runtime
+item therefore cannot point at an absent requirement/document item. Existing
+non-runtime ordering and bundle identities remain byte-compatible.
+
+Unavailable runtime records need more provenance than the generic
+`MissingEvidence` shape can represent. M6 therefore adds a strict
+`RuntimeUnavailableProvenance` containing producer, source format, manifest
+record ID, runtime kind, non-production environment, original unavailable
+access status, related change IDs, and related requirement/document evidence
+IDs. Runtime collections require this structured missing-evidence variant.
+Generic and external missing evidence retain their existing strict shape.
+Review bundles and reports accept the tagged runtime variant in addition to
+the existing variant.
+
+The normalized status remains `not_found`, `inaccessible`, `unsupported`, or
+`truncated`; the provenance retains whether the producer originally reported
+`unsupported` or `malformed`. Status/provenance mismatches are rejected. An
+unavailable runtime record still cannot carry an execution outcome or become
+a failed behavior observation.
+
+Bundle identity conditionally includes full available runtime provenance,
+runtime related-change links, and structured runtime missing evidence. No
+runtime input means the pre-M6 bundle identity algorithm and replay hashes are
+unchanged. Collection/retrieval time remains outside identity so repeated
+collection of the same pre-produced result stays stable.
+
+Final JSON and Markdown evidence catalogs preserve bounded runtime producer,
+format, record, kind, environment, outcome, timing, artifact-reference, and
+related-evidence metadata without copying evidence excerpts or artifact
+content. Runtime missing entries preserve their unavailable provenance.
+Markdown labels observed outcomes separately from unavailable/not-observed
+records. Report Schema refinements prevent external and runtime provenance
+from coexisting.
