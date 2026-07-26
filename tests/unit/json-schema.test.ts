@@ -49,6 +49,88 @@ describe("report evidence-source JSON Schema", () => {
         excerpt: "forbidden duplicate content",
       }).success,
     ).toBe(false);
+
+    const runtimeCollectionText = JSON.stringify(
+      first.runtimeEvidenceCollection,
+    );
+    const reviewBundleText = JSON.stringify(first.reviewBundle);
+    const reportText = JSON.stringify(first.report);
+    for (const text of [
+      runtimeCollectionText,
+      reviewBundleText,
+      reportText,
+    ]) {
+      expect(text).toContain("runtimeUnavailableProvenance");
+      expect(text).toContain("accessStatus");
+      expect(text).toContain("manifestRecordId");
+      expect(text).toContain("relatedEvidenceIds");
+    }
+    expect(runtimeCollectionText).not.toContain(
+      '"missingEvidence":{"type":"array","maxItems":1000,"items":{"$ref":"#/$defs/missingEvidenceSchema"}}',
+    );
+    expect(reportText).toContain("runtimeProvenance");
+    expect(reportText).toContain("artifactReferences");
+
+    const reportDocument = first.report as unknown as {
+      $defs: Record<string, unknown>;
+    };
+    const objects: Array<Record<string, unknown>> = [];
+    const collectObjects = (value: unknown): void => {
+      if (Array.isArray(value)) {
+        value.forEach(collectObjects);
+        return;
+      }
+      if (value === null || typeof value !== "object") {
+        return;
+      }
+      const object = value as Record<string, unknown>;
+      objects.push(object);
+      Object.values(object).forEach(collectObjects);
+    };
+    const resolveLocalReference = (
+      value: unknown,
+    ): Record<string, unknown> => {
+      if (
+        value !== null &&
+        typeof value === "object" &&
+        "$ref" in value &&
+        typeof value.$ref === "string"
+      ) {
+        const key = value.$ref.replace("#/$defs/", "");
+        return reportDocument.$defs[key] as Record<string, unknown>;
+      }
+      return value as Record<string, unknown>;
+    };
+    collectObjects(first.report);
+    const runtimeSourceVariant = objects.find((object) => {
+      const required = object.required;
+      return (
+        Array.isArray(required) &&
+        required.includes("runtimeProvenance") &&
+        object.additionalProperties === false &&
+        object.properties !== null &&
+        typeof object.properties === "object" &&
+        "evidenceId" in object.properties
+      );
+    });
+    expect(runtimeSourceVariant).toBeDefined();
+    const runtimeProperties = runtimeSourceVariant?.properties as Record<
+      string,
+      unknown
+    >;
+    expect(resolveLocalReference(runtimeProperties.type)).toMatchObject({
+      enum: [
+        "test_result",
+        "runtime_observation",
+        "configuration",
+      ],
+    });
+    expect(
+      resolveLocalReference(runtimeProperties.trustLevel),
+    ).toMatchObject({ const: "observed_runtime" });
+    expect(
+      resolveLocalReference(runtimeProperties.externalProvenance),
+    ).toEqual({ not: {} });
   });
 });
 

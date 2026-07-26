@@ -3,7 +3,7 @@ import { z } from "zod";
 import { CORE_SCHEMA_VERSION } from "./common.js";
 import { evidenceItemSchema } from "./evidence.js";
 import { externalAdapterIdentitySchema } from "./external-provenance.js";
-import { missingEvidenceSchema } from "./review-bundle.js";
+import { missingEvidenceSchema } from "./missing-evidence.js";
 
 const MAX_EXTERNAL_OUTCOMES = 100;
 

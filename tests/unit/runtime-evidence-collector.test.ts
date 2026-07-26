@@ -442,6 +442,23 @@ describe("runtime manifest normalization", () => {
       "missing/3",
       "missing/4",
     ]);
+    expect(
+      result.missingEvidence.map(
+        ({ runtimeUnavailableProvenance }) =>
+          runtimeUnavailableProvenance,
+      ),
+    ).toEqual(
+      records.map((record) => ({
+        producer,
+        sourceFormat: "generic_json",
+        manifestRecordId: record.recordId,
+        kind: record.kind,
+        environment: record.environment,
+        accessStatus: record.accessStatus,
+        relatedChangeIds: record.relatedChangeIds,
+        relatedEvidenceIds: record.relatedEvidenceIds,
+      })),
+    );
     expect(result.missingEvidence[3]?.reason).toHaveLength(2_000);
     expect(JSON.stringify(result)).not.toContain("password=x");
     expect(JSON.stringify(result)).not.toContain("missing-malformed");

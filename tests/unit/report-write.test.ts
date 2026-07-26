@@ -186,6 +186,160 @@ describe("writeReport", () => {
     expect(markdown).not.toContain("api_key");
   });
 
+  it("preserves bounded runtime provenance, distinguishes unavailable observations, and contains Markdown", () => {
+    const i = makeValidInput(repoRoot, {
+      reportName: "runtime-evidence",
+      overwrite: true,
+    });
+    const producer = {
+      id: "producer:report-runtime",
+      name: "Runtime [name](https://evil.invalid/name)",
+      version: "1.0.0",
+    };
+    const environment = {
+      kind: "staging" as const,
+      name: "review *app*",
+      source: {
+        system: "deployment",
+        locator: "review-app\n# injected-heading",
+        uri: "https://staging.example.test/[environment]",
+      },
+    };
+    const artifactReference = {
+      system: "ci",
+      locator: "trace:`x` [link](https://evil.invalid/trace)",
+      uri: "https://ci.example.test/artifacts/`trace`",
+    };
+    const runtimeItem: ReviewBundle["evidenceItems"][number] = {
+      schemaVersion: CORE_SCHEMA_VERSION,
+      id: "evidence:runtime:report",
+      type: "test_result",
+      source: {
+        system: "ci",
+        locator: "runs/42/runtime.json",
+        uri: "https://ci.example.test/runs/42/runtime.json",
+      },
+      retrievedAt: "2026-07-26T12:00:00.000Z",
+      contentHash: null,
+      relatedChangeIds: ["file:src/api.ts"],
+      excerpt: "runtime-summary-secret-sentinel",
+      selectionReason: "runtime-selection-secret-sentinel",
+      trustLevel: "observed_runtime",
+      truncation: {
+        isTruncated: false,
+        originalCharacters: 31,
+        retainedCharacters: 31,
+      },
+      redactions: [],
+      runtimeProvenance: {
+        producer,
+        sourceFormat: "playwright_json",
+        manifestRecordId: "record:test:report",
+        kind: "test_case",
+        environment,
+        outcome: "failed",
+        startedAt: "2026-07-26T11:59:58.000Z",
+        completedAt: "2026-07-26T12:00:00.000Z",
+        durationMilliseconds: 2_000,
+        artifactReferences: [artifactReference],
+        relatedEvidenceIds: ["evidence:1"],
+      },
+    };
+    const runtimeMissing: ReviewBundle["missingEvidence"][number] = {
+      source: {
+        system: "browser-mcp",
+        locator: "observation:[missing](https://evil.invalid/missing)",
+        uri: null,
+      },
+      reason:
+        "Unavailable [reason](https://evil.invalid/reason), not a failed behavior.",
+      status: "unsupported",
+      runtimeUnavailableProvenance: {
+        producer,
+        sourceFormat: "browser_mcp",
+        manifestRecordId: "record:missing:report",
+        kind: "browser_observation",
+        environment,
+        accessStatus: "malformed",
+        relatedChangeIds: ["file:src/api.ts"],
+        relatedEvidenceIds: ["evidence:1"],
+      },
+    };
+    (i.bundle as ReviewBundle).evidenceItems.push(runtimeItem);
+    (i.bundle as ReviewBundle).evidenceIndex.push({
+      evidenceId: runtimeItem.id,
+      relatedChangeIds: runtimeItem.relatedChangeIds,
+    });
+    (i.bundle as ReviewBundle).missingEvidence.push(runtimeMissing);
+    const validation = { ...i.validationResult as FindingValidationResult };
+    validation.validFindings = [];
+    validation.summary = {
+      submitted: 0,
+      valid: 0,
+      rejected: 0,
+      warnings: 0,
+    };
+    i.validationResult = validation;
+
+    const result = writeReport(i);
+    const jsonText = readFileSync(result.jsonFile, "utf8");
+    const json = JSON.parse(jsonText);
+    expect(json.evidenceSources.at(-1)).toEqual({
+      evidenceId: runtimeItem.id,
+      type: runtimeItem.type,
+      source: runtimeItem.source,
+      retrievedAt: runtimeItem.retrievedAt,
+      contentHash: runtimeItem.contentHash,
+      relatedChangeIds: runtimeItem.relatedChangeIds,
+      trustLevel: runtimeItem.trustLevel,
+      redactions: runtimeItem.redactions,
+      runtimeProvenance: runtimeItem.runtimeProvenance,
+    });
+    expect(json.missingEvidence.at(-1)).toEqual(runtimeMissing);
+    expect(jsonText).not.toContain("runtime-summary-secret-sentinel");
+    expect(jsonText).not.toContain("runtime-selection-secret-sentinel");
+    expect(jsonText).not.toContain("artifactContent");
+    expect(jsonText).not.toContain("command");
+    expect(jsonText).not.toContain("credential");
+    expect(jsonText).not.toContain("logs");
+
+    const markdown = readFileSync(result.markdownFile, "utf8");
+    for (const expected of [
+      "Runtime producer",
+      "producer:report-runtime",
+      "playwright_json",
+      "record:test:report",
+      "test_case",
+      "staging",
+      "failed",
+      "2026-07-26T11:59:58.000Z",
+      "2026-07-26T12:00:00.000Z",
+      "2000",
+      "evidence:1",
+      "Runtime observation unavailable / not observed",
+      "malformed",
+      "record:missing:report",
+      "browser_observation",
+    ]) {
+      expect(markdown).toContain(expected);
+    }
+    expect(markdown).toContain(
+      "Runtime \\[name\\](https://evil.invalid/name)",
+    );
+    expect(markdown).not.toContain(
+      "Runtime [name](https://evil.invalid/name)",
+    );
+    expect(markdown).toContain(
+      "Unavailable \\[reason\\](https://evil.invalid/reason)",
+    );
+    expect(markdown).toContain(
+      "``trace:`x` [link](https://evil.invalid/trace)``",
+    );
+    expect(markdown).not.toMatch(/^# injected-heading$/mu);
+    expect(markdown).not.toContain("runtime-summary-secret-sentinel");
+    expect(markdown).not.toContain("runtime-selection-secret-sentinel");
+  });
+
   it("warnings and rejections", () => {
     const i = makeValidInput(repoRoot);
     const vr = { ...i.validationResult as FindingValidationResult };

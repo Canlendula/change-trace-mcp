@@ -321,7 +321,7 @@ export function createServer(
     {
       title: "Build a deterministic review bundle",
       description:
-        "Combine a ChangeScope, local document evidence, and optional normalized evidence into a bounded ReviewBundle with a stable evidence index, deterministic Git facts, and explicit missing-evidence records.",
+        "Combine a ChangeScope, local document evidence, and optional external or runtime evidence into a bounded ReviewBundle with validated relationships, a stable evidence index, deterministic Git facts, and explicit missing-evidence records.",
       inputSchema: buildReviewBundleInputSchema,
       outputSchema: reviewBundleSchema,
       annotations: {

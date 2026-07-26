@@ -11,7 +11,7 @@ import {
   evidenceItemSchema,
   evidenceTruncationSchema,
 } from "./evidence.js";
-import { missingEvidenceSchema } from "./review-bundle.js";
+import { runtimeMissingEvidenceSchema } from "./missing-evidence.js";
 import {
   runtimeEnvironmentSchema,
   runtimeEvidenceProducerSchema,
@@ -244,7 +244,7 @@ export const runtimeEvidenceCollectionSchema = z
       .array(runtimeEvidenceItemSchema)
       .max(MAX_RUNTIME_COLLECTION_OUTCOMES),
     missingEvidence: z
-      .array(missingEvidenceSchema)
+      .array(runtimeMissingEvidenceSchema)
       .max(MAX_RUNTIME_COLLECTION_OUTCOMES),
   })
   .superRefine(
@@ -283,6 +283,27 @@ export const runtimeEvidenceCollectionSchema = z
               "evidenceItems",
               index,
               "runtimeProvenance",
+              "producer",
+            ],
+          });
+        }
+      });
+
+      missingEvidence.forEach((missing, index) => {
+        if (
+          !producersMatch(
+            producer,
+            missing.runtimeUnavailableProvenance.producer,
+          )
+        ) {
+          context.addIssue({
+            code: "custom",
+            message:
+              "Runtime unavailable provenance must match the collection producer",
+            path: [
+              "missingEvidence",
+              index,
+              "runtimeUnavailableProvenance",
               "producer",
             ],
           });

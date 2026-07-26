@@ -7,6 +7,9 @@ import {
   evidenceItemSchema,
   exportCoreJsonSchemas,
   externalEvidenceCollectionSchema,
+  missingEvidenceSchema,
+  runtimeMissingEvidenceSchema,
+  runtimeUnavailableProvenanceSchema,
   runtimeAvailableBehavioralRecordSchema,
   runtimeAvailableEnvironmentRecordSchema,
   runtimeEvidenceCollectionSchema,
@@ -17,8 +20,14 @@ import {
   type EvidenceItem,
   type RuntimeEvidenceManifest,
   type RuntimeEvidenceItem,
+  type RuntimeMissingEvidence,
   type RuntimeProvenance,
+  type RuntimeUnavailableProvenance,
 } from "../../src/schemas/index.js";
+import {
+  missingEvidenceSchema as legacyMissingEvidenceSchema,
+  type MissingEvidence as LegacyMissingEvidence,
+} from "../../src/schemas/review-bundle.js";
 
 const hash = `sha256:${"a".repeat(64)}`;
 const timestamp = "2026-07-26T12:00:00Z";
@@ -100,6 +109,17 @@ const unavailableRecord = {
   relatedEvidenceIds: [],
   accessStatus: "inaccessible" as const,
   reason: "The staging artifact requires authorization.",
+};
+
+const runtimeUnavailableProvenance: RuntimeUnavailableProvenance = {
+  producer,
+  sourceFormat: "playwright_json",
+  manifestRecordId: unavailableRecord.recordId,
+  kind: unavailableRecord.kind,
+  environment,
+  accessStatus: unavailableRecord.accessStatus,
+  relatedChangeIds: unavailableRecord.relatedChangeIds,
+  relatedEvidenceIds: unavailableRecord.relatedEvidenceIds,
 };
 
 const manifest: RuntimeEvidenceManifest = {
@@ -548,6 +568,132 @@ describe("runtime manifest records", () => {
 });
 
 describe("runtime provenance and collection", () => {
+  it("keeps generic missing evidence strict and available from both public paths", () => {
+    const generic: LegacyMissingEvidence = {
+      source,
+      reason: "The source is unavailable.",
+      status: "inaccessible",
+    };
+    expect(missingEvidenceSchema.parse(generic)).toEqual(generic);
+    expect(legacyMissingEvidenceSchema.parse(generic)).toEqual(generic);
+    expect(
+      missingEvidenceSchema.safeParse({
+        ...generic,
+        runtimeUnavailableProvenance,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires strict unique unavailable provenance and exact status mapping", () => {
+    const mappings = [
+      ["not_found", "not_found"],
+      ["inaccessible", "inaccessible"],
+      ["unsupported", "unsupported"],
+      ["malformed", "unsupported"],
+      ["truncated", "truncated"],
+    ] as const;
+
+    for (const [accessStatus, status] of mappings) {
+      const missing: RuntimeMissingEvidence = {
+        source,
+        reason: "The runtime observation was unavailable.",
+        status,
+        runtimeUnavailableProvenance: {
+          ...runtimeUnavailableProvenance,
+          accessStatus,
+        },
+      };
+      expect(runtimeMissingEvidenceSchema.parse(missing)).toEqual(missing);
+      expect(
+        runtimeMissingEvidenceSchema.safeParse({
+          ...missing,
+          status: status === "not_found" ? "inaccessible" : "not_found",
+        }).success,
+      ).toBe(false);
+    }
+
+    for (const field of [
+      "outcome",
+      "summary",
+      "artifactReferences",
+      "command",
+      "credential",
+      "trustLevel",
+    ]) {
+      expect(
+        runtimeUnavailableProvenanceSchema.safeParse({
+          ...runtimeUnavailableProvenance,
+          [field]: field === "artifactReferences" ? [] : "forbidden",
+        }).success,
+        field,
+      ).toBe(false);
+    }
+    for (const field of ["relatedChangeIds", "relatedEvidenceIds"] as const) {
+      expect(
+        runtimeUnavailableProvenanceSchema.safeParse({
+          ...runtimeUnavailableProvenance,
+          [field]: ["duplicate:id", "duplicate:id"],
+        }).success,
+      ).toBe(false);
+      expect(
+        runtimeUnavailableProvenanceSchema.safeParse({
+          ...runtimeUnavailableProvenance,
+          [field]: Array.from(
+            { length: 1_001 },
+            (_, index) => `id:${index}`,
+          ),
+        }).success,
+      ).toBe(false);
+    }
+  });
+
+  it("requires structured unavailable provenance in runtime collections", () => {
+    const runtimeMissing: RuntimeMissingEvidence = {
+      source,
+      reason: "The runtime observation was unavailable.",
+      status: "inaccessible",
+      runtimeUnavailableProvenance,
+    };
+    expect(
+      runtimeEvidenceCollectionSchema.parse({
+        schemaVersion: CORE_SCHEMA_VERSION,
+        producer,
+        evidenceItems: [],
+        missingEvidence: [runtimeMissing],
+      }).missingEvidence,
+    ).toEqual([runtimeMissing]);
+    expect(
+      runtimeEvidenceCollectionSchema.safeParse({
+        schemaVersion: CORE_SCHEMA_VERSION,
+        producer,
+        evidenceItems: [],
+        missingEvidence: [
+          {
+            source,
+            reason: "Anonymous missing runtime data.",
+            status: "inaccessible",
+          },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
+      runtimeEvidenceCollectionSchema.safeParse({
+        schemaVersion: CORE_SCHEMA_VERSION,
+        producer,
+        evidenceItems: [],
+        missingEvidence: [
+          {
+            ...runtimeMissing,
+            runtimeUnavailableProvenance: {
+              ...runtimeUnavailableProvenance,
+              producer: { ...producer, version: "9.9.9" },
+            },
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
   it("requires runtime provenance structurally in runtime items", () => {
     expectTypeOf<RuntimeEvidenceItem["runtimeProvenance"]>().toEqualTypeOf<
       RuntimeProvenance
@@ -864,6 +1010,10 @@ describe("runtime provenance and collection", () => {
       source: { ...source, locator: `missing:${index}` },
       reason: "Unavailable",
       status: "inaccessible" as const,
+      runtimeUnavailableProvenance: {
+        ...runtimeUnavailableProvenance,
+        manifestRecordId: `record:missing:${index}`,
+      },
     }));
     expect(
       runtimeEvidenceCollectionSchema.safeParse({

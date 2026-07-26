@@ -16,11 +16,11 @@ import {
   runtimeEvidenceCollectionSchema,
   runtimeEvidenceManifestSchema,
   type CollectRuntimeEvidenceInput,
-  type MissingEvidence,
   type RuntimeEvidenceCollection,
   type RuntimeEvidenceItem,
   type RuntimeEvidenceManifest,
   type RuntimeEvidenceManifestRecord,
+  type RuntimeMissingEvidence,
 } from "../../schemas/index.js";
 import { redactCommonSecrets } from "../../security/redact.js";
 
@@ -408,6 +408,7 @@ function normalizeAvailableRecord(
 }
 
 function normalizeUnavailableRecord(
+  manifest: RuntimeEvidenceManifest,
   record: Extract<
     RuntimeEvidenceManifestRecord,
     { accessStatus: Exclude<
@@ -415,7 +416,7 @@ function normalizeUnavailableRecord(
       "available"
     > }
   >,
-): MissingEvidence {
+): RuntimeMissingEvidence {
   const redacted = redactCommonSecrets(record.reason);
   return {
     source: record.source,
@@ -424,6 +425,16 @@ function normalizeUnavailableRecord(
       record.accessStatus === "malformed"
         ? "unsupported"
         : record.accessStatus,
+    runtimeUnavailableProvenance: {
+      producer: manifest.producer,
+      sourceFormat: manifest.sourceFormat,
+      manifestRecordId: record.recordId,
+      kind: record.kind,
+      environment: record.environment,
+      accessStatus: record.accessStatus,
+      relatedChangeIds: record.relatedChangeIds,
+      relatedEvidenceIds: record.relatedEvidenceIds,
+    },
   };
 }
 
@@ -445,7 +456,7 @@ export function normalizeRuntimeEvidenceManifest(
 
   try {
     const evidenceItems: RuntimeEvidenceItem[] = [];
-    const missingEvidence: MissingEvidence[] = [];
+    const missingEvidence: RuntimeMissingEvidence[] = [];
 
     for (const record of parsed.data.records) {
       if (record.accessStatus === "available") {
@@ -453,7 +464,9 @@ export function normalizeRuntimeEvidenceManifest(
           normalizeAvailableRecord(parsed.data, record, retrievedAt),
         );
       } else {
-        missingEvidence.push(normalizeUnavailableRecord(record));
+        missingEvidence.push(
+          normalizeUnavailableRecord(parsed.data, record),
+        );
       }
     }
 

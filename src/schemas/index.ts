@@ -83,6 +83,14 @@ export {
   type LocalEvidenceCollectionError,
 } from "./local-evidence.js";
 export {
+  missingEvidenceSchema,
+  reviewMissingEvidenceSchema,
+  runtimeMissingEvidenceSchema,
+  type MissingEvidence,
+  type ReviewMissingEvidence,
+  type RuntimeMissingEvidence,
+} from "./missing-evidence.js";
+export {
   exportCoreJsonSchemas,
   type CoreJsonSchemas,
   type JsonSchemaDocument,
@@ -117,7 +125,6 @@ export {
 export {
   reviewBundleSchema,
   type DeterministicFact,
-  type MissingEvidence,
   type ReviewBundle,
 } from "./review-bundle.js";
 export {
@@ -146,6 +153,7 @@ export {
   runtimeOutcomeSchema,
   runtimeProvenanceSchema,
   runtimeSourceFormatSchema,
+  runtimeUnavailableProvenanceSchema,
   type RuntimeEnvironment,
   type RuntimeEnvironmentKind,
   type RuntimeEvidenceProducer,
@@ -153,6 +161,7 @@ export {
   type RuntimeOutcome,
   type RuntimeProvenance,
   type RuntimeSourceFormat,
+  type RuntimeUnavailableProvenance,
 } from "./runtime-provenance.js";
 export {
   collectRuntimeEvidenceInputSchema,

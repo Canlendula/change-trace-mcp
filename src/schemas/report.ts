@@ -21,6 +21,8 @@ import {
 } from "./finding.js";
 import { reviewBundleSchema } from "./review-bundle.js";
 import { findingValidationResultSchema } from "./finding-validation.js";
+import { reviewMissingEvidenceSchema } from "./missing-evidence.js";
+import { runtimeProvenanceSchema } from "./runtime-provenance.js";
 
 export const reportWarningSchema = z.strictObject({
   code: z.string().min(1).max(100),
@@ -81,13 +83,22 @@ export const reportRejectedFindingSchema = z.strictObject({
   issues: z.array(reportValidationIssueSchema).min(1).max(100),
 });
 
-export const reportMissingEvidenceSchema = z.strictObject({
-  source: sourceReferenceSchema,
-  reason: z.string().min(1).max(2_000),
-  status: z.enum(["not_found", "inaccessible", "unsupported", "truncated"]),
-});
+export const reportMissingEvidenceSchema =
+  reviewMissingEvidenceSchema;
 
-export const reportEvidenceSourceSchema = z.strictObject({
+function expectedRuntimeEvidenceType(
+  kind: z.infer<typeof runtimeProvenanceSchema>["kind"],
+): "test_result" | "runtime_observation" | "configuration" {
+  if (kind === "test_run" || kind === "test_case") {
+    return "test_result";
+  }
+  if (kind === "environment_metadata") {
+    return "configuration";
+  }
+  return "runtime_observation";
+}
+
+const reportEvidenceSourceBaseShape = {
   evidenceId: stableIdSchema,
   type: evidenceTypeSchema,
   source: sourceReferenceSchema,
@@ -96,8 +107,44 @@ export const reportEvidenceSourceSchema = z.strictObject({
   relatedChangeIds: z.array(stableIdSchema).max(1_000),
   trustLevel: trustLevelSchema,
   redactions: z.array(redactionSchema).max(100),
+};
+
+const reportStaticEvidenceSourceSchema = z.strictObject({
+  ...reportEvidenceSourceBaseShape,
   externalProvenance: externalProvenanceSchema.optional(),
+  runtimeProvenance: z.never().optional(),
 });
+
+const reportRuntimeEvidenceSourceSchema = z
+  .strictObject({
+    ...reportEvidenceSourceBaseShape,
+    type: z.enum([
+      "test_result",
+      "runtime_observation",
+      "configuration",
+    ]),
+    trustLevel: z.literal("observed_runtime"),
+    externalProvenance: z.never().optional(),
+    runtimeProvenance: runtimeProvenanceSchema,
+  })
+  .superRefine((source, context) => {
+    if (
+      source.type !==
+      expectedRuntimeEvidenceType(source.runtimeProvenance.kind)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Evidence type must match its runtime provenance kind",
+        path: ["type"],
+      });
+    }
+  });
+
+export const reportEvidenceSourceSchema = z.union([
+  reportStaticEvidenceSourceSchema,
+  reportRuntimeEvidenceSourceSchema,
+]);
 
 export const reportSchema = z
   .strictObject({

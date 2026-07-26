@@ -72,6 +72,13 @@ describe("stdio MCP server", () => {
         idempotentHint: false,
         openWorldHint: false,
       });
+      const bundleTool = tools.find(
+        (t) => t.name === "get_review_bundle",
+      );
+      expect(bundleTool?.description).toContain("runtime");
+      expect(
+        bundleTool?.inputSchema.properties,
+      ).toHaveProperty("runtimeEvidenceCollections");
 
       const first = await client.callTool({
         name: "get_compatibility_fixture",

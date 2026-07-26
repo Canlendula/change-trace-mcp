@@ -3,22 +3,18 @@ import { z } from "zod";
 import { changeScopeSchema } from "./change-scope.js";
 import {
   CORE_SCHEMA_VERSION,
-  sourceReferenceSchema,
   stableIdSchema,
   timestampSchema,
 } from "./common.js";
 import { evidenceItemSchema } from "./evidence.js";
+import {
+  reviewMissingEvidenceSchema,
+} from "./missing-evidence.js";
 
 export const deterministicFactSchema = z.strictObject({
   id: stableIdSchema,
   statement: z.string().min(1).max(4_000),
   evidenceIds: z.array(stableIdSchema).min(1).max(1_000),
-});
-
-export const missingEvidenceSchema = z.strictObject({
-  source: sourceReferenceSchema,
-  reason: z.string().min(1).max(2_000),
-  status: z.enum(["not_found", "inaccessible", "unsupported", "truncated"]),
 });
 
 export const reviewBundleSchema = z
@@ -37,7 +33,9 @@ export const reviewBundleSchema = z
       )
       .max(10_000),
     deterministicFacts: z.array(deterministicFactSchema).max(10_000),
-    missingEvidence: z.array(missingEvidenceSchema).max(10_000),
+    missingEvidence: z
+      .array(reviewMissingEvidenceSchema)
+      .max(10_000),
     limits: z.strictObject({
       maxEvidenceItems: z.number().int().positive(),
       maxTotalExcerptCharacters: z.number().int().positive(),
@@ -55,5 +53,9 @@ export const reviewBundleSchema = z
   });
 
 export type DeterministicFact = z.infer<typeof deterministicFactSchema>;
-export type MissingEvidence = z.infer<typeof missingEvidenceSchema>;
 export type ReviewBundle = z.infer<typeof reviewBundleSchema>;
+
+export {
+  missingEvidenceSchema,
+  type MissingEvidence,
+} from "./missing-evidence.js";

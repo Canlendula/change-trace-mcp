@@ -10,13 +10,15 @@ import {
   externalEvidenceCollectionSchema,
   localEvidenceCollectionSchema,
   reviewBundleSchema,
+  runtimeEvidenceCollectionSchema,
   type ChangeScope,
   type DeterministicFact,
   type EvidenceItem,
   type ExternalEvidenceCollection,
   type LocalEvidenceCollection,
-  type MissingEvidence,
+  type ReviewMissingEvidence,
   type ReviewBundle,
+  type RuntimeEvidenceCollection,
 } from "../../schemas/index.js";
 
 export const DEFAULT_REVIEW_BUNDLE_LIMITS = {
@@ -34,6 +36,10 @@ export const buildReviewBundleInputSchema = z.strictObject({
   localEvidence: localEvidenceCollectionSchema,
   externalEvidenceCollections: z
     .array(externalEvidenceCollectionSchema)
+    .max(16)
+    .default([]),
+  runtimeEvidenceCollections: z
+    .array(runtimeEvidenceCollectionSchema)
     .max(16)
     .default([]),
   additionalEvidenceItems: z.array(evidenceItemSchema).max(10_000).default([]),
@@ -173,8 +179,9 @@ function missingEvidenceFromInputs(
   scope: ChangeScope,
   localEvidence: LocalEvidenceCollection,
   externalEvidenceCollections: readonly ExternalEvidenceCollection[],
-): MissingEvidence[] {
-  const missing: MissingEvidence[] = [];
+  runtimeEvidenceCollections: readonly RuntimeEvidenceCollection[],
+): ReviewMissingEvidence[] {
+  const missing: ReviewMissingEvidence[] = [];
 
   for (const error of scope.errors) {
     missing.push({
@@ -244,6 +251,9 @@ function missingEvidenceFromInputs(
   for (const collection of externalEvidenceCollections) {
     missing.push(...collection.missingEvidence);
   }
+  for (const collection of runtimeEvidenceCollections) {
+    missing.push(...collection.missingEvidence);
+  }
 
   return missing;
 }
@@ -282,7 +292,16 @@ function truncateExcerpt(item: EvidenceItem, maximumCharacters: number): {
 function bundleId(
   scope: ChangeScope,
   evidenceItems: readonly EvidenceItem[],
+  missingEvidence: readonly ReviewMissingEvidence[],
 ): string {
+  const runtimeMissingEvidence = missingEvidence.filter(
+    (
+      missing,
+    ): missing is Extract<
+      ReviewMissingEvidence,
+      { runtimeUnavailableProvenance: unknown }
+    > => "runtimeUnavailableProvenance" in missing,
+  );
   const identity = JSON.stringify({
     schemaVersion: CORE_SCHEMA_VERSION,
     resolvedBase: scope.resolvedBase,
@@ -295,7 +314,16 @@ function bundleId(
       ...(item.externalProvenance === undefined
         ? {}
         : { externalProvenance: item.externalProvenance }),
+      ...(item.runtimeProvenance === undefined
+        ? {}
+        : {
+            relatedChangeIds: item.relatedChangeIds,
+            runtimeProvenance: item.runtimeProvenance,
+          }),
     })),
+    ...(runtimeMissingEvidence.length === 0
+      ? {}
+      : { runtimeMissingEvidence }),
   });
   return `bundle:${sha256(identity).slice(0, 32)}`;
 }
@@ -332,13 +360,94 @@ export function buildReviewBundle(
     }
   }
 
+  const nonRuntimeAdditionalEvidence =
+    input.additionalEvidenceItems.filter(
+      ({ runtimeProvenance }) => runtimeProvenance === undefined,
+    );
+  const runtimeAdditionalEvidence =
+    input.additionalEvidenceItems.filter(
+      ({ runtimeProvenance }) => runtimeProvenance !== undefined,
+    );
+  const staticDocumentIds = new Set(
+    [
+      ...input.localEvidence.evidenceItems,
+      ...input.externalEvidenceCollections.flatMap(
+        ({ evidenceItems }) => evidenceItems,
+      ),
+      ...nonRuntimeAdditionalEvidence,
+    ]
+      .filter(
+        (item) =>
+          item.type === "document" &&
+          item.runtimeProvenance === undefined,
+      )
+      .map(({ id }) => id),
+  );
+
+  const validateRuntimeRelationship = (
+    runtimeRelatedChangeIds: readonly string[],
+    runtimeRelatedEvidenceIds: readonly string[],
+  ): void => {
+    if (
+      runtimeRelatedChangeIds.some(
+        (relatedChangeId) =>
+          !relatedChangeIds.has(relatedChangeId),
+      ) ||
+      runtimeRelatedEvidenceIds.some(
+        (relatedEvidenceId) =>
+          !staticDocumentIds.has(relatedEvidenceId),
+      )
+    ) {
+      throw new Error(
+        "Runtime evidence relationship targets must be supplied change IDs and non-runtime document evidence IDs.",
+      );
+    }
+  };
+
+  for (const collection of input.runtimeEvidenceCollections) {
+    for (const item of collection.evidenceItems) {
+      validateRuntimeRelationship(
+        item.relatedChangeIds,
+        item.runtimeProvenance.relatedEvidenceIds,
+      );
+    }
+    for (const missing of collection.missingEvidence) {
+      validateRuntimeRelationship(
+        missing.runtimeUnavailableProvenance.relatedChangeIds,
+        missing.runtimeUnavailableProvenance.relatedEvidenceIds,
+      );
+    }
+  }
+  for (const item of runtimeAdditionalEvidence) {
+    if (item.runtimeProvenance === undefined) {
+      continue;
+    }
+    validateRuntimeRelationship(
+      item.relatedChangeIds,
+      item.runtimeProvenance.relatedEvidenceIds,
+    );
+  }
+
   const createdAt = (options.now?.() ?? new Date()).toISOString();
   const candidates: EvidenceCandidate[] = [
     ...input.localEvidence.evidenceItems.map((item) => ({ item, fact: null })),
     ...input.externalEvidenceCollections.flatMap((collection) =>
       collection.evidenceItems.map((item) => ({ item, fact: null })),
     ),
-    ...input.additionalEvidenceItems.map((item) => ({ item, fact: null })),
+    ...nonRuntimeAdditionalEvidence.map((item) => ({
+      item,
+      fact: null,
+    })),
+    ...input.runtimeEvidenceCollections.flatMap((collection) =>
+      collection.evidenceItems.map((item) => ({
+        item,
+        fact: null,
+      })),
+    ),
+    ...runtimeAdditionalEvidence.map((item) => ({
+      item,
+      fact: null,
+    })),
     ...createGitEvidence(input.changeScope, createdAt),
   ];
   const uniqueCandidates: EvidenceCandidate[] = [];
@@ -360,6 +469,7 @@ export function buildReviewBundle(
   const deterministicFacts: DeterministicFact[] = [];
   let remainingCharacters = input.maxTotalExcerptCharacters;
   let omittedExcerptCharacters = 0;
+  const retainedEvidenceIds = new Set<string>();
 
   for (const candidate of uniqueCandidates) {
     if (evidenceItems.length >= input.maxEvidenceItems) {
@@ -370,9 +480,20 @@ export function buildReviewBundle(
       omittedExcerptCharacters += candidate.item.excerpt.length;
       continue;
     }
+    if (
+      candidate.item.runtimeProvenance !== undefined &&
+      candidate.item.runtimeProvenance.relatedEvidenceIds.some(
+        (relatedEvidenceId) =>
+          !retainedEvidenceIds.has(relatedEvidenceId),
+      )
+    ) {
+      omittedExcerptCharacters += candidate.item.excerpt.length;
+      continue;
+    }
 
     const bounded = truncateExcerpt(candidate.item, remainingCharacters);
     evidenceItems.push(bounded.item);
+    retainedEvidenceIds.add(bounded.item.id);
     remainingCharacters -= bounded.item.excerpt.length;
     omittedExcerptCharacters += bounded.omittedCharacters;
     if (candidate.fact !== null) {
@@ -385,13 +506,14 @@ export function buildReviewBundle(
     input.changeScope,
     input.localEvidence,
     input.externalEvidenceCollections,
+    input.runtimeEvidenceCollections,
   );
   const missingEvidence = allMissingEvidence.slice(0, 10_000);
   const omittedMissingEvidence =
     allMissingEvidence.length - missingEvidence.length;
   const result: ReviewBundle = {
     schemaVersion: CORE_SCHEMA_VERSION,
-    id: bundleId(input.changeScope, evidenceItems),
+    id: bundleId(input.changeScope, evidenceItems, missingEvidence),
     createdAt,
     changeScope: input.changeScope,
     evidenceItems,

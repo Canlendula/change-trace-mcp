@@ -10,6 +10,7 @@ const MAX_PRODUCER_IDENTITY_CHARACTERS = 160;
 const MAX_ENVIRONMENT_NAME_CHARACTERS = 200;
 const MAX_RUNTIME_ARTIFACT_REFERENCES = 100;
 const MAX_RELATED_EVIDENCE_IDS = 1_000;
+const MAX_RELATED_CHANGE_IDS = 1_000;
 
 const safeDurationSchema = z
   .number()
@@ -128,6 +129,50 @@ export const runtimeProvenanceSchema = z
     }
   });
 
+const runtimeUnavailableAccessStatusSchema = z.enum([
+  "not_found",
+  "inaccessible",
+  "unsupported",
+  "malformed",
+  "truncated",
+]);
+
+export const runtimeUnavailableProvenanceSchema = z
+  .strictObject({
+    producer: runtimeEvidenceProducerSchema,
+    sourceFormat: runtimeSourceFormatSchema,
+    manifestRecordId: stableIdSchema,
+    kind: runtimeKindSchema,
+    environment: runtimeEnvironmentSchema,
+    accessStatus: runtimeUnavailableAccessStatusSchema,
+    relatedChangeIds: z
+      .array(stableIdSchema)
+      .max(MAX_RELATED_CHANGE_IDS),
+    relatedEvidenceIds: z
+      .array(stableIdSchema)
+      .max(MAX_RELATED_EVIDENCE_IDS),
+  })
+  .superRefine((provenance, context) => {
+    for (const field of [
+      "relatedChangeIds",
+      "relatedEvidenceIds",
+    ] as const) {
+      if (
+        new Set(provenance[field]).size !==
+        provenance[field].length
+      ) {
+        context.addIssue({
+          code: "custom",
+          message:
+            field === "relatedChangeIds"
+              ? "Related change IDs must be unique"
+              : "Related evidence IDs must be unique",
+          path: [field],
+        });
+      }
+    }
+  });
+
 export type RuntimeEvidenceProducer = z.infer<
   typeof runtimeEvidenceProducerSchema
 >;
@@ -139,3 +184,6 @@ export type RuntimeEnvironmentKind = z.infer<
 >;
 export type RuntimeEnvironment = z.infer<typeof runtimeEnvironmentSchema>;
 export type RuntimeProvenance = z.infer<typeof runtimeProvenanceSchema>;
+export type RuntimeUnavailableProvenance = z.infer<
+  typeof runtimeUnavailableProvenanceSchema
+>;

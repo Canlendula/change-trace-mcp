@@ -4,6 +4,8 @@ import {
   CORE_SCHEMA_VERSION,
   exportCoreJsonSchemas,
   reportSchema,
+  reportEvidenceSourceSchema,
+  reportMissingEvidenceSchema,
   reportFindingConfirmedSchema,
   reportFindingSuspectedSchema,
   reportFindingInconclusiveSchema,
@@ -268,6 +270,105 @@ describe("reportSchema", () => {
           ...validReport.evidenceSources[0],
           evidenceId: `evidence:${index}`,
         })),
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts strict runtime source and missing variants while rejecting provenance bypasses", () => {
+    const runtimeProvenance = {
+      producer: {
+        id: "producer:report-runtime",
+        name: "Report runtime fixture",
+        version: "1.0.0",
+      },
+      sourceFormat: "generic_json" as const,
+      manifestRecordId: "record:test:report",
+      kind: "test_case" as const,
+      environment: {
+        kind: "staging" as const,
+        name: "review-app",
+        source: {
+          system: "deployment",
+          locator: "review-app",
+          uri: "https://staging.example.test",
+        },
+      },
+      outcome: "passed" as const,
+      startedAt: null,
+      completedAt: null,
+      durationMilliseconds: 25,
+      artifactReferences: [],
+      relatedEvidenceIds: ["evidence:requirement:report"],
+    };
+    const runtimeSource = {
+      evidenceId: "evidence:runtime:report",
+      type: "test_result" as const,
+      source: {
+        system: "ci",
+        locator: "runs/42/runtime.json",
+        uri: null,
+      },
+      retrievedAt: "2026-07-26T12:00:00.000Z",
+      contentHash: null,
+      relatedChangeIds: ["file:src/api.ts"],
+      trustLevel: "observed_runtime" as const,
+      redactions: [],
+      runtimeProvenance,
+    };
+    expect(reportEvidenceSourceSchema.parse(runtimeSource)).toEqual(
+      runtimeSource,
+    );
+    for (const invalid of [
+      { ...runtimeSource, type: "document" },
+      { ...runtimeSource, trustLevel: "trusted_repository" },
+      {
+        ...runtimeSource,
+        externalProvenance: {
+          adapter: {
+            id: "adapter:forbidden",
+            name: "Forbidden",
+            version: "1.0.0",
+          },
+          sourceType: "document",
+          title: "Forbidden",
+          sourceUpdatedAt: null,
+        },
+      },
+      {
+        ...runtimeSource,
+        runtimeProvenance: {
+          ...runtimeProvenance,
+          kind: "api_observation",
+        },
+      },
+    ]) {
+      expect(reportEvidenceSourceSchema.safeParse(invalid).success).toBe(
+        false,
+      );
+    }
+
+    const runtimeMissing = {
+      source: runtimeSource.source,
+      reason: "The observation was unavailable.",
+      status: "unsupported" as const,
+      runtimeUnavailableProvenance: {
+        producer: runtimeProvenance.producer,
+        sourceFormat: runtimeProvenance.sourceFormat,
+        manifestRecordId: "record:missing:report",
+        kind: "browser_observation" as const,
+        environment: runtimeProvenance.environment,
+        accessStatus: "malformed" as const,
+        relatedChangeIds: runtimeSource.relatedChangeIds,
+        relatedEvidenceIds: runtimeProvenance.relatedEvidenceIds,
+      },
+    };
+    expect(reportMissingEvidenceSchema.parse(runtimeMissing)).toEqual(
+      runtimeMissing,
+    );
+    expect(
+      reportMissingEvidenceSchema.safeParse({
+        ...runtimeMissing,
+        status: "inaccessible",
       }).success,
     ).toBe(false);
   });

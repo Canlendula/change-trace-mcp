@@ -20,6 +20,7 @@ import {
 import {
   CORE_SCHEMA_VERSION,
   DEFAULT_MAX_REPORT_SIZE_BYTES,
+  reportEvidenceSourceSchema,
   reportSchema,
   writeReportInputSchema,
   writeReportOutputSchema,
@@ -98,20 +99,35 @@ function buildReport(input: WriteReportInput): Report {
     reviewMeta: { reviewer: input.reviewMeta.reviewer, toolVersion: input.reviewMeta.toolVersion, notes: input.reviewMeta.notes, declaredLimitations: input.reviewMeta.declaredLimitations },
     findings: { confirmed: v.validFindings.filter((f) => f.status === "confirmed").map(toF) as Report["findings"]["confirmed"], suspected: v.validFindings.filter((f) => f.status === "suspected").map(toF) as Report["findings"]["suspected"], inconclusive: v.validFindings.filter((f) => f.status === "inconclusive").map(toF) as Report["findings"]["inconclusive"] },
     rejectedFindings: v.rejectedFindings.map((rf) => ({ index: rf.index, findingId: rf.findingId, issues: rf.issues.map((i) => ({ code: i.code, path: i.path, message: i.message.slice(0, 2_000) })) })),
-    missingEvidence: b.missingEvidence.map((me) => ({ source: me.source, reason: me.reason, status: me.status })),
-    evidenceSources: b.evidenceItems.map((item) => ({
-      evidenceId: item.id,
-      type: item.type,
-      source: item.source,
-      retrievedAt: item.retrievedAt,
-      contentHash: item.contentHash,
-      relatedChangeIds: item.relatedChangeIds,
-      trustLevel: item.trustLevel,
-      redactions: item.redactions,
-      ...(item.externalProvenance === undefined
-        ? {}
-        : { externalProvenance: item.externalProvenance }),
+    missingEvidence: b.missingEvidence.map((me) => ({
+      source: me.source,
+      reason: me.reason,
+      status: me.status,
+      ...("runtimeUnavailableProvenance" in me
+        ? {
+            runtimeUnavailableProvenance:
+              me.runtimeUnavailableProvenance,
+          }
+        : {}),
     })),
+    evidenceSources: b.evidenceItems.map((item) =>
+      reportEvidenceSourceSchema.parse({
+        evidenceId: item.id,
+        type: item.type,
+        source: item.source,
+        retrievedAt: item.retrievedAt,
+        contentHash: item.contentHash,
+        relatedChangeIds: item.relatedChangeIds,
+        trustLevel: item.trustLevel,
+        redactions: item.redactions,
+        ...(item.externalProvenance === undefined
+          ? {}
+          : { externalProvenance: item.externalProvenance }),
+        ...(item.runtimeProvenance === undefined
+          ? {}
+          : { runtimeProvenance: item.runtimeProvenance }),
+      }),
+    ),
     evidenceCoverage: { totalEvidenceItems: b.evidenceItems.length, referencedEvidenceIds: [...ref].sort(), unreferencedEvidenceIds: unref.sort() },
     validationSummary: { submitted: v.summary.submitted, valid: v.summary.valid, rejected: v.summary.rejected, warnings: v.summary.warnings },
     bundleLimits: { maxEvidenceItems: b.limits.maxEvidenceItems, maxTotalExcerptCharacters: b.limits.maxTotalExcerptCharacters },
@@ -202,7 +218,10 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
           );
         }
       }
-      if (source.externalProvenance !== undefined) {
+      if (
+        "externalProvenance" in source &&
+        source.externalProvenance !== undefined
+      ) {
         const provenance = source.externalProvenance;
         L.push(
           `- **Adapter:** ${safeLit(provenance.adapter.id)} / ${inlineNoNewlines(provenance.adapter.name)} / ${safeLit(provenance.adapter.version)}`,
@@ -217,10 +236,108 @@ function renderMarkdown(report: Report, bundle: ReviewBundle): string {
           `- **Source updated:** ${safeLit(provenance.sourceUpdatedAt ?? "null")}`,
         );
       }
+      if (source.runtimeProvenance !== undefined) {
+        const provenance = source.runtimeProvenance;
+        L.push(
+          `- **Runtime producer:** ${safeLit(provenance.producer.id)} / ${inlineNoNewlines(provenance.producer.name)} / ${safeLit(provenance.producer.version)}`,
+        );
+        L.push(
+          `- **Runtime source format:** ${safeLit(provenance.sourceFormat)}`,
+        );
+        L.push(
+          `- **Runtime manifest record:** ${safeLit(provenance.manifestRecordId)}`,
+        );
+        L.push(
+          `- **Runtime kind:** ${safeLit(provenance.kind)}`,
+        );
+        L.push(
+          `- **Runtime environment:** ${safeLit(provenance.environment.kind)} / ${provenance.environment.name === null ? "null" : inlineNoNewlines(provenance.environment.name)}`,
+        );
+        L.push(
+          `- **Runtime environment source:** ${safeLit(provenance.environment.source.system)} / ${safeLit(provenance.environment.source.locator)} / ${safeLit(provenance.environment.source.uri ?? "null")}`,
+        );
+        L.push(
+          `- **Runtime outcome:** ${safeLit(provenance.outcome ?? "null")}`,
+        );
+        L.push(
+          `- **Runtime started:** ${safeLit(provenance.startedAt ?? "null")}`,
+        );
+        L.push(
+          `- **Runtime completed:** ${safeLit(provenance.completedAt ?? "null")}`,
+        );
+        L.push(
+          `- **Runtime duration milliseconds:** ${safeLit(provenance.durationMilliseconds === null ? "null" : String(provenance.durationMilliseconds))}`,
+        );
+        L.push(
+          `- **Related requirement/document evidence:** ${
+            provenance.relatedEvidenceIds.length === 0
+              ? "none"
+              : provenance.relatedEvidenceIds
+                  .map((id) => safeLit(id))
+                  .join(", ")
+          }`,
+        );
+        if (provenance.artifactReferences.length === 0) {
+          L.push("- **Runtime artifact references:** none");
+        } else {
+          L.push("- **Runtime artifact references:**");
+          for (const artifact of provenance.artifactReferences) {
+            L.push(
+              `  - ${safeLit(artifact.system)}: ${safeLit(artifact.locator)} / ${safeLit(artifact.uri ?? "null")}`,
+            );
+          }
+        }
+      }
       L.push("");
     }
   }
-  if (report.missingEvidence.length > 0) { L.push("## Missing Evidence", ""); for (const me of report.missingEvidence) L.push(`- **${safeLit(me.status)}** ${safeLit(me.source.system + ":" + me.source.locator)}${me.source.uri === null ? "" : ` (URI: ${safeLit(me.source.uri)})`}: ${safeInline(me.reason)}`); L.push(""); }
+  if (report.missingEvidence.length > 0) {
+    L.push("## Missing Evidence", "");
+    for (const me of report.missingEvidence) {
+      if (!("runtimeUnavailableProvenance" in me)) {
+        L.push(`- **${safeLit(me.status)}** ${safeLit(me.source.system + ":" + me.source.locator)}${me.source.uri === null ? "" : ` (URI: ${safeLit(me.source.uri)})`}: ${safeInline(me.reason)}`);
+        continue;
+      }
+      const provenance = me.runtimeUnavailableProvenance;
+      L.push(
+        `- **Runtime observation unavailable / not observed (${safeLit(me.status)})** ${safeLit(me.source.system + ":" + me.source.locator)}${me.source.uri === null ? "" : ` (URI: ${safeLit(me.source.uri)})`}: ${safeInline(me.reason)}`,
+      );
+      L.push(
+        `  - **Original access status:** ${safeLit(provenance.accessStatus)}`,
+      );
+      L.push(
+        `  - **Producer:** ${safeLit(provenance.producer.id)} / ${inlineNoNewlines(provenance.producer.name)} / ${safeLit(provenance.producer.version)}`,
+      );
+      L.push(
+        `  - **Source format / record / kind:** ${safeLit(provenance.sourceFormat)} / ${safeLit(provenance.manifestRecordId)} / ${safeLit(provenance.kind)}`,
+      );
+      L.push(
+        `  - **Environment:** ${safeLit(provenance.environment.kind)} / ${provenance.environment.name === null ? "null" : inlineNoNewlines(provenance.environment.name)}`,
+      );
+      L.push(
+        `  - **Environment source:** ${safeLit(provenance.environment.source.system)} / ${safeLit(provenance.environment.source.locator)} / ${safeLit(provenance.environment.source.uri ?? "null")}`,
+      );
+      L.push(
+        `  - **Related changes:** ${
+          provenance.relatedChangeIds.length === 0
+            ? "none"
+            : provenance.relatedChangeIds
+                .map((id) => safeLit(id))
+                .join(", ")
+        }`,
+      );
+      L.push(
+        `  - **Related requirement/document evidence:** ${
+          provenance.relatedEvidenceIds.length === 0
+            ? "none"
+            : provenance.relatedEvidenceIds
+                .map((id) => safeLit(id))
+                .join(", ")
+        }`,
+      );
+    }
+    L.push("");
+  }
   if (report.warnings.length > 0) { L.push("## Global Warnings", ""); for (const w of report.warnings) L.push(`- **${safeLit(w.code)}** ${w.findingId ? safeLit(w.findingId) + ": " : ""}${safeInline(w.message)}`); L.push(""); }
   const section = (title: string, findings: ReportFinding[]) => {
     if (findings.length === 0) return;
