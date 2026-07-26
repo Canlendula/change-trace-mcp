@@ -4,29 +4,55 @@
 # those platforms or their native Agents.
 set -eu
 
-# The platform must provide these values from protected configuration. The
-# package version is deliberately exact; do not substitute a floating tag.
-: "${CHANGE_TRACE_TOOLING_ROOT:?protected trusted tooling root required}"
-: "${CHANGE_TRACE_TOOLING_REF:?immutable trusted tooling commit required}"
+# The platform must provide these values from protected configuration.
+# CHANGE_TRACE_TOOLING_ROOT is a pre-created, CI-owned package-install root;
+# it is separate from the subject checkout and never created from subject code.
+: "${CHANGE_TRACE_TOOLING_ROOT:?CI-owned trusted package root required}"
+: "${CHANGE_TRACE_PACKAGE_VERSION:?protected exact published package version required}"
 : "${CHANGE_TRACE_SUBJECT_ROOT:?separate read-only subject root required}"
 : "${CHANGE_TRACE_HOST_COMMAND:?explicit JSON argv required}"
 : "${CHANGE_TRACE_BASE_REVISION:?safe base revision required}"
 : "${CHANGE_TRACE_HEAD_REVISION:?safe head revision required}"
 : "${CHANGE_TRACE_RUN_ATTEMPT:?positive attempt number required}"
-CHANGE_TRACE_PACKAGE_VERSION='0.0.0-dev.1'
 
-# Provision this directory from an immutable trusted tooling commit before this
-# script. Do not create it from subject content. The Host credential, when
-# needed, remains protected Host-only process state; it is never argv, MCP
-# child configuration, logs, prompts, reports, status, or an uploaded artifact.
+# Exact SemVer accepts standard prerelease and build metadata. It rejects
+# latest, tags, ranges, URLs, and local paths before npm receives the value.
+semver_identifier='(0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)'
+semver_prerelease="${semver_identifier}(\\.${semver_identifier})*"
+semver_build='[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*'
+semver_pattern="^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-${semver_prerelease})?(\\+${semver_build})?$"
+if ! printf '%s\n' "$CHANGE_TRACE_PACKAGE_VERSION" | grep -Eq "$semver_pattern"; then
+  printf '%s\n' 'CHANGE_TRACE_PACKAGE_VERSION must be exact SemVer.' >&2
+  exit 64
+fi
+
+# The Host credential, when needed, remains protected Host-only process state;
+# it is never argv, MCP child configuration, logs, prompts, reports, status,
+# or an uploaded artifact.
 test -d "$CHANGE_TRACE_TOOLING_ROOT"
 test -d "$CHANGE_TRACE_SUBJECT_ROOT"
+test ! -L "$CHANGE_TRACE_TOOLING_ROOT"
+test ! -L "$CHANGE_TRACE_SUBJECT_ROOT"
 trusted_tooling_root="$(CDPATH= cd "$CHANGE_TRACE_TOOLING_ROOT" && pwd -P)"
 subject_root="$(CDPATH= cd "$CHANGE_TRACE_SUBJECT_ROOT" && pwd -P)"
-test "$trusted_tooling_root" != "$subject_root"
+case "$trusted_tooling_root" in
+  "$subject_root"|"$subject_root"/*)
+    printf '%s\n' 'Trusted package root must be separate from the subject root.' >&2
+    exit 65
+    ;;
+esac
+case "$subject_root" in
+  "$trusted_tooling_root"/*)
+    printf '%s\n' 'Trusted package root must not contain the subject root.' >&2
+    exit 65
+    ;;
+esac
+if test -e "$trusted_tooling_root/package.json" || test -L "$trusted_tooling_root/package.json" || test -e "$trusted_tooling_root/package-lock.json" || test -L "$trusted_tooling_root/package-lock.json"; then
+  printf '%s\n' 'CI-owned trusted package root must be empty of package manifests.' >&2
+  exit 66
+fi
 
-cd "$trusted_tooling_root"
-npm install --ignore-scripts --no-audit --no-fund --no-save "change-trace-mcp@$CHANGE_TRACE_PACKAGE_VERSION"
+npm install --prefix "$trusted_tooling_root" --ignore-scripts --no-audit --no-fund --no-save --no-package-lock "change-trace-mcp@$CHANGE_TRACE_PACKAGE_VERSION"
 
 # The selected Host must sanitize its MCP child environment with an allowlist
 # that excludes all provider credentials. This runner receives explicit JSON
@@ -39,7 +65,7 @@ CHANGE_TRACE_CI_HEAD_REVISION="$CHANGE_TRACE_HEAD_REVISION" \
 CHANGE_TRACE_CI_RUN_ATTEMPT="$CHANGE_TRACE_RUN_ATTEMPT" \
 CHANGE_TRACE_CI_HOST_ID='caller-supplied-host' \
 CHANGE_TRACE_CI_TIMEOUT_MS='840000' \
-node "node_modules/change-trace-mcp/scripts/ci/advisory-runner.mjs"
+node "$trusted_tooling_root/node_modules/change-trace-mcp/scripts/ci/advisory-runner.mjs"
 
 # Preserve/upload exactly these paths with the platform's advisory mechanism.
 # Triggers, retention, comments/checks, authentication, and merge policy stay

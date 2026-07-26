@@ -1,5 +1,7 @@
 import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -15,6 +17,7 @@ const gitlabExamplePath = join(root, "docs", "ci", "gitlab-ci.example.yml");
 const portableExamplePath = join(root, "docs", "ci", "portable-advisory.sh.example");
 const publicFixturePath = join(root, "docs", "ci", "fixtures", "deterministic-advisory-host.mjs");
 const smokePath = join(root, "scripts", "ci", "smoke-advisory-ci.mjs");
+const portableShell = process.platform === "win32" ? "C:/Program Files/Git/usr/bin/sh.exe" : "/bin/sh";
 const managedNames = [
   "release-review.md",
   "release-review.json",
@@ -23,6 +26,52 @@ const managedNames = [
 
 async function readLf(path: string): Promise<string> {
   return (await readFile(path, "utf8")).replace(/\r\n?/g, "\n");
+}
+
+async function runPortableVersionGuard(
+  version: string,
+  layout: "same" | "tooling-inside-subject" | "subject-inside-tooling" | "separate" = "same",
+  existingManifest = false,
+): Promise<{ code: number; stderr: string }> {
+  const temporaryRoot = await mkdtemp(join(tmpdir(), "change-trace-portable-version-"));
+  try {
+    const subjectRoot = join(temporaryRoot, "subject");
+    const toolingRoot = join(temporaryRoot, "trusted");
+    await Promise.all([mkdir(subjectRoot), mkdir(toolingRoot)]);
+    let configuredSubject = subjectRoot;
+    let configuredTooling = toolingRoot;
+    if (layout === "same") configuredTooling = configuredSubject;
+    if (layout === "tooling-inside-subject") {
+      configuredTooling = join(subjectRoot, "trusted");
+      await mkdir(configuredTooling);
+    }
+    if (layout === "subject-inside-tooling") {
+      configuredSubject = join(toolingRoot, "subject");
+      await mkdir(configuredSubject);
+    }
+    if (existingManifest) await writeFile(join(configuredTooling, "package.json"), "{}\n", "utf8");
+    // Every accepted-version call intentionally fails a later static boundary
+    // guard, proving the SemVer guard without allowing npm to run.
+    const environment = {
+      ...process.env,
+      CHANGE_TRACE_TOOLING_ROOT: configuredTooling,
+      CHANGE_TRACE_SUBJECT_ROOT: configuredSubject,
+      CHANGE_TRACE_PACKAGE_VERSION: version,
+      CHANGE_TRACE_HOST_COMMAND: '["trusted-host","review"]',
+      CHANGE_TRACE_BASE_REVISION: "a".repeat(40),
+      CHANGE_TRACE_HEAD_REVISION: "b".repeat(40),
+      CHANGE_TRACE_RUN_ATTEMPT: "1",
+    };
+    try {
+      await execFileAsync(portableShell, ["-lc", "exec \"$1\"", "portable-advisory", portableExamplePath], { env: environment });
+      return { code: 0, stderr: "" };
+    } catch (error) {
+      const failed = error as { code?: number; stderr?: string };
+      return { code: failed.code ?? -1, stderr: failed.stderr ?? "" };
+    }
+  } finally {
+    await rm(temporaryRoot, { recursive: true, force: true });
+  }
 }
 
 function uploadPaths(document: string, stepName: string): string[] {
@@ -144,12 +193,48 @@ describe("provider-neutral CI references", () => {
     }
     expect(gitlab).toContain("allow_failure: true");
     expect(gitlab).toContain("CHANGE_TRACE_CI_COMMAND=\"$CHANGE_TRACE_HOST_COMMAND\"");
-    expect(portable).toContain("CHANGE_TRACE_PACKAGE_VERSION='0.0.0-dev.1'");
-    expect(portable).toContain("--ignore-scripts");
-    expect(portable).toContain("node_modules/change-trace-mcp/scripts/ci/advisory-runner.mjs");
+    expect(gitlab).toContain('test -n "$CHANGE_TRACE_TOOLING_REF"');
+    expect(gitlab).not.toMatch(/^\s+CHANGE_TRACE_TOOLING_REF:\s+"\$CHANGE_TRACE_TOOLING_REF"$/m);
+    expect(portable).toContain('CHANGE_TRACE_PACKAGE_VERSION:?protected exact published package version required');
+    expect(portable).toContain("semver_pattern=");
+    expect(portable).toContain("grep -Eq");
+    expect(portable).toContain('npm install --prefix "$trusted_tooling_root" --ignore-scripts --no-audit --no-fund --no-save --no-package-lock');
+    expect(portable).toContain('node "$trusted_tooling_root/node_modules/change-trace-mcp/scripts/ci/advisory-runner.mjs"');
+    expect(portable).toContain('test ! -L "$CHANGE_TRACE_TOOLING_ROOT"');
+    expect(portable).toContain('test ! -L "$CHANGE_TRACE_SUBJECT_ROOT"');
+    expect(portable).toContain('case "$trusted_tooling_root" in');
+    expect(portable).toContain('case "$subject_root" in');
+    expect(portable).toContain('package manifests');
+    expect(portable).not.toContain("CHANGE_TRACE_TOOLING_REF");
+    expect(portable).not.toMatch(/CHANGE_TRACE_PACKAGE_VERSION=['"]/);
+    expect(portable).not.toMatch(/@(?:latest|next)|\^[0-9]|https?:|\.\//iu);
     expect(fixture).toContain("no network,\n// Git, model, credential");
     expect(fixture).not.toMatch(/fetch\(|https?:|child_process|git\s/iu);
     expect(docs).toContain("mechanics-only");
     expect(docs).toContain("does not certify vendor");
   });
+
+  it.skipIf(!existsSync(portableShell))("accepts exact SemVer versions and rejects floating package selectors before npm runs", async () => {
+    for (const version of ["1.2.3", "1.2.3-beta.1+build.2"]) {
+      const result = await runPortableVersionGuard(version);
+      expect(result.code).toBe(65);
+      expect(result.stderr).not.toContain("CHANGE_TRACE_PACKAGE_VERSION must be exact SemVer.");
+    }
+    for (const version of ["latest", "next", "^1.2.3", "https://example.invalid/change-trace.tgz"]) {
+      const result = await runPortableVersionGuard(version);
+      expect(result.code).toBe(64);
+      expect(result.stderr).toContain("CHANGE_TRACE_PACKAGE_VERSION must be exact SemVer.");
+    }
+  }, 20_000);
+
+  it.skipIf(!existsSync(portableShell))("rejects portable trusted-root nesting and package manifests before npm runs", async () => {
+    for (const layout of ["same", "tooling-inside-subject", "subject-inside-tooling"] as const) {
+      const result = await runPortableVersionGuard("1.2.3", layout);
+      expect(result.code).toBe(65);
+      expect(result.stderr).toMatch(/Trusted package root must (?:be separate from|not contain) the subject root\./);
+    }
+    const manifest = await runPortableVersionGuard("1.2.3", "separate", true);
+    expect(manifest.code).toBe(66);
+    expect(manifest.stderr).toContain("CI-owned trusted package root must be empty of package manifests.");
+  }, 20_000);
 });

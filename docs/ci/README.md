@@ -176,8 +176,13 @@ arguments, logs, prompts, reports, and artifacts.
 
 [`portable-advisory.sh.example`](portable-advisory.sh.example) gives a POSIX
 shell mapping for Gitee Go, Jenkins, Bitbucket Pipelines, Azure Pipelines,
-Forgejo, and similar systems. It uses an exact package version, explicit JSON
-argv, separate trusted tooling and subject roots, Host-only credentials, MCP
+Forgejo, and similar systems. Unlike the GitHub and GitLab examples, which
+use an immutable trusted tooling commit, this mapping requires protected
+configuration to supply `CHANGE_TRACE_PACKAGE_VERSION` as an exact published
+SemVer value. It rejects `latest`, tags, ranges, URLs, and paths before npm
+runs, then installs beneath a pre-created CI-owned trusted package root that
+is empty of package manifests and has no ancestor/descendant relationship with
+the subject checkout. It keeps explicit JSON argv, Host-only credentials, MCP
 child-environment sanitization, advisory execution, and the exact three
 artifact paths. It is mapping guidance only: it does not certify vendor
 authentication, native Agents, triggers, retention, comments/checks, or merge

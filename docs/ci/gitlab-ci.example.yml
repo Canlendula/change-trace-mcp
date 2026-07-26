@@ -10,7 +10,6 @@ change_trace_advisory:
   allow_failure: true
   variables:
     CHANGE_TRACE_TOOLING_ROOT: "$CI_PROJECT_DIR/.change-trace-trusted"
-    CHANGE_TRACE_TOOLING_REF: "$CHANGE_TRACE_TOOLING_REF"
     CHANGE_TRACE_SUBJECT_ROOT: "$CI_PROJECT_DIR"
     CHANGE_TRACE_OUTPUT_DIRECTORY: "artifacts/advisory"
   script:
