@@ -323,27 +323,86 @@ deviations, and decision requests.
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
+- Status: `ready_for_review`
 - Handoff branch: `codex/M6-003-runtime-bundle-and-report`
 - Implementation commits:
+  - `3855b33511dff752999eccc0df0a134b5c78ac29`
 
 ### Implementation summary
 
-- Pending.
+- Moved the legacy generic missing-evidence contract into a cycle-free module,
+  retained its former `review-bundle` export path, and added strict structured
+  runtime unavailable provenance with exact access-status normalization.
+- Carried runtime collection evidence through bundle construction with bounded
+  input, assigned ordering, complete pre-limit relationship validation,
+  dependent omission when a static document target is not retained, and
+  conditional runtime identity fields.
+- Preserved available and unavailable runtime provenance in report JSON and
+  safely rendered observed outcomes separately from unavailable/not-observed
+  records in Markdown.
+- Added deterministic JSON Schema coverage and kept the nine-tool stdio
+  surface, M1 fixture, non-runtime bundle identity, and M3 replay digests
+  stable.
 
 ### Changed areas
 
-- Pending.
+- `src/schemas/missing-evidence.ts`,
+  `src/schemas/runtime-provenance.ts`,
+  `src/schemas/runtime-evidence.ts`, `src/schemas/review-bundle.ts`,
+  `src/schemas/report.ts`, and export/compatibility seams: strict generic and
+  runtime missing variants, report source variants, and deterministic public
+  Schema exports.
+- `src/evidence/runtime/collect-runtime-evidence.ts`: structured unavailable
+  normalization retaining the manifest producer, format, record, kind,
+  environment, original access status, and relationships.
+- `src/evidence/bundle/build-review-bundle.ts`: runtime collections, ordering,
+  relationship validation, limit-dependent omission, missing ordering, and
+  conditional identity.
+- `src/reports/write-report.ts` and `src/server.ts`: bounded JSON/Markdown
+  provenance and additive bundle-tool discovery text.
+- Focused Schema, collector, bundle, report, JSON Schema, replay, and stdio
+  tests under the assigned test paths.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| Pending | Pending | Pending |
+| Test-first focused command from the assignment | Expected failure | Before implementation: 9 files, 144 tests; 19 failed and 125 passed. Thirteen failures directly exposed missing runtime unavailable provenance, collection input, relationships/identity, and report variants. Six stdio connections closed because the new worktree had not yet built `dist`; subsequent final focused runs used the built implementation and passed. |
+| `npx vitest run tests/unit/runtime-evidence-schema.test.ts tests/unit/runtime-evidence-collector.test.ts tests/unit/review-bundle.test.ts tests/unit/report-schema.test.ts tests/unit/report-write.test.ts tests/unit/json-schema.test.ts tests/unit/review-replay.test.ts tests/integration/runtime-evidence-stdio.test.ts tests/integration/stdio.test.ts` | Pass | Final committed implementation: 9 files, 144 tests passed. |
+| `npm run check` | Pass | Strict TypeScript check completed with no diagnostics. |
+| `npm test` | Pass | First final consecutive run: 30 files, 332 tests passed. |
+| `npm test` | Pass | Second final consecutive run: 30 files, 332 tests passed. |
+| `npm run smoke:stdio` | Pass | Returned `ok: true`, the unchanged nine-tool set, and the byte-stable M1 compatibility fixture. |
+| `npm run pack:check` | Pass | Dry-run package contained 181 files; 132.7 kB packed and 725.1 kB unpacked. No publish occurred. |
+| `git diff --check e79766548af11583fcc9de9c01ec87ff153ef970..HEAD` | Pass | No whitespace errors. |
+| `git status --short` | Pass | Clean before the handoff-only update; clean again after its commit. |
+
+Relationship coverage includes available runtime collection input, direct
+runtime additional input, and unavailable runtime records. Tests reject
+unknown change IDs, unknown evidence IDs, runtime targets, and non-document
+targets. A separate budget case removes a static document target and verifies
+that its dependent runtime item is omitted and counted in truncation.
+
+Identity coverage varies related change/evidence IDs, producer, source format,
+manifest record, runtime kind, environment, outcome, start/completion,
+duration, artifact references, missing source/reason/status, and unavailable
+provenance. Runtime retrieval time remains identity-neutral. The accepted
+legacy bundle ID and all nine frozen M3 replay digests remain unchanged.
 
 ### Public contract and documentation impact
 
-- Pending.
+- Public Schema exports add `RuntimeUnavailableProvenance`,
+  `RuntimeMissingEvidence`, and the review missing union while retaining
+  `MissingEvidence` from both the package Schema barrel and the former direct
+  `review-bundle` module.
+- `BuildReviewBundleInput` accepts an optional, default-empty array of up to 16
+  runtime evidence collections.
+- Report JSON Schema contains a strict runtime source variant requiring
+  runtime provenance, runtime-compatible evidence types,
+  `observed_runtime` trust, and structurally forbidden external provenance.
+  Zod runtime validation additionally enforces the kind/type mapping.
+- No Roadmap, decision, global documentation, package metadata, version, or
+  release state was changed.
 
 ### Deviations from assignment
 
@@ -351,7 +410,12 @@ deviations, and decision requests.
 
 ### Known limitations and risks
 
-- None.
+- As with the accepted core runtime EvidenceItem contract, the generated JSON
+  Schema structurally represents the runtime report variant while the
+  kind-to-type cross-field rule remains a Zod refinement. All MCP and library
+  parsing paths enforce that refinement.
+- Converter formats, active runtime access, artifact reads, and M6 exit
+  fixtures remain intentionally outside this task.
 
 ### Decisions or questions for coordinator
 
@@ -359,9 +423,9 @@ deviations, and decision requests.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
