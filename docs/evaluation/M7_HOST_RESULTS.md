@@ -89,9 +89,9 @@ text was byte-identical to:
 
 | Command | Result |
 | --- | --- |
-| `npx vitest run tests/unit/smoke-real-hosts.test.ts` | passed: 17 tests, 1 Windows-inapplicable skip (post-review hardening) |
+| `npx vitest run tests/unit/smoke-real-hosts.test.ts` | passed: 18 tests, 1 Windows-inapplicable skip (post-review hardening) |
 | `npm run check` | passed |
-| `npm test` | passed: 385 tests, 2 Windows-inapplicable skips (post-review hardening) |
+| `npm test` | passed: 386 tests, 2 Windows-inapplicable skips (post-review hardening) |
 | `npm run smoke:stdio` | passed |
 | `npm run smoke:ci` | passed |
 | `npm run pack:check` | passed |

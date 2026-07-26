@@ -91,6 +91,17 @@ describe("real Host compatibility harness helpers", () => {
     expect(() => harness.parseHostVersion("opencode", "unexpected output")).toThrow("host_version_invalid");
   });
 
+  it("requires zero-exit preparation and version results without exposing output", () => {
+    expect(harness.requireSuccessfulResult({ exitCode: 0, signal: null, stdout: "opaque-success", stderr: "" }, "npm_install_failed")).toMatchObject({ exitCode: 0 });
+    try {
+      harness.requireSuccessfulResult({ exitCode: 1, signal: null, stdout: "opaque-failure", stderr: "opaque-stderr" }, "host_version_command_failed");
+      throw new Error("expected fixed failure");
+    } catch (error) {
+      expect(error).toHaveProperty("message", "host_version_command_failed");
+      expect(String(error)).not.toContain("opaque");
+    }
+  });
+
   it("validates the exact lifecycle, discovery, call arguments, and fixture result", () => {
     const valid = [
       { type: "server_started" },

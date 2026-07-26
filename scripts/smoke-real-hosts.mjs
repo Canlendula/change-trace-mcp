@@ -132,6 +132,10 @@ export async function runBounded(command, args, { cwd, env, timeoutMs = HOST_TIM
     child.once("close", async (code, signal) => { if (settled) return; await termination; settled = true; clearTimeout(timer); if (stopped) rejectRun(new HarnessError(stopped)); else resolveRun({ exitCode: code, signal, stdout, stderr }); });
   });
 }
+export function requireSuccessfulResult(result, code) {
+  if (!result || result.exitCode !== 0 || result.signal !== null) fail(code);
+  return result;
+}
 
 function hostPrompt(serverName) {
   return `Use only the MCP server ${serverName}. Do not read, write, edit, or inspect any repository files. Call get_compatibility_fixture exactly once with {}. Then return only its text result.`;
@@ -301,12 +305,12 @@ async function prepare() {
   try {
     await Promise.all([mkdir(plan.artifactDirectory), mkdir(plan.cacheDirectory), mkdir(plan.consumerDirectory), mkdir(plan.hostWorkingDirectory), mkdir(plan.homeDirectory)]);
     await writeFile(plan.userConfigPath, "", { encoding: "utf8", mode: 0o600 });
-    const packed = parsePack((await runBounded(process.execPath, [npm, "pack", "--json", "--pack-destination", plan.artifactDirectory], { cwd: repositoryRoot, env: packEnvironment })).stdout, sourcePackage);
+    const packed = parsePack(requireSuccessfulResult(await runBounded(process.execPath, [npm, "pack", "--json", "--pack-destination", plan.artifactDirectory], { cwd: repositoryRoot, env: packEnvironment }), "npm_pack_failed").stdout, sourcePackage);
     const tarball = join(plan.artifactDirectory, packed.filename); if (!isWithin(plan.artifactDirectory, tarball)) fail("tarball_path_invalid");
     const sha256 = hash(await readFile(tarball));
     await writeFile(join(plan.consumerDirectory, "package.json"), JSON.stringify({ name: "m7-real-host-consumer", private: true, version: "1.0.0" }), "utf8");
-    await runBounded(process.execPath, [npm, "install", "--ignore-scripts", "--no-audit", "--no-fund", "--no-package-lock", "--cache", plan.cacheDirectory, "--userconfig", plan.userConfigPath, tarball], { cwd: plan.consumerDirectory, env });
-    await runBounded(process.execPath, [npm, "ls", "--omit=dev", "--json", "--no-audit", "--no-fund", "--userconfig", plan.userConfigPath], { cwd: plan.consumerDirectory, env });
+    requireSuccessfulResult(await runBounded(process.execPath, [npm, "install", "--ignore-scripts", "--no-audit", "--no-fund", "--no-package-lock", "--cache", plan.cacheDirectory, "--userconfig", plan.userConfigPath, tarball], { cwd: plan.consumerDirectory, env }), "npm_install_failed");
+    requireSuccessfulResult(await runBounded(process.execPath, [npm, "ls", "--omit=dev", "--json", "--no-audit", "--no-fund", "--userconfig", plan.userConfigPath], { cwd: plan.consumerDirectory, env }), "npm_ls_failed");
     const installed = await lstat(join(plan.consumerDirectory, "node_modules", sourcePackage.name)); if (installed.isSymbolicLink()) fail("installed_package_linked");
     const installedReal = await realpath(join(plan.consumerDirectory, "node_modules", sourcePackage.name)); if (!isWithin(plan.consumerDirectory, installedReal) || isWithin(repositoryRoot, installedReal)) fail("installed_package_location_invalid");
     await access(plan.installedCli);
@@ -324,7 +328,7 @@ async function runHost(host, stateRoot) {
   await resetLifecycle(plan);
   const command = createHostCommand(host, plan, executable); const started = Date.now();
   let observedHostVersion;
-  try { observedHostVersion = parseHostVersion(host, (await runBounded(executable, ["--version"], { cwd: plan.hostWorkingDirectory, env: command.environment, timeoutMs: 10_000, maxOutputBytes: 1024 })).stdout); } catch (error) {
+  try { observedHostVersion = parseHostVersion(host, requireSuccessfulResult(await runBounded(executable, ["--version"], { cwd: plan.hostWorkingDirectory, env: command.environment, timeoutMs: 10_000, maxOutputBytes: 1024 }), "host_version_command_failed").stdout); } catch (error) {
     state.attempts.push(normalizeAttemptFailure({ host, hostVersion: EXPECTED_HOST_VERSIONS[host], code: error instanceof HarnessError ? error.code : "host_version_invalid", durationMs: Date.now() - started }));
     await writeFile(plan.manifestPath, JSON.stringify(state, null, 2), "utf8"); throw error;
   }

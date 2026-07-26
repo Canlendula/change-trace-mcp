@@ -243,6 +243,9 @@ acceptance.
   safe callable finalization action. It also requires an exact executable
   `--version` observation before future Host sessions. It was not used for the
   already-manual real-session cleanup.
+- The preparation and future version-observation paths now require zero exit
+  with fixed error codes before parsing output; semantic Host output remains
+  available only for its bounded failure classification.
 - Prepared one committed local tarball and one isolated installation. Claude
   Code and OpenCode passed against that shared installed artifact. The fresh
   Codex task discovered the nine tools and returned the exact fixture. Codex
@@ -261,9 +264,9 @@ acceptance.
 
 | Command | Result | Notes |
 |---|---|---|
-| `npx vitest run tests/unit/smoke-real-hosts.test.ts` | passed | 17 tests, 1 Windows-inapplicable skip |
+| `npx vitest run tests/unit/smoke-real-hosts.test.ts` | passed | 18 tests, 1 Windows-inapplicable skip |
 | `npm run check` | passed | before real Host calls |
-| `npm test` | passed | 385 passed, 2 Windows-inapplicable skips (post-review hardening) |
+| `npm test` | passed | 386 passed, 2 Windows-inapplicable skips (post-review hardening) |
 | `npm run smoke:stdio` | passed | nine tools and exact fixture |
 | `npm run smoke:ci` | passed | advisory smoke |
 | `npm run pack:check` | passed | package dry run |
