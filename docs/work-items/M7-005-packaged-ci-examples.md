@@ -191,7 +191,7 @@ summary in the handoff.
 - Status: `ready_for_review`
 - Handoff branch: `codex/M7-005-packaged-ci-examples`
 - Worktree: `C:\Users\C\.codex\worktrees\1962\agent-e2e-mcp`
-- Implementation commits: `3f2ae5c58ba7d2270b863684897ac67c192471f2`
+- Implementation commits: `3f2ae5c58ba7d2270b863684897ac67c192471f2`, `3e213a5b3979b5c044a15edcb3bd4d761d5007f7`
 
 ### Implementation summary
 
@@ -204,6 +204,11 @@ summary in the handoff.
   artifacts, bounded schema/content checks, and complete temporary-root cleanup.
 - Added packaging and provider-neutral CI contract coverage. The focused test
   path is `tests/integration/packaged-ci-surface.test.ts`.
+- Review follow-up: portable CI now accepts an externally protected exact
+  published SemVer input, installs it only under a dedicated empty CI-owned
+  package root, rejects root nesting and existing manifests before npm runs,
+  and removes its `CHANGE_TRACE_TOOLING_REF` dependency. GitHub and GitLab
+  continue to use immutable trusted tooling commits.
 
 ### Changed areas
 
@@ -216,6 +221,10 @@ summary in the handoff.
 - `tests/integration/provider-neutral-ci.test.ts`,
   `tests/integration/packaged-ci-surface.test.ts`, and
   `tests/unit/clean-install-smoke.test.ts` — contract and clean-install tests.
+- Review follow-up changed `docs/ci/README.md`,
+  `docs/ci/gitlab-ci.example.yml`,
+  `docs/ci/portable-advisory.sh.example`, and
+  `tests/integration/provider-neutral-ci.test.ts` only.
 
 ### Validation
 
@@ -223,8 +232,8 @@ summary in the handoff.
 |---|---|---|
 | `npm ci --ignore-scripts --offline --no-audit --no-fund` | PASS | Bootstrap only; populated ignored dependencies from the local cache without lifecycle scripts or registry access. |
 | `npm run check` | PASS | TypeScript no-emit check passed. |
-| `npx vitest run tests/integration/provider-neutral-ci.test.ts tests/integration/packaged-ci-surface.test.ts tests/unit/clean-install-smoke.test.ts` | PASS | 3 files; 18 passed and 1 Windows-conditional test skipped. |
-| `npm test` | PASS | 38 files; 389 passed and 2 platform-conditional tests skipped. |
+| `npx vitest run tests/integration/provider-neutral-ci.test.ts tests/integration/packaged-ci-surface.test.ts tests/unit/clean-install-smoke.test.ts` | PASS | 3 files; 20 passed and 1 platform-conditional test skipped. Includes real POSIX SemVer, nesting, and manifest guards. |
+| `npm test` | PASS | 38 files; 391 passed and 2 platform-conditional tests skipped. |
 | `npm run smoke:ci` | PASS | Deterministic runner smoke reported `completed_no_findings`. |
 | `npm run smoke:stdio` | PASS | Nine-tool stdio surface and byte-stable fixture passed. |
 | `node scripts/smoke-clean-install.mjs` | PASS | One local tarball installed outside the checkout; see smoke evidence below. |
@@ -237,7 +246,7 @@ summary in the handoff.
 
 - Clean-install summary had `ci: {"outcome":"completed_no_findings","artifacts":3}`;
   its tarball SHA-256 was
-  `eaa128461cfd6011697ad4fc444e75ab41aa1f5265acc36aa37ed25eec865d39`.
+  `c8b43b86c89ce3e846a8e00ff649f7a95ccb3a8f9261cd864ab12a951b6a21e6`.
 - The installed runner used the installed public fixture, emitted only
   `change-trace-advisory outcome=completed_no_findings code=ok`, and accepted
   exactly `release-review.md`, `release-review.json`, and
@@ -257,6 +266,10 @@ summary in the handoff.
   exact tooling, separate trusted tooling and subject roots, Host-only
   credentials with MCP-child sanitization, advisory behavior, and the exact
   three artifact paths. Other vendors are mapping guidance only.
+- Portable mapping selects the other permitted trust path: protected exact
+  published SemVer plus a dedicated empty CI-owned package root. Its POSIX
+  guard rejects floating selectors, local/URL selectors, symlink roots, both
+  root-nesting directions, and package manifests before invoking npm.
 
 ### Deviations from assignment
 
@@ -267,6 +280,8 @@ summary in the handoff.
 - The deterministic fixture proves orchestration and artifact mechanics only;
   it does not qualify an Agent Host, model, provider, vendor authentication, or
   semantic review outcome.
+- The executable portable-guard tests run when a POSIX shell is available; they
+  are platform-conditional on Windows environments without Git POSIX `sh`.
 
 ### Decisions or questions for coordinator
 
