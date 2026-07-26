@@ -338,29 +338,39 @@ make no registry write, and leave no retained cache/artifact/consumer state.
 
 - Outcome: `accepted`
 - Reviewed branch head: `fc43a15901e34ff841817f57d7c8258ffdf0c502`
-- Integration commit: `fc43a15901e34ff841817f57d7c8258ffdf0c502`
+- Integration commits: initial fast-forward
+  `fc43a15901e34ff841817f57d7c8258ffdf0c502`; cross-volume fix and handoff
+  `555ffa5` / `3553dda`; Vite-loader fix and handoff `3ad1f06` / `25f2e23`.
 - Final accepted-main artifact commit: pending coordinator acceptance commit
   and required clean-install rerun.
 - Final accepted-main artifact SHA-256: pending required clean-install rerun.
 
 ### Review findings
 
-- None. The reviewed branch stayed within its allowed paths, preserved package
-  metadata and public contracts, and maintained a reconstructible two-commit
-  artifact/evidence boundary.
-- Coordinator validation passed the build, 18-test focused gate, two complete
-  367-test suites, clean installation, stdio and advisory-CI smokes, package
+- No unresolved findings. The reviewed branch stayed within its allowed paths,
+  preserved package metadata and public contracts, and maintained a
+  reconstructible artifact/evidence boundary.
+- The first accepted-main smoke exposed a Windows cross-volume containment
+  error for a `D:` checkout with a `C:` temporary directory. Commit `555ffa5`
+  rejects absolute `path.relative()` results and adds the regression.
+- The next default focused run exposed a Vitest 4.1.10 Vite-module-runner parse
+  failure for the unused `.mjs` hashbang in the `D:` checkout. Commit `3ad1f06`
+  removes the hashbang; the supported invocation remains
+  `node scripts/smoke-clean-install.mjs`.
+- Branch validation passed the build, 19-test focused gate, two complete
+  368-test suites, clean installation, stdio and advisory-CI smokes, package
   dry-run, zero-vulnerability production audit, diff check, and clean-status
   check. The single skipped test is the POSIX-only SIGTERM escalation case on
-  Windows.
+  Windows. Final coordinator main-worktree validation follows the packaged
+  Roadmap update.
 - Current primary documentation confirms the recorded Codex, Claude Code, and
   OpenCode v1/v2 configuration forms. These mechanical examples do not support
   a real-Host compatibility claim.
 
 ### Required follow-up
 
-- Commit the coordinator acceptance and packaged Roadmap update, rerun the
-  clean-install smoke from that exact accepted-main artifact state, and record
+- Rerun the complete coordinator gates and clean-install smoke from the exact
+  accepted-main artifact state after this packaged Roadmap update, then record
   its final digest in the un-packaged evaluation record.
 - Keep M7-004 real Codex, Claude Code, and OpenCode sessions behind the explicit
   model/API/user-configuration authorization boundary in Decision 33.

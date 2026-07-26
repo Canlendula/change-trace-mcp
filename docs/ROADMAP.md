@@ -185,7 +185,7 @@ The technical spike may revise this choice if Host compatibility or package star
   resolution, installed-Node and local-tarball npx launches, the exact
   nine-tool surface, and the byte-stable M1 fixture. Codex, Claude Code, and
   OpenCode v1/v2 configuration examples use exact-version placeholders and
-  make no live-Host claim. Coordinator gates pass at 36 files / 367 tests with
+  make no live-Host claim. Coordinator gates pass at 36 files / 368 tests with
   one Windows-inapplicable POSIX termination test skipped; the production
   audit reports zero vulnerabilities. M7-004 remains the separately authorized
   fresh-session compatibility check.
