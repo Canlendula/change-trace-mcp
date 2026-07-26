@@ -312,47 +312,172 @@ package inventory, known limitations, deviations, and decision requests.
 
 ## Worker handoff — worker owned
 
-- Status: `pending`
+- Status: `ready_for_review`
 - Implementation commits:
+  - `9c4c9b0a5a65f71f6093a35a6107712edca3b9c1`
 
 ### Implementation summary
 
-- Pending.
+- Added one strict, bounded, test-only fixture producer with exactly four
+  caller-selectable fixture IDs. It reads only the four fixed adjacent
+  checked-in sources, accepts only relationship IDs, emits byte-identical
+  strict manifests, and projects every handled failure to
+  `m6_runtime_fixture_failed`.
+- Added fixed JUnit-style, Playwright JSON, project API-smoke, and project
+  staging-summary source snapshots. Their mappings cover all assigned observed
+  outcomes, one available environment-metadata record, and one inaccessible
+  staging observation without preserving prohibited source content.
+- Added a built-stdio end-to-end proof covering Git scope, local requirement
+  evidence, all four producer profiles, confined collection, relationship-valid
+  bundle construction, empty finding validation, two byte-identical final
+  report pairs, the nine-tool surface, and the M1 fixture.
+- Added the packaged runtime-evidence guide and four strict non-secret manifest
+  examples, then linked the guide/tool flow from the README and added only
+  `docs/runtime-evidence` to the package file inventory.
 
 ### Changed areas
 
-- Pending.
+- `tests/fixtures/runtime/`: four source-shape snapshots and the fixed offline
+  producer.
+- `tests/unit/runtime-fixture-producer.test.ts`: strict request, unknown-field,
+  relationship-bound, safe-error, deterministic-output, fixed-source,
+  prohibited-capability, mapping, and package assertions.
+- `tests/integration/runtime-source-fixtures.test.ts`: complete built-stdio
+  public-tool proof and downstream secret/forbidden-content/report-stability
+  audit.
+- `tests/unit/runtime-evidence-schema.test.ts`: packaged example parsing,
+  non-secret content, record bound, and collector-size assertions.
+- `docs/runtime-evidence/**`, `README.md`, `package.json`: stable normalized
+  boundary, IDs and public call sequence, collector/core bounds, pinned mapping
+  tables, unavailable semantics, reference-only artifacts, compatibility
+  limits, examples, README integration, and package inclusion.
 
 ### Validation
 
-- Pending.
+- Test-first environment attempt:
+  - `npx vitest run tests/unit/runtime-fixture-producer.test.ts
+    tests/integration/runtime-source-fixtures.test.ts
+    tests/unit/runtime-evidence-schema.test.ts`: Vitest did not start because
+    the isolated worktree had no `node_modules`. No package installation or
+    network access was performed; an ignored local junction to the primary
+    checkout's existing `node_modules` was used for validation.
+- Test-first expected product failures after dependency resolution:
+  - the same three-file command: exit 1, 3 files failed, 8 failed / 20 passed
+    out of 28. The producer, four fixed source files, four packaged examples,
+    package entry, and built worktree server were absent as intended.
+- First implementation pass:
+  - `npm run build; npx vitest run
+    tests/unit/runtime-fixture-producer.test.ts
+    tests/unit/runtime-evidence-schema.test.ts
+    tests/integration/runtime-source-fixtures.test.ts`: build passed; 3 files,
+    28/28 tests passed.
+- Final required focused command:
+  - `npx vitest run tests/unit/runtime-fixture-producer.test.ts
+    tests/integration/runtime-source-fixtures.test.ts
+    tests/unit/runtime-evidence-schema.test.ts
+    tests/unit/runtime-evidence-collector.test.ts
+    tests/unit/review-bundle.test.ts tests/unit/report-schema.test.ts
+    tests/unit/report-write.test.ts tests/unit/review-replay.test.ts
+    tests/integration/runtime-evidence-stdio.test.ts
+    tests/integration/stdio.test.ts`: 10 files, 150/150 tests passed.
+  - `npm run check`: passed.
+- Consecutive full suites on the final implementation:
+  - `npm test`: 32 files, 340/340 tests passed.
+  - `npm test`: 32 files, 340/340 tests passed.
+- Remaining required gates:
+  - `npm run smoke:stdio`: passed; exactly nine tools were listed and the full
+    M1 compatibility fixture remained byte-compatible.
+  - `npm run smoke:ci`: passed with
+    `outcome=completed_no_findings code=ok` and `smoke=ok`.
+  - `npm run pack:check`: passed; 186 files, including the runtime guide and
+    all four examples.
+  - `git diff --check
+    41ecdbd22bfe1c9a86c6e3391ee3e8de1f9afe3a..HEAD`: passed after
+    the handoff commit.
+  - `git status --short`: clean after the handoff commit.
 
 ### Fixture and end-to-end evidence
 
-- Pending.
+- `m6-junit`: `producer:m6-junit-style-v1`, `junit_xml`, 4 available
+  `test_case` records, 3,056-byte normalized output. The fixed cases map to
+  `passed`, `failed`, `errored`, and `skipped`; suite/class/case locators and
+  timing survive. System output/error and failure/error stack sentinels never
+  enter the manifest or downstream values.
+- `m6-playwright-json`: `producer:m6-playwright-json-v1`,
+  `playwright_json`, 5 available `test_case` records, 4,403-byte normalized
+  output. Final statuses map to `passed`, `failed`, `timed_out`, `skipped`, and
+  `cancelled`. Test/project identity, timing, trace path, and screenshot
+  path/URI survive. Stdout, stderr, stack, step, annotation, and attachment-body
+  sentinels are absent from the manifest and downstream values.
+- `m6-api-smoke`: `producer:m6-api-smoke-v1`, `api_smoke`, 2 available
+  `api_observation` records, 1,589-byte normalized output. Check identity,
+  passed/failed observed outcomes, timing, CI environment, and source survive.
+  Request/response body, header, cookie, token, retry-command, and raw-log
+  sentinels never enter the manifest. The assigned secret-shaped summary enters
+  only the raw manifest and is redacted before collection output.
+- `m6-staging`: `producer:m6-staging-summary-v1`, `ci_summary`, 2 records,
+  1,393-byte normalized output: one available `environment_metadata` record
+  and one inaccessible `browser_observation`. The available record becomes
+  configuration evidence with null outcome/timing. The inaccessible record
+  becomes structured runtime missing evidence labelled unavailable/not
+  observed, retains exact change/document links, and never becomes a failed
+  runtime item or finding. Its secret-shaped reason is redacted at collection.
+- The E2E uses one materialized Git fixture and one retained local requirement
+  ID. Every available and unavailable runtime record retains those exact IDs
+  through collection, bundle, report JSON, and Markdown. It proves 12
+  available runtime evidence sources plus one runtime missing entry.
+- Runtime producer, source format, manifest record, kind, source,
+  environment, observed outcome, start/completion/duration, artifact
+  references, and relationships survive the final report catalog. Runtime
+  excerpts and selection reasons do not enter either report.
+- All API/staging secret sentinels and all assigned forbidden raw-content
+  sentinels are absent from collection results, bundle, final JSON, final
+  Markdown, and captured server stderr. Removing the first report pair and
+  repeating the same public `write_report` call produces byte-identical files.
+- Unsupported producer input emits only the fixed failure token and leaves the
+  nine-tool MCP surface unchanged.
 
 ### Public contract and documentation impact
 
-- Pending.
+- No `src/**`, public Schema, collector, bundle, report, Finding, server, Git,
+  local/external evidence, security, or MCP tool behavior changed.
+- The fixture producer is test-only and is not a package binary or public
+  converter API. The guide presents the normalized manifest as the stable MCP
+  input and keeps conversion in Host/CI-owned preprocessing.
+- The README now lists `collect_runtime_evidence`, its optional call-flow
+  branch, the runtime Schemas, and the packaged guide/examples. Package metadata
+  changed only by adding `docs/runtime-evidence` to `files`; version,
+  dependencies, scripts, engines, and release state are unchanged.
 
 ### Deviations from assignment
 
-- Pending.
+- No product or scope deviation. The isolated worktree initially lacked
+  dependencies, so validation used a local ignored junction to the existing
+  primary-checkout `node_modules`. No install, dependency, lockfile, or network
+  action occurred.
 
 ### Known limitations and risks
 
-- Pending.
+- The producer proves exactly four checked-in mapping snapshots. It is not an
+  arbitrary XML/JSON parser and establishes no general JUnit, Playwright,
+  vendor API, browser, CI, or live staging compatibility.
+- No test, API, browser, deployment, staging-reachability, production,
+  credential, or artifact-content access is performed. Real converters remain
+  separately versioned Host/CI responsibilities.
+- Artifact coverage is reference-only. The proof never opens trace,
+  screenshot, attachment, log, or report-body content.
 
 ### Decisions or questions for coordinator
 
-- Pending.
+- None. The accepted M6 contracts represented every assigned profile without a
+  public/core change, dependency, or additional product/security decision.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No dependency, lockfile, version, CI, release, npm, or GitHub action was
+- [x] Coordinator-only files were not modified.
+- [x] No dependency, lockfile, version, CI, release, npm, or GitHub action was
       performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
