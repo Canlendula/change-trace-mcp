@@ -276,6 +276,7 @@ request.
 - Status: `ready_for_review`
 - Implementation commit(s):
   - `0b6844311305328fbfcce22d7f9ee526a7c03f95`
+  - `b693094a3163134e9566d9410e40b6649dbefdbf`
 - Branch head: resolve from Git; do not self-reference this handoff commit.
 
 ### Implementation summary
@@ -284,7 +285,11 @@ request.
   outcome, non-production environment, provenance, manifest-record, manifest,
   runtime-item, and normalized collection Schemas and inferred types.
 - Added the optional `EvidenceItem.runtimeProvenance` and a core invariant
-  preventing external and runtime provenance from coexisting.
+  preventing external and runtime provenance from coexisting. Following
+  coordinator review, the core EvidenceItem invariant also enforces
+  `observed_runtime` trust and the exact runtime kind/type mapping whenever
+  runtime provenance is present, so direct review-bundle inputs cannot bypass
+  the normalized collection.
 - Enforced the three manifest variants, runtime type/trust/kind mapping,
   producer consistency, unique IDs, relationship and outcome bounds, safe
   duration, timestamp order, truncation consistency, and unavailable-source
@@ -310,6 +315,21 @@ request.
     All 13 new tests reached missing runtime Schema/export behavior; existing
     core and JSON Schema tests remained green.
 - Final focused validation:
+  - `npx vitest run tests/unit/runtime-evidence-schema.test.ts tests/unit/core-schemas.test.ts tests/unit/json-schema.test.ts`
+  - Passed: 3 files, 23 tests.
+- Coordinator changes-requested regression:
+  - The coordinator demonstrated that the first implementation allowed an
+    `EvidenceItem` with `runtimeProvenance.kind: test_case`,
+    `type: document`, and `trustLevel: trusted_repository` when parsed outside
+    `RuntimeEvidenceCollection`.
+  - The new direct EvidenceItem regression initially failed as intended:
+    1 failed / 22 passed tests; the malformed runtime item was accepted.
+  - After commit `b693094a3163134e9566d9410e40b6649dbefdbf`,
+    the core Schema rejects wrong runtime trust, wrong runtime type, wrong
+    kind/type mapping, and dual provenance while accepting a correctly mapped
+    runtime item. `runtimeEvidenceItemSchema` now adds only the required
+    provenance-presence rule.
+- Final post-review focused validation:
   - `npx vitest run tests/unit/runtime-evidence-schema.test.ts tests/unit/core-schemas.test.ts tests/unit/json-schema.test.ts`
   - Passed: 3 files, 23 tests.
 - `npm run check`
