@@ -331,55 +331,99 @@ limitations, deviations, and decision requests.
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
-- Handoff branch:
-- Worktree:
-- Implementation commits:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M7-001-security-privacy-baseline`
+- Worktree: `C:\Users\C\.codex\worktrees\d7b3\agent-e2e-mcp`
+- Implementation commits: `9614eda docs(security): establish M7 baseline`; this
+  handoff record is committed separately after this update.
 
 ### Implementation summary
 
-- `<what was implemented>`
+- Added a pre-1.0 security disclosure policy, threat model, privacy/telemetry
+  statement, strict control inventory, M7 review record, README links, package
+  inclusion, and a focused drift/security-boundary test.
+- The inventory records current behavior only: nine tools, six non-tool
+  surfaces, four findings, code/test references, Host responsibilities, and
+  residual risk. It distinguishes repository origin trust from untrusted
+  evidence-content instructions.
 
 ### Changed areas
 
-- `<path or component and reason>`
+- `SECURITY.md`, `README.md`, `docs/security/**`: disclosure route and factual
+  security/privacy/review documentation.
+- `docs/security/control-inventory.json`: strict executable control inventory.
+- `tests/unit/security-baseline.test.ts`: annotation, reference, package,
+  finding, process/network-boundary, and first-party-network drift checks.
+- `package.json`: packages `SECURITY.md` and `docs/security` only.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npx vitest run tests/unit/security-baseline.test.ts` | initial expected failure | With temporary existing dependency junction: 3 failures for absent inventory/review/package entries. A first attempt without it could not resolve local `vitest` because the isolated worktree has no `node_modules`. |
+| `npm audit --omit=dev --audit-level=high` | passed | `found 0 vulnerabilities`; run before drafting and again after implementation. |
+| `npx vitest run tests/unit/security-baseline.test.ts tests/unit/logger.test.ts tests/unit/change-scope-edge-cases.test.ts tests/unit/local-evidence.test.ts tests/unit/external-adapter-config.test.ts tests/integration/external-adapter-runner.test.ts tests/unit/runtime-evidence-collector.test.ts tests/unit/report-write.test.ts tests/integration/stdio.test.ts` | passed | 9 files, 109 tests; `npm run build` was run first so `dist/cli.js` existed for stdio integration. |
+| `npm run check` | passed | TypeScript no-emit check. |
+| `npm test` | passed twice | Each run: 33 files, 343 tests. |
+| `npm run smoke:stdio` | passed | Listed all nine tools and returned the M1 fixture. |
+| `npm run smoke:ci` | passed | `outcome=completed_no_findings`, `smoke=ok`. |
+| `npm run pack:check` | passed | 192 files; includes `SECURITY.md` and all five `docs/security` files. |
+| `git diff --check e5955fb27ba2bf93f70df20b6057043fdb8d1afa..HEAD` | passed | Baseline commit diff and staged handoff diff both had no whitespace errors. |
+| `git status --short` | passed | Clean after the final handoff commit. |
 
 ### Security and privacy audit
 
-- Inventory:
-- Tool annotations:
-- Process/network capabilities:
-- Dependency audit:
-- Findings:
+- Inventory: 9 tools, 6 non-tool surfaces, 4 stable findings; reviewed base is
+  `e5955fb27ba2bf93f70df20b6057043fdb8d1afa`.
+- Tool annotations: exact current values from `src/server.ts`; only
+  `collect_external_evidence` is open-world; only `write_report` is destructive,
+  non-read-only, and non-idempotent.
+- Process/network capabilities: fixed Git is represented by `get_change_scope`
+  and its fixed-subprocess surface; configured adapter execution is represented
+  only by `collect_external_evidence`. Adapter configuration loading is a local
+  configuration-read surface, with no process/network capability. No first-party
+  HTTP, HTTPS, socket, DNS, fetch, or telemetry client was found in `src/`.
+- Dependency audit: production audit reported 0 vulnerabilities at high level.
+- Findings: `FIND-M7-001` and `FIND-M7-002` are open medium follow-ups for Git
+  Host-environment inheritance and bounded raw local error projection;
+  `FIND-M7-003` is an open low common-pattern-redaction limitation;
+  `FIND-M7-004` is accepted informational local-stdio/no-sandbox behavior.
+  No critical/high finding, unexpected process/network capability, credential
+  leak, path escape, unsafe overwrite, or material annotation mismatch found.
 
 ### Public contract and documentation impact
 
-- `<impact, or None>`
+- Documentation/package inventory only. No MCP tool, public Schema, runtime
+  behavior, dependency, lockfile, version, script, engine, CI, or release claim
+  changed.
 
 ### Deviations from assignment
 
-- None.
+- The isolated worktree had no local `node_modules`. For test/check/build runs,
+  a temporary junction to the existing primary-worktree dependency directory was
+  created and removed in each command. No install, lockfile, dependency, or
+  tracked-file change resulted.
 
 ### Known limitations and risks
 
-- None.
+- Best-effort redaction is not DLP; Host/model/CI/adapter/source retention and
+  deletion remain operator-owned.
+- The review is a bounded project hardening review, not an independent audit or
+  penetration test. GitHub private vulnerability-reporting enablement was not
+  verified or changed.
 
 ### Decisions or questions for coordinator
 
-- None.
+- None. The two medium findings are explicit bounded follow-ups for coordinator
+  prioritization before public-beta expansion; no source change is required to
+  review this documentation baseline.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No product behavior, dependency, lockfile, version, CI, release, npm,
+- [x] Coordinator-only files were not modified.
+- [x] No product behavior, dependency, lockfile, version, CI, release, npm,
       GitHub-setting, credential, or live external-state action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
