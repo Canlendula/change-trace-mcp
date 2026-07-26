@@ -148,6 +148,13 @@ export function normalizeAttemptFailure({ host, hostVersion, code, durationMs })
   return { host, hostVersion, status: "failed", code, durationMs };
 }
 export async function cleanupStateRoot(stateRoot) { await rm(stateRoot, { recursive: true, force: true, maxRetries: 3, retryDelay: 250 }); }
+export function classifyHostFailure(output) {
+  const text = output.toLowerCase();
+  if (/\b(?:log ?in|sign ?in|authenticate|authentication|2fa|two.factor|browser)\b/u.test(text)) return "authentication_required";
+  if (/\btrust(?:ed|ing)?\b/u.test(text)) return "trust_confirmation_required";
+  if (/\bprovider\b.*\b(?:select|choose|pick)\b|\b(?:select|choose|pick)\b.*\bprovider\b/u.test(text)) return "provider_selection_required";
+  return "host_command_failed";
+}
 
 const probeSource = `import { appendFile } from "node:fs/promises"; import { spawn } from "node:child_process";
 const [logPath, cliPath, cacheDirectory, userConfigPath, homeDirectory] = process.argv.slice(2);
@@ -199,9 +206,12 @@ async function runHost(host, stateRoot) {
     state.attempts.push(normalizeAttemptFailure({ host, hostVersion: EXPECTED_HOST_VERSIONS[host], code: error instanceof HarnessError ? error.code : "command_failed", durationMs: Date.now() - started }));
     await writeFile(plan.manifestPath, JSON.stringify(state, null, 2), "utf8"); throw error;
   }
+  const rawOutput = `${result.stdout}\n${result.stderr}`.slice(0, MAX_OUTPUT_BYTES);
+  const attemptIndex = state.attempts.filter((attempt) => attempt.host === host).length + 1;
+  await writeFile(join(plan.stateRoot, `${host}-attempt-${attemptIndex}.raw.log`), rawOutput, { encoding: "utf8", mode: 0o600 });
   const lifecycle = await readEvents(plan); const excerpt = result.stdout.slice(0, MAX_EXCERPT_BYTES);
   const attempt = { host, hostVersion: EXPECTED_HOST_VERSIONS[host], status: "passed", artifactSha256: state.artifact.sha256, distCliSha256: state.artifact.distCliSha256, exitCode: result.exitCode, durationMs: Date.now() - started, lifecycle, excerptSha256: hash(excerpt), excerptBytes: Buffer.byteLength(excerpt) };
-  try { validateAttempt(attempt, state.artifact); } catch (error) { state.attempts.push(normalizeAttemptFailure({ host, hostVersion: EXPECTED_HOST_VERSIONS[host], code: error.code ?? "evidence_invalid", durationMs: attempt.durationMs })); await writeFile(plan.manifestPath, JSON.stringify(state, null, 2), "utf8"); throw error; }
+  try { validateAttempt(attempt, state.artifact); } catch (error) { state.attempts.push(normalizeAttemptFailure({ host, hostVersion: EXPECTED_HOST_VERSIONS[host], code: result.exitCode === 0 ? error.code ?? "evidence_invalid" : classifyHostFailure(rawOutput), durationMs: attempt.durationMs })); await writeFile(plan.manifestPath, JSON.stringify(state, null, 2), "utf8"); throw error; }
   state.attempts.push(attempt); await writeFile(plan.manifestPath, JSON.stringify(state, null, 2), "utf8"); process.stdout.write(`${JSON.stringify({ ok: true, host, artifactSha256: attempt.artifactSha256, durationMs: attempt.durationMs })}\n`);
 }
 async function checkpoint(stateRoot) {

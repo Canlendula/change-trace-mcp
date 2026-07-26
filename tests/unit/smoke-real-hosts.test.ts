@@ -103,6 +103,13 @@ describe("real Host compatibility harness helpers", () => {
     expect(normalized).toEqual({ host: "opencode", hostVersion: "1.18.4", status: "failed", code: "command_timeout", durationMs: 10 });
   });
 
+  it("classifies only authentication, trust, and provider-selection blockers from Host output", () => {
+    expect(harness.classifyHostFailure("Please log in in a browser")).toBe("authentication_required");
+    expect(harness.classifyHostFailure("Trust this workspace first")).toBe("trust_confirmation_required");
+    expect(harness.classifyHostFailure("Choose a provider")).toBe("provider_selection_required");
+    expect(harness.classifyHostFailure("invalid option")).toBe("host_command_failed");
+  });
+
   it("removes a temporary test state root", async () => {
     const stateRoot = await mkdtemp(join(tmpdir(), "change-trace-m7-real-test-"));
     await harness.cleanupStateRoot(stateRoot);
