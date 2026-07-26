@@ -14,6 +14,7 @@ const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 const referenceClientPath = join(repositoryRoot, "scripts", "smoke-stdio.mjs");
 const MAX_OUTPUT_BYTES = 512 * 1024;
 const COMMAND_TIMEOUT_MS = 90_000;
+const TERMINATION_GRACE_MS = 1_000;
 
 export const CLEAN_INSTALL_FIXTURE =
   '{"schemaVersion":"1.0.0","fixtureId":"m1-host-compatibility","ok":true,"scalar":"change-trace","values":[1,2,3],"nested":{"alpha":"A","beta":"B"}}';
@@ -193,14 +194,18 @@ async function terminateChild(child) {
       stdio: "ignore",
       windowsHide: true,
     });
-    await new Promise((resolveTaskkill) => {
-      const timer = setTimeout(resolveTaskkill, 5_000);
-      taskkill.once("close", () => { clearTimeout(timer); resolveTaskkill(); });
-      taskkill.once("error", () => { clearTimeout(timer); resolveTaskkill(); });
+    const taskkillSucceeded = await new Promise((resolveTaskkill) => {
+      const timer = setTimeout(() => resolveTaskkill(false), TERMINATION_GRACE_MS);
+      taskkill.once("close", (code) => { clearTimeout(timer); resolveTaskkill(code === 0); });
+      taskkill.once("error", () => { clearTimeout(timer); resolveTaskkill(false); });
     });
+    if (!taskkillSucceeded) child.kill("SIGKILL");
     return;
   }
   try { process.kill(-child.pid, "SIGTERM"); } catch { child.kill("SIGTERM"); }
+  await new Promise((resolveGrace) => setTimeout(resolveGrace, TERMINATION_GRACE_MS));
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  try { process.kill(-child.pid, "SIGKILL"); } catch { child.kill("SIGKILL"); }
 }
 
 export async function runBounded(command, args, { cwd, env, timeoutMs = COMMAND_TIMEOUT_MS, maxOutputBytes = MAX_OUTPUT_BYTES } = {}) {
@@ -210,6 +215,7 @@ export async function runBounded(command, args, { cwd, env, timeoutMs = COMMAND_
     let stderr = "";
     let outputBytes = 0;
     let failureCode = null;
+    let termination = Promise.resolve();
     let settled = false;
     const child = spawn(command, args, {
       cwd,
@@ -229,7 +235,7 @@ export async function runBounded(command, args, { cwd, env, timeoutMs = COMMAND_
     const stop = (code) => {
       if (failureCode) return;
       failureCode = code;
-      void terminateChild(child);
+      termination = terminateChild(child);
     };
     const append = (target, chunk) => {
       outputBytes += chunk.length;
@@ -243,7 +249,8 @@ export async function runBounded(command, args, { cwd, env, timeoutMs = COMMAND_
     child.stdout.on("data", (chunk) => { stdout = append(stdout, chunk); });
     child.stderr.on("data", (chunk) => { stderr = append(stderr, chunk); });
     child.once("error", () => finish(smokeError("command_unavailable")));
-    child.once("close", (code) => {
+    child.once("close", async (code) => {
+      await termination;
       if (failureCode) finish(smokeError(failureCode));
       else if (code !== 0) finish(smokeError("command_failed"));
       else finish(null, { stdout, stderr });
@@ -262,6 +269,9 @@ export function resolveCliPath(name, suppliedPath, environment = process.env) {
   const candidates = [
     environmentCandidate,
     join(dirname(process.execPath), "node_modules", "npm", "bin", `${name}-cli.js`),
+    join(dirname(process.execPath), "..", "node_modules", "npm", "bin", `${name}-cli.js`),
+    join(dirname(process.execPath), "..", "lib", "node_modules", "npm", "bin", `${name}-cli.js`),
+    join(dirname(process.execPath), "..", "lib64", "node_modules", "npm", "bin", `${name}-cli.js`),
   ].filter(Boolean);
   try { candidates.push(require.resolve(`npm/bin/${name}-cli.js`)); } catch { /* fall through */ }
   for (const candidate of candidates) {
@@ -318,8 +328,8 @@ export async function withTemporaryRoot(operation) {
 async function executeSmoke() {
   const sourcePackage = JSON.parse(await readFile(join(repositoryRoot, "package.json"), "utf8"));
   if (typeof sourcePackage.name !== "string" || typeof sourcePackage.version !== "string" || !sourcePackage.engines || !sourcePackage.dependencies) throw smokeError("source_package_invalid");
-  const npmCliPath = resolveCliPath("npm");
-  const npxCliPath = resolveCliPath("npx");
+  const npmCliPath = resolveCliPath("npm", process.env.CHANGE_TRACE_NPM_CLI_PATH);
+  const npxCliPath = resolveCliPath("npx", process.env.CHANGE_TRACE_NPX_CLI_PATH);
   const { result, cleanupSuccess } = await withTemporaryRoot(async (temporaryRoot) => {
     const plan = createSmokePlan({ repositoryRoot, temporaryRoot, npmCliPath, npxCliPath });
     await Promise.all([mkdir(plan.artifactDirectory), mkdir(plan.cacheDirectory), mkdir(plan.consumerDirectory), mkdir(plan.npxDirectory), mkdir(plan.homeDirectory)]);

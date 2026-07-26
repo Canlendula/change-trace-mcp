@@ -56,6 +56,8 @@ describe("clean package installation smoke helpers", () => {
     const npmCliPath = resolveCliPath("npm", undefined, { npm_execpath: "C:/does-not-exist/npm-cli.js" });
     expect(statSync(npmCliPath).isFile()).toBe(true);
     expect(npmCliPath.replaceAll("\\", "/")).toMatch(/npm-cli\.js$/u);
+    expect(resolveCliPath("npm", npmCliPath)).toBe(npmCliPath);
+    expect(() => resolveCliPath("npm", "C:/does-not-exist/npm-cli.js")).toThrow("npm_cli_unavailable");
   });
 
   it("removes inherited npm, registry, and credential settings without duplicate Windows keys", () => {
@@ -154,6 +156,10 @@ describe("clean package installation smoke helpers", () => {
   it("bounds a hung child and combined stdout/stderr without leaking child output", async () => {
     await expect(runBounded(process.execPath, ["-e", "setInterval(() => {}, 1_000)"], { timeoutMs: 40 })).rejects.toThrow("command_timeout");
     await expect(runBounded(process.execPath, ["-e", "process.stdout.write('a'.repeat(32)); process.stderr.write('b'.repeat(32))"], { maxOutputBytes: 32 })).rejects.toThrow("command_output_limit");
+  });
+
+  it.skipIf(process.platform === "win32")("escalates a SIGTERM-ignoring process group to SIGKILL", async () => {
+    await expect(runBounded(process.execPath, ["-e", "process.on('SIGTERM', () => {}); setInterval(() => {}, 1_000)"], { timeoutMs: 40 })).rejects.toThrow("command_timeout");
   });
 
   it("accepts only the fixed non-sensitive success summary shape", () => {
