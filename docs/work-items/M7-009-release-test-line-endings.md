@@ -116,34 +116,48 @@ report both results.
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
-- Handoff branch:
-- Implementation commits:
-- Worktree:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M7-009-release-test-line-endings`
+- Implementation commits: `120f528c38a97aff6721e1647ed86810f7eebc09` (`test: normalize release contract repository text`)
+- Worktree: `C:\Users\C\.codex\worktrees\52a8\agent-e2e-mcp`
 
 ### Implementation summary
 
-- `<what was implemented>`
+- Normalized CRLF repository-file text to LF in the release publishing contract
+  test helper before its existing contract assertions run.
+- Kept every workflow safety assertion unchanged.
 
 ### Changed areas
 
-- `<path or component and reason>`
+- `tests/unit/release-publishing-contract.test.ts`: normalize only `\r\n` to
+  `\n` after repository-file reads so LF and ordinary Windows CRLF checkouts
+  satisfy the same frozen contract assertions.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npm ci --ignore-scripts --no-audit --no-fund` | Passed | Installed 219 ignored local development packages after the initial required commands found no `node_modules`; no lockfile change. |
+| `npm run check` | Passed | `tsc -p tsconfig.json --noEmit`. |
+| `npx vitest run tests/unit/release-publishing-contract.test.ts` | Passed | 1 file, 6 passed tests. |
+| `npm test` (run 1) | Passed | 43 files; 407 passed, 2 skipped, 409 total. Skips: Windows-inapplicable `clean-install-smoke` SIGTERM/SIGKILL process-group test and `smoke-real-hosts` SIGTERM/SIGKILL process-group test. |
+| `npm test` (run 2) | Passed | 43 files; 407 passed, 2 skipped, 409 total; same two Windows-inapplicable skips. |
+| `npm run smoke:stdio` | Passed | Built the project and returned the expected local stdio smoke result. |
+| `npm run smoke:ci` | Passed | `change-trace-advisory outcome=completed_no_findings code=ok`; local smoke only. |
+| `npm run pack:check` | Passed | `npm pack --dry-run` completed after its local prepack build. |
+| `npm audit --omit=dev --audit-level=high` | Passed | `found 0 vulnerabilities`. |
+| `git diff --check` | Passed | No whitespace errors. |
+| `git status --short` | Passed | Before this handoff update, only the expected test-file modification was present. |
 
 ### External-state confirmation
 
-- [ ] No hosted workflow, authentication, npm stage/publish/approval, registry,
+- [x] No hosted workflow, authentication, npm stage/publish/approval, registry,
       tag, release, dist-tag, settings, Host/model, pilot, or threshold action
       occurred.
 
 ### Public contract and documentation impact
 
-- `<impact, or None>`
+- None.
 
 ### Deviations from assignment
 
@@ -159,10 +173,10 @@ report both results.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No workflow/package/version/dependency/lockfile/source/public-contract/
+- [x] Coordinator-only files were not modified.
+- [x] No workflow/package/version/dependency/lockfile/source/public-contract/
       release/pilot/threshold/setting change was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
