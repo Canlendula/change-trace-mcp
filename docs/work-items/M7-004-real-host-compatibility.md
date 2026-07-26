@@ -224,49 +224,89 @@ acceptance.
 ## Worker handoff — worker owned
 
 - Status: `in_progress`
-- Handoff branch:
-- Implementation commits:
+- Handoff branch: `codex/M7-004-real-host-compatibility`
+- Worktree: `C:\Users\C\.codex\worktrees\79ab\agent-e2e-mcp`
+- Implementation commits: `a29488c5919ec82055877d7627209c0a3aa84eb0`; `df54c374b3d2c72c3e20d76f3e152b5a04c445fe`; `2dde4cf`; `13e9d13`.
 
 ### Implementation summary
 
-- Pending.
+- Implemented a deterministic local-tarball Host harness with a fresh npm
+  cache and config, copied installation validation, a credential-free MCP-child
+  environment, stdio lifecycle probe, bounded raw Host logs, strict attempt
+  validation, and checkpoint support.
+- Added offline tests for path planning, environment sanitization, strict Host
+  command construction, lifecycle/result validation, failed-attempt accounting,
+  diagnostic classification, and cleanup.
+- Prepared one committed local tarball and one isolated installation. Claude
+  Code and OpenCode passed against that shared installed artifact. The required
+  branch-only Codex configuration is committed as a temporary checkpoint;
+  Codex validation remains pending coordinator creation of a fresh task.
 
 ### Changed areas
 
-- Pending.
+- `scripts/smoke-real-hosts.mjs` — reusable preparation, Host launch,
+  lifecycle instrumentation, validation, checkpoint, and cleanup harness.
+- `tests/unit/smoke-real-hosts.test.ts` — offline deterministic coverage.
+- `docs/evaluation/M7_HOST_RESULTS.md` — sanitized partial evidence.
+- `.codex/config.toml` — temporary branch-only Codex checkpoint; must be
+  removed after the fresh Codex task is imported.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| Pending | Pending | Pending |
+| `npx vitest run tests/unit/smoke-real-hosts.test.ts` | passed | 9 offline tests |
+| `npm run check` | passed | before real Host calls |
+| `npm test` | passed | 376 passed, 1 Windows-inapplicable skip |
+| `npm run smoke:stdio` | passed | nine tools and exact fixture |
+| `npm run smoke:ci` | passed | advisory smoke |
+| `npm run pack:check` | passed | package dry run |
+| `npm audit --omit=dev --audit-level=high` | passed | 0 vulnerabilities |
+| artifact prepare / Claude / OpenCode harness commands | passed | one shared installation; Codex pending |
 
 ### Real Host evidence
 
-- Pending.
+- The exact artifact identity and sanitized Claude/OpenCode evidence are in
+  `docs/evaluation/M7_HOST_RESULTS.md`. Claude attempt history retains two
+  launcher-resolution failures and two pre-call CLI diagnostics; the final
+  Claude and single OpenCode sessions passed. Codex is intentionally pending.
 
 ### Public contract and documentation impact
 
-- Pending.
+- No public product contract, package metadata, dependencies, version, or
+  packaged Host guidance changed. The evaluation record and harness are not
+  packaged.
 
 ### Deviations from assignment
 
-- None.
+- The first two Claude launcher attempts used Windows shim paths and failed
+  before a Host session; the next two reached MCP startup but exited before a
+  tool call because Claude requires `--verbose` with stream JSON. All are
+  retained in bounded temporary attempt history. The final retry used the
+  documented native executable and passed; this is within the assignment's
+  no-retry-after-MCP-call restriction.
 
 ### Known limitations and risks
 
-- None.
+- The Codex checkpoint must be consumed promptly. Its configuration contains
+  ephemeral absolute paths; deleting the temporary state or restarting into a
+  session that does not load the project configuration invalidates the run.
 
 ### Decisions or questions for coordinator
 
-- None.
+- Create a new Codex Desktop task on this branch with `gpt-5.6-terra` and
+  `high` reasoning. Prompt: `Use only the M7 MCP server configured for this
+  task. Do not read, write, edit, or inspect repository files. Call
+  get_compatibility_fixture exactly once with {}. Return only its text result.`
+  Return the task outcome to this worker so it can validate the lifecycle,
+  remove `.codex/config.toml`, clean temporary state, and finalize the handoff.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No user/global configuration or credential value was read, printed,
+- [x] Coordinator-only files were not modified.
+- [x] No user/global configuration or credential value was read, printed,
       copied, committed, or changed.
-- [ ] No version, dependency, registry, hosted CI, tag, publish, dist-tag, or
+- [x] No version, dependency, registry, hosted CI, tag, publish, dist-tag, or
       release action was performed.
 - [ ] Temporary Host state and the Codex checkpoint config were removed.
 - [ ] All intended handoff changes are committed to the task branch.
