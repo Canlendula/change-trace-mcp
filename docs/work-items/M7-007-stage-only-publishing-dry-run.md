@@ -406,6 +406,15 @@ command is allowed.
   adversarial local dry-run injected invalid npm registry/config, token, proxy,
   and unrelated credential variables; the helper still forced the public
   registry and isolated configuration and produced the same 209-file digest.
+- From clean accepted-main commit `24cceed`, the non-publishing helper and
+  clean-install smoke independently produced one 209-file tarball with packed/
+  unpacked sizes `177450` / `866928`, SHA-1
+  `ad784474aa199ce388620c4695893cb0fa3536e0`, SHA-256
+  `a883d206f3a4e89c19d38a6f53bdae9346b5ad0352f4c9d2cb7ec58e79144f35`,
+  integrity
+  `sha512-d8H+iffIu/G+fEikjnmU7fmfER1/wuxwLEqf5zJW1brmEYABYN6tAzOad+YUceDVfOC7baQ+4cf1S4S2l01RAA==`,
+  exact nine tools, the M1 fixture, three CI artifacts, and complete temporary
+  cleanup.
 
 ### Required follow-up
 
