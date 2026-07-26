@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 security and privacy baseline next
+> Status: M7 in progress; M7-001 accepted; M7-002 security hardening next
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -165,6 +165,15 @@ The technical spike may revise this choice if Host compatibility or package star
   at 32 files / 340 tests. No GitHub Actions run, dependency, version, tag,
   publish, or release action was created. Detailed evidence is recorded in
   [`docs/evaluation/M6_RESULTS.md`](evaluation/M6_RESULTS.md).
+- M7-001 completed on 2026-07-26. The packaged security policy, threat model,
+  privacy/telemetry statement, security review, and executable control
+  inventory cover all nine tools and six operational surfaces. The accepted
+  baseline records two open medium findings, one open low limitation, and one
+  accepted informational local-stdio limitation. Its strict source-import
+  guard prevents unreviewed process/network module boundaries. Coordinator
+  gates pass at 33 files / 344 tests; no product behavior, dependency, version,
+  hosted CI, repository setting, publish, or release state changed. M7-002
+  resolves the two medium findings before installation claims expand.
 
 ## 6. M0 — Project foundation
 
@@ -655,9 +664,9 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M6 is accepted. M7 starts with the security,
-> privacy, and failure-mode baseline before installation, CI, publishing, and
-> pilot claims are expanded.
+> Current state: in progress. M7-001 is accepted. M7-002 resolves the two
+> medium security findings before installation, CI, publishing, and pilot
+> claims are expanded.
 
 ### Goals
 

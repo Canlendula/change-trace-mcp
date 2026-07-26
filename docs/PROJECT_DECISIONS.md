@@ -1020,3 +1020,71 @@ Package publishing, a tag, a GitHub release, private vulnerability-reporting
 enablement, CI execution on hosted runners, credentials, and live pilot access
 remain coordinator/user-authorized actions. A dry-run, offline fixture, or
 local smoke test cannot be reported as a public release or a completed pilot.
+
+## 32. M7 resolves Git environment inheritance and raw exception projection before compatibility expansion
+
+M7-001 records `FIND-M7-001` and `FIND-M7-002` as medium findings. Both are
+bounded enough to fix without a new dependency or Schema version, and both
+must be mitigated before M7 broadens clean-installation or Host-compatibility
+claims.
+
+The fixed Git subprocesses will receive a fresh, explicit environment instead
+of spreading `process.env`. The portable allowlist is limited to process
+lookup, operating-system, home/config-discovery, and temporary-directory
+keys:
+
+- `PATH`;
+- `SystemRoot`, `ComSpec`, `PATHEXT`, and `WINDIR`;
+- `HOME`, `USERPROFILE`, `HOMEDRIVE`, `HOMEPATH`, and `XDG_CONFIG_HOME`;
+- `TEMP`, `TMP`, and `TMPDIR`.
+
+Lookup is case-insensitive on Windows and emits at most one canonical key for
+each allowed name. Missing values stay absent. The child environment then sets
+`GIT_PAGER=cat`, `GIT_TERMINAL_PROMPT=0`, and `LC_ALL=C` itself. No other
+`GIT_*`, credential/token, trace, runtime-loader, or arbitrary Host variable
+is inherited. Existing fixed argument arrays, time and output bounds,
+`--no-ext-diff`, `--no-textconv`, and shell-free execution remain in force.
+Global/system/repository Git configuration discovered through the retained
+Host path variables remains an operator-owned boundary; this change is not a
+Git sandbox.
+
+This contract follows the current Node child-process behavior: `env` defaults
+to `process.env`, command lookup uses the supplied `PATH`, and Windows treats
+environment names case-insensitively. It also accounts for Git's documented
+`GIT_CONFIG_*`, diff, pager, prompt, and trace environment behavior. Primary
+references accessed 2026-07-26:
+
+- `https://nodejs.org/api/child_process.html`;
+- `https://git-scm.com/docs/git`;
+- `https://git-scm.com/docs/git-config`;
+- `https://git-scm.com/docs/diff-options`.
+
+Exception-derived failure text must not cross the MCP boundary. The five
+handlers that currently project raw exceptions — `get_change_scope`,
+`collect_local_evidence`, `get_review_bundle`, `validate_findings`, and
+`write_report` — will return an error result containing exactly the existing
+tool-specific `error` value plus `code: "operation_failed"`. They do not
+include an exception message, path, Git stderr, or `String(error)`. The
+external and runtime collectors retain their already-safe enumerated codes.
+
+Partial-success errors also stop copying exception text:
+
+- `git_file_diff_failed` keeps its repository-relative path and uses one fixed
+  safe message;
+- `document_root_unavailable` and `document_read_failed` keep their
+  repository-relative paths and use fixed safe messages.
+
+Expected validation messages, fixed operator guidance, and repository-relative
+evidence locators are unchanged. Success Schemas, tool names, inputs,
+annotations, report content, and deterministic identities are unchanged.
+Because error text is provisional pre-1.0 behavior and contains the reported
+risk, preserving it is not a compatibility requirement.
+
+Tests must prove that secret-shaped and hostile `GIT_*`/configuration
+environment sentinels do not reach or redirect Git, Windows key casing does
+not create duplicate environment entries, exception-derived sentinel values
+do not appear in MCP or partial-success results, and all existing success and
+failure-mode gates continue to pass. Only after those tests pass may
+`FIND-M7-001` and `FIND-M7-002` move to `mitigated`; the low redaction
+limitation and informational no-sandbox boundary remain open/accepted as
+recorded.
