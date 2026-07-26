@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-005 accepted; M7-006 extension, contribution, changelog, and versioning guidance assigned
+> Status: M7 in progress; M7-001 through M7-006 accepted; package publishing workflow preparation and dry-run is next
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -209,6 +209,16 @@ The technical spike may revise this choice if Host compatibility or package star
   and GitLab retain immutable-commit guidance while the portable mapping
   requires a protected exact published SemVer. No hosted CI, inference,
   credential, version, publication, tag, release, or dist-tag action occurred.
+- M7-006 was accepted on 2026-07-26. The npm artifact now includes public
+  contribution, changelog, package/Schema versioning, external-adapter
+  authoring, and runtime-converter authoring guidance. The installed-package
+  proof freezes all required README navigation, rejects internal governance
+  and work-item files, preserves the exact nine-tool/M1/CI contracts, and
+  removes its temporary root. The public guidance keeps package, Schema,
+  adapter, converter-profile, instruction, compatibility, registry, dist-tag,
+  Git-tag, GitHub-release, and milestone facts separate. No runtime contract,
+  dependency, version, registry, tag, release, publish, or dist-tag state
+  changed.
 
 ## 6. M0 — Project foundation
 
@@ -705,8 +715,8 @@ The format evidence supporting this boundary is in
 > fixture contract with Host-specific lifecycle evidence. The provider-neutral
 > runner, bounded summarizer, GitHub/GitLab/portable examples, and
 > mechanics-only fixture are packaged under Decision 35. Construction now
-> proceeds through assigned M7-006 for adapter/converter authoring,
-> contribution, changelog, and versioning guidance.
+> proceeds to package publishing workflow preparation and a non-publishing
+> dry-run after accepting M7-006 extension/contribution/version guidance.
 
 ### Goals
 
@@ -899,7 +909,7 @@ Progress as of 2026-07-26:
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
-| M7 public beta hardening | In progress; M7-001 through M7-005 are accepted and M7-006 public extension/contribution/version guidance is assigned |
+| M7 public beta hardening | In progress; M7-001 through M7-006 are accepted and package publishing workflow preparation/dry-run is next |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
@@ -907,6 +917,6 @@ prepared as `0.0.0-dev.1`; the published M1 compatibility artifact remains
 `0.0.0-dev.0` until the next preview release is explicitly published.
 
 M7 security hardening, clean installation, real priority-Host compatibility,
-and packaged provider-neutral CI examples are accepted. M7-006 now covers
-extension/contribution/version guidance; publishing dry-run preparation and
-the real multi-team pilot remain after it.
+packaged provider-neutral CI examples, and public
+extension/contribution/version guidance are accepted. Publishing dry-run
+preparation and the real multi-team pilot remain.

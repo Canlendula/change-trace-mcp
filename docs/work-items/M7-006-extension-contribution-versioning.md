@@ -367,19 +367,50 @@ install digest/summary, and any skipped validation in the handoff.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
-- Reviewed branch head:
-- Integration commit:
+- Outcome: `accepted`
+- Reviewed branch head: `3f7bac861b3883fcde4fc0971fef5ec0a578b88c`
+- Integration commit: fast-forward to
+  `3f7bac861b3883fcde4fc0971fef5ec0a578b88c`
+- Pre-acceptance tarball SHA-256:
+  `3913cb19df81b67cc15a91b0fa00e1857cbe91efa33f758707bdcec3d1e18c96`
+- Final accepted-main tarball SHA-256: pending post-Roadmap smoke
 
 ### Review findings
 
-- Pending.
+- No unresolved findings. The implementation stayed within the allowed
+  documentation, package-file allowlist, clean-install validation, focused
+  tests, and Worker handoff paths. Package version, dependencies, lockfile,
+  exports, bin, license, security policy, source, Schemas, hosted workflow,
+  registry, tags, releases, and dist-tags remained unchanged.
+- Coordinator pre-review identified and the worker fixed a split runtime
+  authoring link, a validator that did not require entry navigation, ambiguous
+  `Published` wording under `Unreleased`, incomplete stable SemVer guidance,
+  and missing clean-smoke rejection of internal governance files.
+- The accepted validator resolves relative links from all eight packaged
+  public sources, confines them to the installed package, freezes seven
+  required source/target navigation pairs, and rejects `AGENTS.md`,
+  `docs/CONTRIBUTING_WORKFLOW.md`, and `docs/work-items/**` in the exact clean
+  tarball.
+- Independent coordinator validation passed type checking, 2 focused files
+  with 14 passes and one existing Windows skip, 39 files / 393 tests with two
+  existing skips, exact nine-tool stdio and M1 fixture, advisory-CI smoke,
+  209-file package dry-run, and a zero-vulnerability production audit.
+- The independent pre-acceptance clean-install reproduced the worker's exact
+  209-file SHA-256, npm shasum, integrity, packed/unpacked sizes, installed
+  navigation, nine tools, M1 fixture, three CI artifacts, and complete cleanup.
 
 ### Required follow-up
 
-- Pending.
+- Regenerate the clean-install artifact after this packaged Roadmap acceptance
+  update and record the final accepted-main digest here before push.
+- Keep `CHANGELOG.md` under `Unreleased` until an explicitly authorized
+  publication. A package publication, dist-tag, Git tag, GitHub release,
+  compatibility observation, and milestone declaration remain independently
+  verified facts.
 
 ### Roadmap and release impact
 
-- M7 construction-sequence item 5 remains in progress until coordinator
-  acceptance.
+- M7 construction-sequence item 5 is accepted. Item 6, package publishing
+  workflow preparation and a non-publishing dry-run, is next.
+- No package version, public runtime contract, registry, tag, release,
+  publication, dist-tag, hosted CI run, credential, or pilot state changed.
