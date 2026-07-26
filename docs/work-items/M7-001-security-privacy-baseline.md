@@ -334,8 +334,9 @@ limitations, deviations, and decision requests.
 - Status: `ready_for_review`
 - Handoff branch: `codex/M7-001-security-privacy-baseline`
 - Worktree: `C:\Users\C\.codex\worktrees\d7b3\agent-e2e-mcp`
-- Implementation commits: `9614eda docs(security): establish M7 baseline`; this
-  handoff record is committed separately after this update.
+- Implementation commits: `9614eda docs(security): establish M7 baseline`,
+  `08d07d1 docs(work-item): hand off M7 security baseline`; the bounded review
+  correction is committed separately after this update.
 
 ### Implementation summary
 
@@ -346,6 +347,10 @@ limitations, deviations, and decision requests.
   surfaces, four findings, code/test references, Host responsibilities, and
   residual risk. It distinguishes repository origin trust from untrusted
   evidence-content instructions.
+- Review correction: hardened the dependency-free source scan so static and
+  side-effect imports, `require()`, and dynamic `import()` calls detect bare
+  and `node:` child-process/network module specifiers. The only allowed
+  child-process source files remain the Git collector and adapter runner.
 
 ### Changed areas
 
@@ -353,7 +358,7 @@ limitations, deviations, and decision requests.
   security/privacy/review documentation.
 - `docs/security/control-inventory.json`: strict executable control inventory.
 - `tests/unit/security-baseline.test.ts`: annotation, reference, package,
-  finding, process/network-boundary, and first-party-network drift checks.
+  finding, and fail-closed first-party process/network drift checks.
 - `package.json`: packages `SECURITY.md` and `docs/security` only.
 
 ### Validation
@@ -370,6 +375,11 @@ limitations, deviations, and decision requests.
 | `npm run pack:check` | passed | 192 files; includes `SECURITY.md` and all five `docs/security` files. |
 | `git diff --check e5955fb27ba2bf93f70df20b6057043fdb8d1afa..HEAD` | passed | Baseline commit diff and staged handoff diff both had no whitespace errors. |
 | `git status --short` | passed | Clean after the final handoff commit. |
+| Review-correction `npx vitest run tests/unit/security-baseline.test.ts` | passed | 4 tests, including quote/style import-variant self-test. An initial correction run failed only because its expected module-match ordering was wrong; the detection found every fixture module. |
+| Review-correction required 9-file Vitest command | passed | 9 files, 110 tests. |
+| Review-correction `npm run check` | passed | TypeScript no-emit check. |
+| Review-correction `npm test` | passed twice | Each run: 33 files, 344 tests. |
+| Review-correction smoke, pack, and audit commands | passed | stdio and CI smoke passed; package dry-run remained 192 files; production audit again reported 0 vulnerabilities. |
 
 ### Security and privacy audit
 
@@ -383,6 +393,9 @@ limitations, deviations, and decision requests.
   only by `collect_external_evidence`. Adapter configuration loading is a local
   configuration-read surface, with no process/network capability. No first-party
   HTTP, HTTPS, socket, DNS, fetch, or telemetry client was found in `src/`.
+- The scan fails closed for `child_process` in any non-allowlisted source and
+  for network-capable built-ins/clients in any source, including supported
+  static, side-effect, CommonJS, and dynamic-import forms.
 - Dependency audit: production audit reported 0 vulnerabilities at high level.
 - Findings: `FIND-M7-001` and `FIND-M7-002` are open medium follow-ups for Git
   Host-environment inheritance and bounded raw local error projection;

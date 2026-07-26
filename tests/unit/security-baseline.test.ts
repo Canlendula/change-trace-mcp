@@ -41,6 +41,29 @@ const capabilityValues = {
   networkExternal: ["none", "host_configured_adapter", "host_model_ci"],
   write: ["none", "report_pair"],
 } as const;
+const childProcessModuleSpecifiers = new Set([
+  "child_process",
+  "node:child_process",
+]);
+const networkModuleSpecifiers = new Set([
+  "http",
+  "https",
+  "http2",
+  "net",
+  "tls",
+  "dgram",
+  "dns",
+  "node:http",
+  "node:https",
+  "node:http2",
+  "node:net",
+  "node:tls",
+  "node:dgram",
+  "node:dns",
+  "undici",
+  "axios",
+  "node-fetch",
+]);
 
 type Reference = { path: string; token?: string };
 type Annotation = Record<(typeof annotationKeys)[number], boolean>;
@@ -218,6 +241,27 @@ function serverAnnotations(source: string): Map<string, Annotation> {
   return results;
 }
 
+function importedModuleSpecifiers(source: string): string[] {
+  const patterns = [
+    /\bimport\s+(?:type\s+)?(?:[\w*$\s{},]+?\s+from\s+)?["']([^"']+)["']/gu,
+    /\bexport\s+(?:type\s+)?(?:[\w*$\s{},]+?\s+from\s+)["']([^"']+)["']/gu,
+    /\brequire\s*\(\s*["']([^"']+)["']\s*\)/gu,
+    /\bimport\s*\(\s*["']([^"']+)["']\s*\)/gu,
+  ];
+  return patterns.flatMap((pattern) => [
+    ...source.matchAll(pattern),
+  ].map((match) => match[1]!));
+}
+
+function matchingModuleSpecifiers(
+  source: string,
+  candidates: ReadonlySet<string>,
+): string[] {
+  return importedModuleSpecifiers(source).filter((specifier) =>
+    candidates.has(specifier),
+  );
+}
+
 describe("M7 security and privacy baseline", () => {
   it("keeps the strict inventory synchronized with the current MCP surface", async () => {
     const inventory = JSON.parse(await readRepositoryFile(inventoryPath)) as Inventory;
@@ -330,6 +374,33 @@ describe("M7 security and privacy baseline", () => {
     }
   });
 
+  it("recognizes process and network module imports across supported styles", () => {
+    const fixture = [
+      'import { spawn } from "node:child_process";',
+      "import 'child_process';",
+      'const processModule = require("node:child_process");',
+      "const dynamicProcessModule = import('child_process');",
+      'import { request } from "node:https";',
+      "import 'http';",
+      "const socketModule = require('node:net');",
+      'const dynamicDnsModule = import("dns");',
+      "import axios from 'axios';",
+    ].join("\n");
+    expect(matchingModuleSpecifiers(fixture, childProcessModuleSpecifiers)).toEqual([
+      "node:child_process",
+      "child_process",
+      "node:child_process",
+      "child_process",
+    ]);
+    expect(matchingModuleSpecifiers(fixture, networkModuleSpecifiers)).toEqual([
+      "node:https",
+      "http",
+      "axios",
+      "node:net",
+      "dns",
+    ]);
+  });
+
   it("guards package, README, and first-party process/network boundaries", async () => {
     const packageJson = JSON.parse(await readRepositoryFile("package.json")) as Record<string, unknown>;
     const basePackage = JSON.parse(
@@ -351,19 +422,25 @@ describe("M7 security and privacy baseline", () => {
 
     const sourcePaths = await sourceFiles();
     const sourceTexts = await Promise.all(sourcePaths.map(async (path) => [path.replaceAll("\\", "/"), await readRepositoryFile(path)] as const));
-    const networkImport = /from\s+["'](?:node:(?:http|https|http2|net|tls|dgram|dns)|undici|axios|node-fetch)["']/u;
     const networkCall = /\b(?:fetch|WebSocket|XMLHttpRequest)\s*\(/u;
-    const processSources: string[] = [];
+    const processSources = new Map<string, string[]>();
     for (const [path, source] of sourceTexts) {
-      expect(source, `${path} must not add a first-party network client`).not.toMatch(networkImport);
+      expect(
+        matchingModuleSpecifiers(source, networkModuleSpecifiers),
+        `${path} must not add a first-party network client`,
+      ).toEqual([]);
       expect(source, `${path} must not add a first-party network call`).not.toMatch(networkCall);
-      if (source.includes('from "node:child_process"')) {
-        processSources.push(path);
+      const processReferences = matchingModuleSpecifiers(
+        source,
+        childProcessModuleSpecifiers,
+      );
+      if (processReferences.length > 0) {
+        processSources.set(path, processReferences);
       }
     }
-    expect(processSources).toEqual([
-      "src/evidence/external/run-external-adapter.ts",
-      "src/git/change-scope.ts",
+    expect([...processSources.entries()]).toEqual([
+      ["src/evidence/external/run-external-adapter.ts", ["node:child_process"]],
+      ["src/git/change-scope.ts", ["node:child_process"]],
     ]);
   });
 });
