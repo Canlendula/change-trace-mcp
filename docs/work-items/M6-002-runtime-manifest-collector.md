@@ -304,27 +304,69 @@ requests.
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
+- Status: `ready_for_review`
 - Handoff branch: `codex/M6-002-runtime-manifest-collector`
 - Implementation commits:
+  - `2ac9940` — `feat(runtime): collect confined evidence manifest`
+  - `1509845` — `test(runtime): verify public collector exports`
 
 ### Implementation summary
 
-- Pending.
+- Added the strict two-field collector input and public library exports.
+- Added one explicit-manifest collector that resolves the exact Git root,
+  confines the repository-relative path, rejects symbolic-link segments and
+  targets, and performs bounded stable-identity/size checks before, during,
+  and after reading.
+- Added fatal UTF-8, JSON, manifest-Schema, and normalized collection
+  validation with the assigned static error vocabulary.
+- Added deterministic runtime evidence normalization, redaction, hashing,
+  truncation reconciliation, complete runtime provenance, and unavailable
+  record mapping.
+- Registered the always-discoverable `collect_runtime_evidence` MCP tool with
+  the assigned annotations, safe error projection, and no-execution
+  description.
 
 ### Changed areas
 
-- Pending.
+- `src/schemas/runtime-collector.ts` and `src/schemas/index.ts`: strict input
+  Schema, inferred type, and public export.
+- `src/evidence/runtime/**`, `src/evidence/index.ts`: confined reader,
+  normalizer, static errors/limit, and package export chain.
+- `src/server.ts`: unconditional MCP tool registration and safe
+  success/failure responses.
+- `scripts/smoke-stdio.mjs`, `tests/integration/stdio.test.ts`: nine-tool
+  expectation while retaining the fixed compatibility fixture.
+- `tests/unit/runtime-evidence-collector.test.ts` and
+  `tests/integration/runtime-evidence-stdio.test.ts`: input, normalization,
+  file-boundary, safe-error, export-chain, and stdio coverage.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| Pending | Pending | Pending |
+| Initial focused red run | Failed as intended | 1 suite failed to import because `src/evidence/runtime/collect-runtime-evidence.js` did not exist; stdio calls also failed before the tool/build existed. M6-001 Schema tests passed. |
+| `npx vitest run tests/unit/runtime-evidence-collector.test.ts tests/integration/runtime-evidence-stdio.test.ts tests/integration/stdio.test.ts tests/unit/runtime-evidence-schema.test.ts` | Passed | 4 files, 60 tests; rerun from final implementation head. |
+| `npm run check` | Passed | TypeScript no-emit check passed from final implementation head. |
+| `npm test` | Passed | First final-head run: 30 files, 322 tests. |
+| `npm test` | Passed | Consecutive second final-head run: 30 files, 322 tests. |
+| `npm run smoke:stdio` | Passed | Exactly nine tools listed; compatibility fixture remained byte-identical. |
+| `npm run pack:check` | Passed | Dry-run produced `change-trace-mcp-0.0.0-dev.1.tgz`; 177 files, 127.0 kB packed. |
+| `git diff --check 3d8ae6ef279ef41f2178617e6404c935e3d65114..HEAD` | Passed | No whitespace errors. |
+| `git status --short` | Passed | Clean before handoff update; will be clean again after this handoff commit. |
 
 ### Public contract and documentation impact
 
-- Pending.
+- Additive public exports: `collectRuntimeEvidenceInputSchema`,
+  `CollectRuntimeEvidenceInput`, `collectRuntimeEvidence`,
+  `normalizeRuntimeEvidenceManifest`,
+  `MAX_RUNTIME_EVIDENCE_MANIFEST_BYTES`,
+  `RUNTIME_EVIDENCE_COLLECTOR_ERROR_CODES`,
+  `RuntimeEvidenceCollectorError`,
+  `RuntimeEvidenceCollectorErrorCode`, and
+  `RuntimeEvidenceCollectorOptions`.
+- Additive MCP tool: `collect_runtime_evidence`.
+- No accepted M6-001 Schema, bundle, report, Finding, or compatibility-fixture
+  contract changed.
 
 ### Deviations from assignment
 
@@ -332,7 +374,17 @@ requests.
 
 ### Known limitations and risks
 
-- None.
+- The collector intentionally accepts only the normalized M6 manifest. It
+  performs no format conversion, discovery, execution, artifact fetch, or
+  relationship merge.
+- The real directory-junction segment rejection runs on Windows. The
+  additional final-file symbolic-link assertion is skipped only when the host
+  denies file-symlink creation with `EPERM`; the collector still rejects final
+  symbolic links through `lstat` and `O_NOFOLLOW` where exposed.
+- Mid-read replacement/growth is guarded by descriptor/path identity,
+  per-segment identity, and size comparisons plus the limit-plus-one read.
+  The suite exercises the individual unsafe/oversize boundaries but does not
+  inject a deterministic filesystem mutation inside an active read.
 
 ### Decisions or questions for coordinator
 
@@ -340,9 +392,9 @@ requests.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, dependency, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, dependency, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
