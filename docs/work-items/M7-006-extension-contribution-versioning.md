@@ -373,7 +373,8 @@ install digest/summary, and any skipped validation in the handoff.
   `3f7bac861b3883fcde4fc0971fef5ec0a578b88c`
 - Pre-acceptance tarball SHA-256:
   `3913cb19df81b67cc15a91b0fa00e1857cbe91efa33f758707bdcec3d1e18c96`
-- Final accepted-main tarball SHA-256: pending post-Roadmap smoke
+- Final accepted-main tarball SHA-256:
+  `205f14acb9706f6e94fa7c168776c1f491bb179498f5728c472962b9c304be42`
 
 ### Review findings
 
@@ -398,11 +399,15 @@ install digest/summary, and any skipped validation in the handoff.
 - The independent pre-acceptance clean-install reproduced the worker's exact
   209-file SHA-256, npm shasum, integrity, packed/unpacked sizes, installed
   navigation, nine tools, M1 fixture, three CI artifacts, and complete cleanup.
+- After the packaged Roadmap acceptance commit, the final accepted-main smoke
+  passed with 209 files, packed/unpacked sizes `175372`/`861023`, npm shasum
+  `5619310c4aa6d390bccf2a6d33846b55a184e9ad`, npm integrity
+  `sha512-oDCn0OucBp7vluRlZOGEdyc8DLy0GsQs+DHnkSTdtPO3RfDV3AUQNgYUKMs0pZXab59CFWhws7OnsKbuZL6JmA==`,
+  exact public navigation, nine tools, the M1 fixture, three CI artifacts, and
+  complete cleanup.
 
 ### Required follow-up
 
-- Regenerate the clean-install artifact after this packaged Roadmap acceptance
-  update and record the final accepted-main digest here before push.
 - Keep `CHANGELOG.md` under `Unreleased` until an explicitly authorized
   publication. A package publication, dist-tag, Git tag, GitHub release,
   compatibility observation, and milestone declaration remain independently
