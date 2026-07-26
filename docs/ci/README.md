@@ -115,6 +115,15 @@ It does not establish semantic Host/model compatibility. It has no model
 permission, provider credential, inference step, or switch that can enable
 inference.
 
+## Public deterministic fixture
+
+[`fixtures/deterministic-advisory-host.mjs`](fixtures/deterministic-advisory-host.mjs)
+is a mechanics-only runner orchestration and artifact-evidence fixture. It
+writes a fixed schema-valid no-findings report pair to the configured output
+directory. It performs no inference, network access, Git command, credential
+access, or subject-repository mutation. It is not a reviewer and supplies no
+semantic Host or model compatibility evidence.
+
 ## Caller-supplied Host on GitHub
 
 [`github-actions.example.yml`](github-actions.example.yml) is a copyable,
@@ -153,7 +162,8 @@ options and are not implemented or certified here.
 
 [`gitlab-ci.example.yml`](gitlab-ci.example.yml) is provider-neutral and
 advisory. Before using it, a protected pipeline must independently obtain a
-trusted tooling checkout at a protected revision, verify that directory is not
+trusted tooling checkout at the immutable full commit recorded in
+`CHANGE_TRACE_TOOLING_REF`, verify that directory is not
 a symlink, and provide a distinct read-only subject worktree. Supply safe
 base/head revisions and a unique attempt number through the listed variables.
 Keep a Host/provider credential protected and masked; pass it only to the Host
@@ -161,6 +171,17 @@ process and never to MCP configuration or artifacts. GitLab masking likewise
 does not remove variables from a child environment. The caller-supplied Host
 must sanitize the MCP child environment and keep the credential out of
 arguments, logs, prompts, reports, and artifacts.
+
+## Portable CI mapping
+
+[`portable-advisory.sh.example`](portable-advisory.sh.example) gives a POSIX
+shell mapping for Gitee Go, Jenkins, Bitbucket Pipelines, Azure Pipelines,
+Forgejo, and similar systems. It uses an exact package version, explicit JSON
+argv, separate trusted tooling and subject roots, Host-only credentials, MCP
+child-environment sanitization, advisory execution, and the exact three
+artifact paths. It is mapping guidance only: it does not certify vendor
+authentication, native Agents, triggers, retention, comments/checks, or merge
+policy.
 
 ## Historical rejected provider path
 

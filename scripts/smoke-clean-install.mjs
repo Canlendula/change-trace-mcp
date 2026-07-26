@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { lstatSync } from "node:fs";
-import { access, lstat, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { access, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -41,7 +41,16 @@ const REQUIRED_PACKED_FILES = [
   "docs/smoke-tests/config/opencode.json.example",
   "docs/smoke-tests/config/opencode-v2.json.example",
   "docs/security/README.md",
+  "docs/ci/README.md",
+  "docs/ci/github-actions.example.yml",
+  "docs/ci/gitlab-ci.example.yml",
+  "docs/ci/portable-advisory.sh.example",
+  "docs/ci/fixtures/deterministic-advisory-host.mjs",
+  "scripts/ci/advisory-runner.mjs",
+  "scripts/ci/summarize-advisory-status.mjs",
 ];
+const CI_ARTIFACT_NAMES = ["release-review.md", "release-review.json", "release-review-status.json"];
+const MAX_CI_ARTIFACT_BYTES = 10 * 1024 * 1024;
 
 class SmokeError extends Error {
   constructor(code) {
@@ -74,6 +83,8 @@ export function createSmokePlan({ repositoryRoot: sourceRoot, temporaryRoot, npm
     consumerDirectory: join(temporaryRoot, "consumer"),
     npxDirectory: join(temporaryRoot, "npx-consumer"),
     homeDirectory: join(temporaryRoot, "home"),
+    subjectDirectory: join(temporaryRoot, "subject"),
+    fixtureOutputDirectory: join(temporaryRoot, "subject", "advisory-output"),
     userConfigPath: join(temporaryRoot, "npmrc"),
     tarballPath: null,
     npmCliPath,
@@ -153,6 +164,45 @@ export function validatePackedFiles(files) {
   }
   const forbidden = /^(?:src|tests|node_modules|\.git|\.github|docs\/work-items)(?:\/|$)|(?:^|\/)(?:\.env(?:\.[^/]+)?|\.npmrc|npmrc|\.yarnrc|\.pnpmrc|\.pypirc|\.netrc|\.gitconfig|package-lock\.json|\.gitignore|auth(?:entication)?(?:\.[^/]+)?|tokens?(?:\.[^/]+)?|secrets?(?:\.[^/]+)?|credentials?(?:\.[^/]+)?)(?:$|\/)/iu;
   if (files.some((file) => forbidden.test(normalizedPath(file)))) throw smokeError("packed_file_forbidden");
+  const permittedCiScripts = new Set(["scripts/ci/advisory-runner.mjs", "scripts/ci/summarize-advisory-status.mjs"]);
+  if (files.some((file) => normalizedPath(file).startsWith("scripts/ci/") && !permittedCiScripts.has(normalizedPath(file)))) {
+    throw smokeError("packed_ci_script_forbidden");
+  }
+}
+
+export async function validateInstalledCiArtifacts(outputDirectory) {
+  const entries = (await readdir(outputDirectory)).sort();
+  if (JSON.stringify(entries) !== JSON.stringify([...CI_ARTIFACT_NAMES].sort())) throw smokeError("ci_artifacts_invalid");
+  const artifacts = {};
+  for (const name of CI_ARTIFACT_NAMES) {
+    const path = join(outputDirectory, name);
+    const stat = await lstat(path);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size < 1 || stat.size > MAX_CI_ARTIFACT_BYTES) {
+      throw smokeError("ci_artifacts_invalid");
+    }
+    artifacts[name] = await readFile(path, "utf8");
+  }
+  let report;
+  let status;
+  try {
+    report = JSON.parse(artifacts["release-review.json"]);
+    status = JSON.parse(artifacts["release-review-status.json"]);
+  } catch {
+    throw smokeError("ci_artifacts_invalid");
+  }
+  if (report.schemaVersion !== "1.0.0" || report.id !== "deterministic-advisory-report" || report.bundleId !== "deterministic-advisory-bundle" ||
+      report.reviewMeta?.reviewer !== "deterministic-public-fixture" ||
+      JSON.stringify(report.findings) !== JSON.stringify({ confirmed: [], suspected: [], inconclusive: [] }) ||
+      !Array.isArray(report.evidenceSources) || report.evidenceSources.length !== 0 ||
+      report.validationSummary?.submitted !== 0 || report.validationSummary?.valid !== 0 || report.validationSummary?.rejected !== 0 ||
+      report.bundleTruncation?.isTruncated !== false) throw smokeError("ci_report_schema_invalid");
+  if (status.schemaVersion !== "1.0.0" || status.artifactType !== "change-trace-advisory-status" || status.outcome !== "completed_no_findings" ||
+      status.host?.id !== "deterministic-public-fixture" || status.run?.runAttempt !== 1 ||
+      JSON.stringify(status.counts) !== JSON.stringify({ confirmed: 0, suspected: 0, inconclusive: 0, rejected: 0, missingEvidence: 0, bundleTruncated: false }) ||
+      JSON.stringify(Object.values(status.artifacts ?? {}).map((artifact) => artifact?.name).sort()) !== JSON.stringify([...CI_ARTIFACT_NAMES].sort()) ||
+      !/^sha256:[a-f0-9]{64}$/u.test(status.artifacts?.markdown?.sha256 ?? "") ||
+      !/^sha256:[a-f0-9]{64}$/u.test(status.artifacts?.json?.sha256 ?? "")) throw smokeError("ci_status_schema_invalid");
+  return { outcome: status.outcome, artifacts: CI_ARTIFACT_NAMES.length };
 }
 
 export function validateLaunchResult(output) {
@@ -171,7 +221,7 @@ export function validateLaunchResult(output) {
 
 export function validateSmokeSummary(summary) {
   if (!summary || typeof summary !== "object" || Array.isArray(summary)) throw smokeError("summary_invalid");
-  const expectedKeys = ["schemaVersion", "package", "tarball", "runtime", "install", "npx", "tools", "fixture", "cleanup"];
+  const expectedKeys = ["schemaVersion", "package", "tarball", "runtime", "install", "npx", "tools", "fixture", "ci", "cleanup"];
   if (JSON.stringify(Object.keys(summary).sort()) !== JSON.stringify(expectedKeys.sort())) throw smokeError("summary_invalid");
   if (summary.schemaVersion !== "1.0.0" || summary.cleanup !== true || summary.install?.ok !== true || summary.install?.copiedPackage !== true || summary.npx?.ok !== true) throw smokeError("summary_invalid");
   if (typeof summary.package?.name !== "string" || typeof summary.package?.sourceVersion !== "string" ||
@@ -179,7 +229,7 @@ export function validateSmokeSummary(summary) {
       typeof summary.tarball?.npmShasum !== "string" || typeof summary.tarball?.npmIntegrity !== "string" ||
       !Number.isSafeInteger(summary.tarball?.packedSize) || !Number.isSafeInteger(summary.tarball?.unpackedSize) || !Number.isSafeInteger(summary.tarball?.fileCount) ||
       typeof summary.runtime?.node !== "string" || typeof summary.runtime?.npm !== "string" || typeof summary.runtime?.platform !== "string" || typeof summary.runtime?.arch !== "string" ||
-      summary.fixture !== CLEAN_INSTALL_FIXTURE) throw smokeError("summary_invalid");
+      summary.fixture !== CLEAN_INSTALL_FIXTURE || summary.ci?.outcome !== "completed_no_findings" || summary.ci?.artifacts !== 3) throw smokeError("summary_invalid");
   if (!Array.isArray(summary.tools) || JSON.stringify([...summary.tools].sort()) !== JSON.stringify(EXPECTED_TOOL_NAMES)) throw smokeError("summary_invalid");
   return summary;
 }
@@ -330,7 +380,7 @@ async function executeSmoke() {
   const npxCliPath = resolveCliPath("npx", process.env.CHANGE_TRACE_NPX_CLI_PATH);
   const { result, cleanupSuccess } = await withTemporaryRoot(async (temporaryRoot) => {
     const plan = createSmokePlan({ repositoryRoot, temporaryRoot, npmCliPath, npxCliPath });
-    await Promise.all([mkdir(plan.artifactDirectory), mkdir(plan.cacheDirectory), mkdir(plan.consumerDirectory), mkdir(plan.npxDirectory), mkdir(plan.homeDirectory)]);
+    await Promise.all([mkdir(plan.artifactDirectory), mkdir(plan.cacheDirectory), mkdir(plan.consumerDirectory), mkdir(plan.npxDirectory), mkdir(plan.homeDirectory), mkdir(plan.subjectDirectory)]);
     await writeFile(plan.userConfigPath, "", { encoding: "utf8", mode: 0o600 });
     const packEnvironment = sanitizeEnvironment(process.env, { ...plan, ignoreScripts: false });
     const installEnvironment = sanitizeEnvironment(process.env, plan);
@@ -350,6 +400,21 @@ async function executeSmoke() {
     await runBounded(npmCommand, [npmCliPath, "ls", "--omit=dev", "--json", "--no-audit", "--no-fund", "--userconfig", plan.userConfigPath], { cwd: plan.consumerDirectory, env: installEnvironment });
     const installedLaunch = validateLaunchResult((await runBounded(process.execPath, [referenceClientPath, process.execPath, join(installedDirectory, "dist", "cli.js")], { cwd: plan.consumerDirectory, env: installEnvironment })).stdout);
     const npxLaunch = validateLaunchResult((await runBounded(process.execPath, [referenceClientPath, process.execPath, npxCliPath, "--yes", "--package", tarballPath, "--", sourcePackage.name], { cwd: plan.npxDirectory, env: installEnvironment })).stdout);
+    const installedRunner = join(installedDirectory, "scripts", "ci", "advisory-runner.mjs");
+    const installedFixture = join(installedDirectory, "docs", "ci", "fixtures", "deterministic-advisory-host.mjs");
+    const ciRun = await runBounded(process.execPath, [installedRunner], {
+      cwd: plan.subjectDirectory,
+      env: {
+        ...installEnvironment,
+        CHANGE_TRACE_CI_COMMAND: JSON.stringify([process.execPath, installedFixture]),
+        CHANGE_TRACE_CI_REPOSITORY_ROOT: plan.subjectDirectory,
+        CHANGE_TRACE_CI_OUTPUT_DIRECTORY: "advisory-output",
+        CHANGE_TRACE_CI_HOST_ID: "deterministic-public-fixture",
+        CHANGE_TRACE_CI_RUN_ATTEMPT: "1",
+      },
+    });
+    if (ciRun.stdout !== "change-trace-advisory outcome=completed_no_findings code=ok\n" || ciRun.stderr !== "") throw smokeError("ci_runner_output_invalid");
+    const ci = await validateInstalledCiArtifacts(plan.fixtureOutputDirectory);
     const npmVersion = (await runBounded(npmCommand, [npmCliPath, "--version"], { cwd: plan.consumerDirectory, env: installEnvironment })).stdout.trim();
     if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/u.test(npmVersion)) throw smokeError("npm_version_invalid");
     return validateSmokeSummary({
@@ -369,6 +434,7 @@ async function executeSmoke() {
       npx: { ok: true },
       tools: installedLaunch.toolNames,
       fixture: installedLaunch.fixture,
+      ci,
       cleanup: true,
     });
   });

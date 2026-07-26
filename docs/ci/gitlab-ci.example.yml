@@ -1,5 +1,6 @@
 # Copyable provider-neutral advisory example. Prepare CHANGE_TRACE_TOOLING_ROOT
-# from a protected trusted revision; never use the merge-request worktree for it.
+# from the immutable full commit in protected CHANGE_TRACE_TOOLING_REF; never
+# use the merge-request worktree for it.
 stages: [test, advisory]
 
 change_trace_advisory:
@@ -9,10 +10,12 @@ change_trace_advisory:
   allow_failure: true
   variables:
     CHANGE_TRACE_TOOLING_ROOT: "$CI_PROJECT_DIR/.change-trace-trusted"
+    CHANGE_TRACE_TOOLING_REF: "$CHANGE_TRACE_TOOLING_REF"
     CHANGE_TRACE_SUBJECT_ROOT: "$CI_PROJECT_DIR"
     CHANGE_TRACE_OUTPUT_DIRECTORY: "artifacts/advisory"
   script:
     - test -n "$CHANGE_TRACE_HOST_COMMAND"
+    - test -n "$CHANGE_TRACE_TOOLING_REF"
     - test -n "$CHANGE_TRACE_BASE_REVISION"
     - test -n "$CHANGE_TRACE_HEAD_REVISION"
     - cd "$CHANGE_TRACE_TOOLING_ROOT"
@@ -38,8 +41,10 @@ change_trace_advisory:
 # configuration. If the selected Host needs a provider credential, store it as a
 # protected and masked variable and pass it only to that Host process. Do not
 # put it in MCP configuration, command arguments, logs, reports, or artifacts.
+# The selected Host must sanitize the MCP child environment with an allowlist
+# that excludes every provider credential before it launches that child.
 # Before this job, a protected pipeline step must independently check out the
-# trusted tooling revision into CHANGE_TRACE_TOOLING_ROOT, verify it is a real
+# immutable full commit in CHANGE_TRACE_TOOLING_REF into CHANGE_TRACE_TOOLING_ROOT, verify it is a real
 # directory under CI_PROJECT_DIR (not a symlink), and provide a separate,
 # read-only subject worktree at CHANGE_TRACE_SUBJECT_ROOT. Do not let merge
 # request content create either trusted path. The stage ordering places this

@@ -1,4 +1,4 @@
-import { access, mkdtemp, rm } from "node:fs/promises";
+import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -16,6 +16,7 @@ const {
   sanitizeEnvironment,
   validateSmokeSummary,
   validateLaunchResult,
+  validateInstalledCiArtifacts,
   validatePackedFiles,
   withTemporaryRoot,
 } = await import(smokeModulePath);
@@ -36,6 +37,8 @@ describe("clean package installation smoke helpers", () => {
       consumerDirectory: plan.consumerDirectory.replaceAll("\\", "/"),
       npxDirectory: plan.npxDirectory.replaceAll("\\", "/"),
       userConfigPath: plan.userConfigPath.replaceAll("\\", "/"),
+      subjectDirectory: plan.subjectDirectory.replaceAll("\\", "/"),
+      fixtureOutputDirectory: plan.fixtureOutputDirectory.replaceAll("\\", "/"),
     }).toMatchObject({
       npmCliPath: "C:/node/npm-cli.js",
       npxCliPath: "C:/node/npx-cli.js",
@@ -44,6 +47,8 @@ describe("clean package installation smoke helpers", () => {
       consumerDirectory: "C:/temp/change-trace-clean-123/consumer",
       npxDirectory: "C:/temp/change-trace-clean-123/npx-consumer",
       userConfigPath: "C:/temp/change-trace-clean-123/npmrc",
+      subjectDirectory: "C:/temp/change-trace-clean-123/subject",
+      fixtureOutputDirectory: "C:/temp/change-trace-clean-123/subject/advisory-output",
     });
     expect(plan.tarballPath).toBeNull();
   });
@@ -144,9 +149,17 @@ describe("clean package installation smoke helpers", () => {
       "docs/smoke-tests/config/opencode.json.example",
       "docs/smoke-tests/config/opencode-v2.json.example",
       "docs/security/README.md",
+      "docs/ci/README.md",
+      "docs/ci/github-actions.example.yml",
+      "docs/ci/gitlab-ci.example.yml",
+      "docs/ci/portable-advisory.sh.example",
+      "docs/ci/fixtures/deterministic-advisory-host.mjs",
+      "scripts/ci/advisory-runner.mjs",
+      "scripts/ci/summarize-advisory-status.mjs",
     ];
     expect(() => validatePackedFiles(required)).not.toThrow();
     expect(() => validatePackedFiles([...required, "src/cli.ts"])).toThrow("packed_file_forbidden");
+    expect(() => validatePackedFiles([...required, "scripts/ci/opencode-advisory-host.mjs"])).toThrow("packed_ci_script_forbidden");
     for (const forbidden of [".env", ".env.production", "auth.json", "token.txt", "secret.env", "credentials.json", ".npmrc", ".netrc"]) {
       expect(() => validatePackedFiles([...required, forbidden])).toThrow("packed_file_forbidden");
     }
@@ -183,10 +196,38 @@ describe("clean package installation smoke helpers", () => {
       npx: { ok: true },
       tools: [...EXPECTED_TOOL_NAMES],
       fixture: CLEAN_INSTALL_FIXTURE,
+      ci: { outcome: "completed_no_findings", artifacts: 3 },
       cleanup: true,
     };
     expect(() => validateSmokeSummary(summary)).not.toThrow();
     expect(() => validateSmokeSummary({ ...summary, secret: "not-allowed" })).toThrow("summary_invalid");
+  });
+
+  it("requires exact bounded installed fixture artifacts and no output escape", async () => {
+    const root = await mkdtemp(join(tmpdir(), "change-trace-ci-artifacts-"));
+    try {
+      await writeFile(join(root, "release-review.md"), "# fixture\n", "utf8");
+      await writeFile(join(root, "release-review.json"), JSON.stringify({
+        schemaVersion: "1.0.0", id: "deterministic-advisory-report", bundleId: "deterministic-advisory-bundle",
+        reviewMeta: { reviewer: "deterministic-public-fixture" }, findings: { confirmed: [], suspected: [], inconclusive: [] },
+        evidenceSources: [], validationSummary: { submitted: 0, valid: 0, rejected: 0 }, bundleTruncation: { isTruncated: false },
+      }), "utf8");
+      await writeFile(join(root, "release-review-status.json"), JSON.stringify({
+        schemaVersion: "1.0.0", artifactType: "change-trace-advisory-status", outcome: "completed_no_findings",
+        host: { id: "deterministic-public-fixture" }, run: { runAttempt: 1 },
+        counts: { confirmed: 0, suspected: 0, inconclusive: 0, rejected: 0, missingEvidence: 0, bundleTruncated: false },
+        artifacts: {
+          markdown: { name: "release-review.md", sha256: `sha256:${"a".repeat(64)}` },
+          json: { name: "release-review.json", sha256: `sha256:${"b".repeat(64)}` },
+          status: { name: "release-review-status.json" },
+        },
+      }), "utf8");
+      await expect(validateInstalledCiArtifacts(root)).resolves.toEqual({ outcome: "completed_no_findings", artifacts: 3 });
+      await writeFile(join(root, "extra.txt"), "escape", "utf8");
+      await expect(validateInstalledCiArtifacts(root)).rejects.toThrow("ci_artifacts_invalid");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   it("removes the complete temporary root after a deterministic failure", async () => {

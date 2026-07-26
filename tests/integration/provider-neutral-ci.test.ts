@@ -11,6 +11,9 @@ const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const workflowPath = join(root, ".github", "workflows", "m4-advisory-review.yml");
 const examplePath = join(root, "docs", "ci", "github-actions.example.yml");
 const docsPath = join(root, "docs", "ci", "README.md");
+const gitlabExamplePath = join(root, "docs", "ci", "gitlab-ci.example.yml");
+const portableExamplePath = join(root, "docs", "ci", "portable-advisory.sh.example");
+const publicFixturePath = join(root, "docs", "ci", "fixtures", "deterministic-advisory-host.mjs");
 const smokePath = join(root, "scripts", "ci", "smoke-advisory-ci.mjs");
 const managedNames = [
   "release-review.md",
@@ -124,5 +127,29 @@ describe("provider-neutral CI references", () => {
     expect(docs).toContain("orchestration, artifact, and rerun behavior only");
     expect(docs).toContain("does not establish semantic Host/model compatibility");
     expect(docs).toContain("GitLab");
+  });
+
+  it("keeps GitLab and portable mappings advisory, exact, credential-confined, and artifact-bounded", async () => {
+    const [gitlab, portable, fixture, docs] = await Promise.all([
+      readLf(gitlabExamplePath), readLf(portableExamplePath), readLf(publicFixturePath), readLf(docsPath),
+    ]);
+    for (const example of [gitlab, portable]) {
+      expect(example).toContain("CHANGE_TRACE_HOST_COMMAND");
+      expect(example).toMatch(/JSON argv/i);
+      expect(example).toMatch(/sanitize.*MCP child|MCP child.*sanitize/is);
+      expect(example).toMatch(/credential/i);
+      expect(example).toMatch(/release-review\.md/);
+      expect(example).toMatch(/release-review\.json/);
+      expect(example).toMatch(/release-review-status\.json/);
+    }
+    expect(gitlab).toContain("allow_failure: true");
+    expect(gitlab).toContain("CHANGE_TRACE_CI_COMMAND=\"$CHANGE_TRACE_HOST_COMMAND\"");
+    expect(portable).toContain("CHANGE_TRACE_PACKAGE_VERSION='0.0.0-dev.1'");
+    expect(portable).toContain("--ignore-scripts");
+    expect(portable).toContain("node_modules/change-trace-mcp/scripts/ci/advisory-runner.mjs");
+    expect(fixture).toContain("no network,\n// Git, model, credential");
+    expect(fixture).not.toMatch(/fetch\(|https?:|child_process|git\s/iu);
+    expect(docs).toContain("mechanics-only");
+    expect(docs).toContain("does not certify vendor");
   });
 });

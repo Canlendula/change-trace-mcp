@@ -20,6 +20,9 @@
     "docs/runtime-evidence",
     "docs/smoke-tests",
     "docs/security",
+    "docs/ci",
+    "scripts/ci/advisory-runner.mjs",
+    "scripts/ci/summarize-advisory-status.mjs",
     "LICENSE",
     "README.md",
     "SECURITY.md"

@@ -148,6 +148,10 @@ const jsonSchemas = exportCoreJsonSchemas();
 Host-specific setup and the current compatibility matrix live in
 [`docs/smoke-tests/`](docs/smoke-tests/README.md).
 
+The packaged [provider-neutral advisory CI runner and examples](docs/ci/README.md)
+are mechanics-only integration guidance. They do not bundle a Host, provider,
+or semantic review capability.
+
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for milestone scope and
 [`docs/PROJECT_DECISIONS.md`](docs/PROJECT_DECISIONS.md) for accepted product
 and architecture decisions.
