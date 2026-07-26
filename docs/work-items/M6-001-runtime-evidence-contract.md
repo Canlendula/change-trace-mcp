@@ -277,6 +277,7 @@ request.
 - Implementation commit(s):
   - `0b6844311305328fbfcce22d7f9ee526a7c03f95`
   - `b693094a3163134e9566d9410e40b6649dbefdbf`
+  - `f03d9433694d16a59eff7222c171259600b8f73d`
 - Branch head: resolve from Git; do not self-reference this handoff commit.
 
 ### Implementation summary
@@ -290,6 +291,10 @@ request.
   `observed_runtime` trust and the exact runtime kind/type mapping whenever
   runtime provenance is present, so direct review-bundle inputs cannot bypass
   the normalized collection.
+- Defined normalized runtime items with `safeExtend`, making their three
+  allowed evidence types, `observed_runtime` trust, and runtime provenance
+  structurally required in both inferred TypeScript and exported JSON Schema
+  while preserving the core cross-field refinements.
 - Enforced the three manifest variants, runtime type/trust/kind mapping,
   producer consistency, unique IDs, relationship and outcome bounds, safe
   duration, timestamp order, truncation consistency, and unavailable-source
@@ -331,13 +336,25 @@ request.
     provenance-presence rule.
 - Final post-review focused validation:
   - `npx vitest run tests/unit/runtime-evidence-schema.test.ts tests/unit/core-schemas.test.ts tests/unit/json-schema.test.ts`
-  - Passed: 3 files, 23 tests.
+  - Passed after the identity fix: 3 files, 23 tests.
+- Public-type and JSON-Schema follow-up:
+  - Before structural narrowing, the new focused runtime item test failed as
+    intended: 1 failed / 23 passed tests because the JSON Schema omitted
+    required runtime provenance. `npm run check` also failed because inferred
+    runtime provenance was optional and runtime type/trust retained the generic
+    EvidenceItem unions.
+  - After `f03d9433694d16a59eff7222c171259600b8f73d`, the inferred
+    `RuntimeEvidenceItem` requires runtime provenance, narrows type to
+    `test_result | runtime_observation | configuration`, and narrows trust to
+    `observed_runtime`. Direct JSON Schema tests confirm the required field,
+    type enum, and trust const.
+  - Final focused result: 3 files, 24 tests passed.
 - `npm run check`
   - Passed with no TypeScript errors.
-- First `npm test`
-  - Passed: 28 files, 281 tests.
-- Second consecutive `npm test`
-  - Passed: 28 files, 281 tests.
+- First final `npm test`
+  - Passed: 28 files, 282 tests.
+- Second consecutive final `npm test`
+  - Passed: 28 files, 282 tests.
 - `npm run smoke:stdio`
   - Passed; server advertised the existing eight tools and returned the
     expected M1 compatibility fixture.
