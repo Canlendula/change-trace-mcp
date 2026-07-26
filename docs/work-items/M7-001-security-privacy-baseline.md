@@ -335,8 +335,9 @@ limitations, deviations, and decision requests.
 - Handoff branch: `codex/M7-001-security-privacy-baseline`
 - Worktree: `C:\Users\C\.codex\worktrees\d7b3\agent-e2e-mcp`
 - Implementation commits: `9614eda docs(security): establish M7 baseline`,
-  `08d07d1 docs(work-item): hand off M7 security baseline`; the bounded review
-  correction is committed separately after this update.
+  `08d07d1 docs(work-item): hand off M7 security baseline`,
+  `b4c145c test(security): harden capability drift scan`; the final strict
+  import-allowlist correction is committed separately after this update.
 
 ### Implementation summary
 
@@ -351,6 +352,10 @@ limitations, deviations, and decision requests.
   side-effect imports, `require()`, and dynamic `import()` calls detect bare
   and `node:` child-process/network module specifiers. The only allowed
   child-process source files remain the Git collector and adapter runner.
+- Final review correction: a strict allowlist now permits only the current ten
+  non-relative production imports (two MCP server modules, `zod`, and seven
+  Node built-ins). Relative internal imports remain allowed; unknown packages,
+  MCP client subpaths, unknown built-ins, and non-literal loaders fail closed.
 
 ### Changed areas
 
@@ -380,6 +385,11 @@ limitations, deviations, and decision requests.
 | Review-correction `npm run check` | passed | TypeScript no-emit check. |
 | Review-correction `npm test` | passed twice | Each run: 33 files, 344 tests. |
 | Review-correction smoke, pack, and audit commands | passed | stdio and CI smoke passed; package dry-run remained 192 files; production audit again reported 0 vulnerabilities. |
+| Final-correction `npx vitest run tests/unit/security-baseline.test.ts` | passed | 4 tests, including strict module-allowlist/non-literal-loader self-test. |
+| Final-correction required 9-file Vitest command | passed | 9 files, 110 tests. |
+| Final-correction `npm run check` | passed | TypeScript no-emit check. |
+| Final-correction `npm test` | passed twice | Each run: 33 files, 344 tests. |
+| Final-correction smoke, pack, and audit commands | passed | stdio and CI smoke passed; package dry-run remained 192 files; production audit again reported 0 vulnerabilities. |
 
 ### Security and privacy audit
 
@@ -396,6 +406,11 @@ limitations, deviations, and decision requests.
 - The scan fails closed for `child_process` in any non-allowlisted source and
   for network-capable built-ins/clients in any source, including supported
   static, side-effect, CommonJS, and dynamic-import forms.
+- The strict import allowlist also rejects a future
+  `@modelcontextprotocol/sdk/client/...` transport, any other package/subpath,
+  and unrecognized Node built-in before it can create an undocumented process
+  or network boundary. Non-literal `require()` and dynamic `import()` calls are
+  rejected because their target cannot be statically reviewed.
 - Dependency audit: production audit reported 0 vulnerabilities at high level.
 - Findings: `FIND-M7-001` and `FIND-M7-002` are open medium follow-ups for Git
   Host-environment inheritance and bounded raw local error projection;
