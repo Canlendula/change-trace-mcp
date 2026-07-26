@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `assigned`
+- Status: `accepted`
 - Milestone: `M6 — Runtime and staging evidence`
 - Base commit: `3d8ae6ef279ef41f2178617e6404c935e3d65114`
 - Branch: `codex/M6-002-runtime-manifest-collector`
@@ -231,28 +231,28 @@ Reading other files is allowed. Writing outside this list is not.
 
 ## Acceptance criteria
 
-- [ ] Input exposes exactly the two assigned paths and rejects every forbidden
+- [x] Input exposes exactly the two assigned paths and rejects every forbidden
       or injection-shaped path form.
-- [ ] File access is Git-root-confined, regular-file-only, symlink-free,
+- [x] File access is Git-root-confined, regular-file-only, symlink-free,
       stable-identity checked, byte-bounded, fatal-UTF-8, strict JSON, and
       strict manifest-Schema validated.
-- [ ] Safe error types/codes/messages never project paths, content, summaries,
+- [x] Safe error types/codes/messages never project paths, content, summaries,
       artifact references, schema diagnostics, or credential-shaped values.
-- [ ] Normalization assigns deterministic IDs, correct runtime types,
+- [x] Normalization assigns deterministic IDs, correct runtime types,
       `observed_runtime`, one timestamp, hashes, redactions, bounded excerpts,
       consistent truncation, and complete accepted runtime provenance.
-- [ ] Unavailable and malformed records become correctly mapped missing
+- [x] Unavailable and malformed records become correctly mapped missing
       evidence and cannot masquerade as failed product observations.
-- [ ] Artifact references remain references and trigger no filesystem,
+- [x] Artifact references remain references and trigger no filesystem,
       browser, process, or network access.
-- [ ] The always-discoverable MCP tool has the exact input/output,
+- [x] The always-discoverable MCP tool has the exact input/output,
       annotations, safe success/error projection, and no-subject-execution
       description above.
-- [ ] Existing eight tools remain behaviorally unchanged, the tool list grows
+- [x] Existing eight tools remain behaviorally unchanged, the tool list grows
       to exactly nine, and the M1 compatibility fixture stays byte-identical.
-- [ ] Focused tests, type checking, two consecutive full suites, stdio smoke,
+- [x] Focused tests, type checking, two consecutive full suites, stdio smoke,
       package dry-run, base diff, and clean-worktree checks pass.
-- [ ] No bundle, report, converter, Finding, CI, dependency, version,
+- [x] No bundle, report, converter, Finding, CI, dependency, version,
       governance, release, npm, or GitHub change occurs.
 
 ## Required validation
@@ -398,17 +398,55 @@ requests.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
+- Outcome: `accepted`
 - Reviewed branch head:
+  `470507f2c7fd6403d15a17a6d5ebb49e23591c22`
 - Integration commits:
+  - `aa1392f` — confined collector, normalizer, MCP tool, and focused tests
+  - `80a9a5d` — package-root export-chain assertion
+  - `c00eb81` — worker handoff
 
 ### Review findings
 
-- Pending.
+- The reviewed base-to-head diff stayed inside the assigned implementation,
+  test, smoke, export, and worker-handoff paths. No package, dependency,
+  bundle, report, Git, redactor, governance, CI, version, release, npm, or
+  GitHub state changed.
+- During pre-handoff review, the stdio fixture's truncation count was corrected
+  to derive from its summary, and the post-read safety check was strengthened
+  to re-inspect every path segment and compare pre/post directory, target, and
+  descriptor identities and sizes. The final reviewed branch includes both
+  corrections.
+- Input validation covers POSIX, drive-qualified, UNC-like, backslash,
+  traversal, empty-segment, control-character, and case-insensitive `.git`
+  forms. Runtime reads are exact-root-confined, regular-file-only,
+  symlink-free, limit-plus-one bounded, fatal-UTF-8, strict JSON, and strict
+  manifest-Schema checked.
+- The production collector contains no file write, artifact read, network,
+  browser, probe, deployment, converter, or extra child-process path. The only
+  process is the accepted fixed Git-root resolver.
+- Available observations receive stable content-independent IDs, one
+  collection timestamp, pre-redaction complete-content hashes when available,
+  bounded redacted excerpts, consistent truncation, `observed_runtime`, and
+  full structured provenance. Unavailable and malformed records remain
+  missing evidence and cannot become failed observations.
+- MCP success returns matching text and structured content; handled failures
+  expose only the assigned static error/code pair. Tool discovery advertises
+  the assigned read-only, non-destructive, idempotent, closed-world contract.
+- Independent coordinator validation passed:
+  - focused collector/stdio/schema suite: 4 files, 60 tests;
+  - TypeScript check;
+  - two consecutive full suites: 30 files, 322 tests each;
+  - stdio smoke with exactly nine tools and the byte-identical M1 fixture;
+  - package dry-run with 177 files;
+  - base-diff whitespace, protected-path, scope, and clean-worktree checks.
 
 ### Required follow-up
 
-- Pending review.
+- M6-003 must validate runtime change/requirement relationships during
+  review-bundle construction, include runtime provenance in deterministic
+  bundle identity, and preserve observed/unobserved behavior in final reports.
+  This task makes no converter or live-staging compatibility claim.
 
 ### Roadmap and release impact
 
