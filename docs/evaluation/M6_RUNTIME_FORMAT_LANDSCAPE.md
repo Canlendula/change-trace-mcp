@@ -76,4 +76,3 @@ The core does not store or interpret complete screenshots, traces, videos,
 HTML reports, raw logs, or vendor-private object graphs. It records bounded
 references to those artifacts. Converter compatibility is tested and claimed
 per format/version; it does not redefine the normalized Schema.
-
