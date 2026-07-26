@@ -53,7 +53,7 @@ function setInsensitive(target, key, value) {
   for (const existing of Object.keys(target)) if (existing.toUpperCase() === key.toUpperCase()) delete target[existing];
   target[key] = value;
 }
-export function sanitizeChildEnvironment(source, { cacheDirectory, userConfigPath, homeDirectory }) {
+export function sanitizeChildEnvironment(source, { cacheDirectory, userConfigPath, homeDirectory, ignoreScripts = true }) {
   const target = {};
   for (const [key, value] of Object.entries(source)) {
     if (typeof value !== "string") continue;
@@ -63,7 +63,7 @@ export function sanitizeChildEnvironment(source, { cacheDirectory, userConfigPat
   setInsensitive(target, "USERPROFILE", homeDirectory);
   setInsensitive(target, "NPM_CONFIG_CACHE", cacheDirectory);
   setInsensitive(target, "NPM_CONFIG_USERCONFIG", userConfigPath);
-  setInsensitive(target, "NPM_CONFIG_IGNORE_SCRIPTS", "true");
+  if (ignoreScripts) setInsensitive(target, "NPM_CONFIG_IGNORE_SCRIPTS", "true");
   setInsensitive(target, "NPM_CONFIG_AUDIT", "false");
   setInsensitive(target, "NPM_CONFIG_FUND", "false");
   setInsensitive(target, "NPM_CONFIG_PACKAGE_LOCK", "false");
@@ -170,11 +170,11 @@ async function prepare() {
   const stateRoot = await mkdtemp(join(tmpdir(), "change-trace-m7-real-"));
   const serverName = `m7real_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
   const plan = createHostPlan({ repositoryRoot, stateRoot, serverName });
-  const npm = npmCli("npm"); const env = sanitizeChildEnvironment(process.env, plan);
+  const npm = npmCli("npm"); const env = sanitizeChildEnvironment(process.env, plan); const packEnvironment = sanitizeChildEnvironment(process.env, { ...plan, ignoreScripts: false });
   try {
     await Promise.all([mkdir(plan.artifactDirectory), mkdir(plan.cacheDirectory), mkdir(plan.consumerDirectory), mkdir(plan.hostWorkingDirectory), mkdir(plan.homeDirectory)]);
     await writeFile(plan.userConfigPath, "", { encoding: "utf8", mode: 0o600 });
-    const packed = parsePack((await runBounded(process.execPath, [npm, "pack", "--json", "--pack-destination", plan.artifactDirectory], { cwd: repositoryRoot, env })).stdout, sourcePackage);
+    const packed = parsePack((await runBounded(process.execPath, [npm, "pack", "--json", "--pack-destination", plan.artifactDirectory], { cwd: repositoryRoot, env: packEnvironment })).stdout, sourcePackage);
     const tarball = join(plan.artifactDirectory, packed.filename); if (!isWithin(plan.artifactDirectory, tarball)) fail("tarball_path_invalid");
     const sha256 = hash(await readFile(tarball));
     await writeFile(join(plan.consumerDirectory, "package.json"), JSON.stringify({ name: "m7-real-host-consumer", private: true, version: "1.0.0" }), "utf8");
