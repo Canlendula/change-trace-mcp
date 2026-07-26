@@ -265,13 +265,14 @@ make no registry write, and leave no retained cache/artifact/consumer state.
 - Status: `ready_for_review`
 - Handoff branch: `codex/M7-003-clean-package-installation`
 - Worktree: `C:\Users\C\.codex\worktrees\a099\agent-e2e-mcp`
-- Implementation commits: `8e71ef873fcc820d3ace79d56b97b7a9954f2b6f`; `6212b51a8e89a7b191549669687435f99ee77d20`; final handoff evidence commit follows this record.
+- Implementation commits: `8e71ef873fcc820d3ace79d56b97b7a9954f2b6f`; `6212b51a8e89a7b191549669687435f99ee77d20`; `837dfa948858d3262b7f9a530875ea8d54d0d262`; final handoff record follows this change-request fix.
 
 ### Implementation summary
 
 - Added a reusable local-tarball clean-install smoke that uses a unique OS temporary root, one `npm pack --json` result, independent SHA-256, packed-path allow/deny checks, fresh cache and empty user config, lifecycle-script-disabled install/npx paths, sanitized environment, shell-free bounded children, and unconditional cleanup.
 - Added offline coverage for planning, environment sanitization, pack/launch/summary validation, temporary-root cleanup, timeout/output bounds, credential/config path rejection, npm CLI override/fallback, and POSIX SIGKILL escalation (platform-skipped on Windows).
 - Prepared exact-version configuration examples for Codex, Claude Code, installed OpenCode v1.18.4, and current OpenCode v2 without making a real Host claim.
+- Change-request follow-up: fixed cross-volume Windows containment so a `C:` temporary root is correctly outside a `D:` checkout; this also corrects installed-package and tarball containment checks that share the helper.
 
 ### Changed areas
 
@@ -295,6 +296,7 @@ make no registry write, and leave no retained cache/artifact/consumer state.
 - `npm audit --omit=dev --audit-level=high` — passed: 0 vulnerabilities.
 - `git diff --check 6a18ca1c56b52b7d8b3ec9ad8b2ba2299f030fa2..HEAD` — passed.
 - `git status --short` — clean after the final evidence commit.
+- Change-request follow-up validation: focused suite passed 19 tests with 1 Windows-inapplicable POSIX test skipped; both required full test runs passed 368 tests with 1 skip; build, check, clean-install smoke, stdio/CI smoke, pack check, audit, and diff checks passed.
 
 ### Artifact and clean-install evidence
 
