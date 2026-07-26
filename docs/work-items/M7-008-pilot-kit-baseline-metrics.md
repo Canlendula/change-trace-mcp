@@ -319,7 +319,8 @@ dependency read from the public npm registry.
 
 - Status: `ready_for_review`
 - Handoff branch: `codex/M7-008-pilot-kit-baseline-metrics`
-- Implementation commits: `a514e0866adca06230b154e09578ad25d312b363`
+- Implementation commits: `a514e0866adca06230b154e09578ad25d312b363`,
+  `adc05178d7d0253435f0755dd7cf34643ac20bb7`
 - Worktree: `C:\Users\C\.codex\worktrees\b635\agent-e2e-mcp`
 
 ### Implementation summary
@@ -333,6 +334,10 @@ dependency read from the public npm registry.
   input-derived diagnostics, and computes the Decision 38 denominators,
   missingness, null ratios, medians, qualification, retention, and cross-Host
   fields without thresholds.
+- Follow-up: package-boundary packing now ignores lifecycle scripts during
+  concurrent Vitest runs; the kit states the complete qualifying baseline and
+  exact form arithmetic; Draft 2020-12 zero-finding clauses cover every
+  no-finding and non-completed outcome that the document can express.
 
 ### Changed areas
 
@@ -342,20 +347,22 @@ dependency read from the public npm registry.
   validation and canonical aggregation.
 - `tests/unit/pilot-metrics.test.ts` and
   `tests/integration/pilot-kit-package-boundary.test.ts` — contract, safety,
-  fixture-exactness, null semantics, and tarball-exclusion coverage.
+  fixture-exactness, null semantics, Draft Schema clauses, and
+  lifecycle-script-free tarball-exclusion coverage.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
 | `npm ci --offline --ignore-scripts --no-audit --no-fund` | PASS | Local cache only; installed 219 packages without network. |
-| `npm run check` | PASS | TypeScript strict check passed. |
+| `npm run check` | PASS | TypeScript strict check passed after follow-up. |
 | `npx vitest run tests/unit/pilot-metrics.test.ts tests/integration/pilot-kit-package-boundary.test.ts` | PASS | 2 files, 7 tests. |
-| `npm test` | BLOCKED by existing failures | 43 files: 405 passed, 2 skipped, 2 failed. `release-publishing-contract` expects LF while the protected workflow is CRLF; concurrent `npm pack` in `packaged-ci-surface` hit an EOF. The package-boundary test passed when rerun alone (1/1). |
+| `npm test` | Existing failure only | 43 files: 406 passed, 2 skipped, 1 failed. The only failure is `release-publishing-contract` expecting LF while the protected workflow remains CRLF. The prior concurrent `npm pack` EOF is resolved. |
+| `npx vitest run --pool=forks --maxWorkers=1 --fileParallelism=false --testNamePattern="^(?!.*keeps the workflow manual, pinned, cache-free, credential-separated, and stage-guarded).*"` | PASS | Deterministic serial suite excluding only that exact existing test: 43 files, 406 passed, 3 skipped. |
 | `node scripts/pilot/summarize-pilot.mjs docs/pilot/fixtures/mechanics-baseline.json` | PASS | Exact single-line match with `mechanics-summary.json`. |
 | `npm run smoke:stdio` | PASS | Existing nine-tool fixture smoke passed. |
 | `npm run smoke:ci` | PASS | Existing deterministic advisory fixture passed. |
-| `node scripts/smoke-clean-install.mjs` | BLOCKED by timeout | Credential-free temporary clean-install smoke returned `{"schemaVersion":"1.0.0","ok":false,"code":"command_timeout"}` at its 90-second command limit; no digest or clean-install file count was produced. |
+| `node scripts/smoke-clean-install.mjs` | PASS | Credential-free clean install: SHA-256 `0403569a13494bcec7880a840333f183019e1610a79c07845715be14bf7eefb5`; 209 files; cleanup `true`. |
 | `npm run pack:check` | PASS | 209 files; dry-run contents excluded every `docs/pilot/` and `scripts/pilot/` entry point. |
 | `npm audit --omit=dev --audit-level=high` | PASS | `found 0 vulnerabilities`. |
 | `git diff --check` | PASS | No whitespace errors. |
@@ -376,16 +383,15 @@ dependency read from the public npm registry.
 
 ### Deviations from assignment
 
-- No implementation deviation. Required full-suite and clean-install commands
-  could not complete because of the recorded pre-existing workflow line-ending
-  assertion, a concurrent-pack EOF, and the clean-install command timeout.
+- No implementation deviation. The complete suite has one existing protected
+  workflow line-ending assertion failure; all other tests pass in the recorded
+  deterministic serial run.
 
 ### Known limitations and risks
 
-- The coordinator should rerun `npm test` in its integration environment; the
-  protected workflow CRLF assertion and pack concurrency are outside this
-  assignment. The coordinator should also rerun the credential-free
-  clean-install smoke to obtain its final SHA-256 digest and file count.
+- The coordinator may resolve the protected workflow CRLF assertion outside
+  this assignment. No M7-008 implementation limitation remains from the prior
+  pack concurrency or clean-install timeout.
 
 ### Decisions or questions for coordinator
 
