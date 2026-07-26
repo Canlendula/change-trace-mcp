@@ -13,6 +13,7 @@ import { promisify } from "node:util";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import * as publicApi from "../../src/index.js";
 import {
   MAX_RUNTIME_EVIDENCE_MANIFEST_BYTES,
   RUNTIME_EVIDENCE_COLLECTOR_ERROR_CODES,
@@ -668,6 +669,13 @@ describe("confined runtime manifest file collection", () => {
   });
 
   it("exports the exact bounded failure vocabulary and byte limit", () => {
+    expect(publicApi.collectRuntimeEvidence).toBe(collectRuntimeEvidence);
+    expect(publicApi.normalizeRuntimeEvidenceManifest).toBe(
+      normalizeRuntimeEvidenceManifest,
+    );
+    expect(publicApi.collectRuntimeEvidenceInputSchema).toBe(
+      collectRuntimeEvidenceInputSchema,
+    );
     expect(MAX_RUNTIME_EVIDENCE_MANIFEST_BYTES).toBe(4_194_304);
     expect(RUNTIME_EVIDENCE_COLLECTOR_ERROR_CODES).toEqual([
       "invalid_input",
