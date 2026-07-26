@@ -24,6 +24,9 @@ except for clearly identified factual corrections.
   project API-smoke, and staging-summary shapes.
 - Public contribution, versioning, adapter-authoring, and runtime-converter
   guidance packaged with the project.
+- Repository-maintainer-only stage-publishing preparation, a credential-free
+  local publish dry-run, and offline release-boundary checks; no package was
+  staged or published.
 
 ### Security
 

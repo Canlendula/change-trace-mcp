@@ -1,0 +1,103 @@
+name: npm stage publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Run a credential-free dry-run or request a protected stage publish."
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - stage
+      version:
+        description: "Candidate package version."
+        required: true
+        type: string
+      commit:
+        description: "Exact lowercase 40-hex commit for the candidate."
+        required: true
+        type: string
+      confirmation:
+        description: "Required fixed confirmation for a stage request."
+        required: true
+        type: string
+
+jobs:
+  dry-run:
+    if: ${{ inputs.operation == 'dry-run' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out candidate source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.0
+      - name: Pin npm
+        run: |
+          npm install --global npm@11.16.0 --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
+          test "$(npm --version)" = "11.16.0"
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
+      - name: Build and check candidate
+        run: |
+          npm run build --ignore-scripts
+          npm run check --ignore-scripts
+          npm test --ignore-scripts
+      - name: Produce local dry-run evidence
+        run: node scripts/release/dry-run-publish.mjs
+
+  stage:
+    if: ${{ inputs.operation == 'stage' && vars.NPM_STAGE_PUBLISH_ENABLED == 'true' && github.ref == format('refs/tags/v{0}', inputs.version) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: npm-stage
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out the requested commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.commit }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify stage request guards
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_COMMIT: ${{ inputs.commit }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          test "$INPUT_CONFIRMATION" = "STAGE CHANGE-TRACE-MCP CANDIDATE"
+          printf '%s' "$INPUT_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
+          test "$(git rev-parse HEAD)" = "$INPUT_COMMIT"
+          test "$(git rev-parse "refs/tags/v$INPUT_VERSION^{}")" = "$INPUT_COMMIT"
+          PACKAGE_VERSION="$(node --input-type=module -e "import { readFile } from 'node:fs/promises'; process.stdout.write(JSON.parse(await readFile('package.json', 'utf8')).version)")"
+          test "$PACKAGE_VERSION" = "$INPUT_VERSION"
+          test "$INPUT_VERSION" != "0.0.0-dev.0"
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.0
+      - name: Pin npm
+        run: |
+          npm install --global npm@11.16.0 --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
+          test "$(npm --version)" = "11.16.0"
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
+      - name: Build and check candidate
+        run: |
+          npm run build --ignore-scripts
+          npm run check --ignore-scripts
+          npm test --ignore-scripts
+      - name: Stage candidate on npm
+        run: npm stage publish --tag next --access public --ignore-scripts --registry https://registry.npmjs.org/
