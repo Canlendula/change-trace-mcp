@@ -296,35 +296,59 @@ command is allowed.
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress | blocked | needs_decision | ready_for_review`
-- Handoff branch:
-- Implementation commits:
-- Worktree:
+- Status: `ready_for_review`
+- Handoff branch: `codex/M7-007-stage-only-publishing-dry-run`
+- Implementation commits: `b143b10`, `32eeee9`, `3193582`
+- Worktree: `C:\Users\C\.codex\worktrees\3384\agent-e2e-mcp`
 
 ### Implementation summary
 
-- `<what was implemented>`
+- Added the manual-only `npm-stage-publish.yml` workflow. Its default
+  credential-free dry-run is separated from the protected, guarded `stage`
+  job, which can only use `next`.
+- Added the repository-only publishing guide, bounded credential-free local
+  dry-run helper, offline workflow/helper/documentation contract tests, and
+  an Unreleased maintainer-preparation note.
 
 ### Changed areas
 
-- `<path or component and reason>`
+- `.github/workflows/npm-stage-publish.yml` — pinned manual dry-run and
+  stage-only workflow with job-local permissions and fixed safeguards.
+- `scripts/release/dry-run-publish.mjs` — isolated bounded local tarball and
+  `npm publish --dry-run` evidence helper.
+- `docs/release/PUBLISHING.md` and `CHANGELOG.md` — repository maintainer
+  procedure and scoped Unreleased preparation record.
+- `tests/unit/release-publishing-contract.test.ts` and
+  `tests/integration/release-dry-run.test.ts` — deterministic offline
+  contract and package-boundary coverage.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-|  |  |  |
+| `npm run check` | passed | TypeScript check completed. |
+| `npx vitest run tests/unit/release-publishing-contract.test.ts tests/integration/release-dry-run.test.ts` | passed | 2 files, 4 tests passed; no network, authentication, or dispatch. |
+| `npm test` | passed | 41 files passed; 397 tests passed and 2 skipped. |
+| `npm run smoke:stdio` | passed | Confirmed the existing nine-tool stdio surface. |
+| `npm run smoke:ci` | passed | Deterministic advisory smoke reported `completed_no_findings`. |
+| `node scripts/release/dry-run-publish.mjs` | passed | `change-trace-mcp@0.0.0-dev.1`; one tarball; packed/unpacked `177366`/`868803` bytes; SHA-1 `2368cc2daf2b699d5147f5f7515791529d038513`; SHA-256 `4d319bf981300d85d19e12b1e927a5b49b075a4ad2bf6306818cd03fa137f4f4`; npm `11.3.0`; cleanup `true`. Local dry-run evidence only. |
+| `node scripts/smoke-clean-install.mjs` | passed | 209 packed files; SHA-256 `4d319bf981300d85d19e12b1e927a5b49b075a4ad2bf6306818cd03fa137f4f4`; copied install, npx, CI artifacts, and cleanup succeeded. |
+| `npm run pack:check` | passed | `change-trace-mcp-0.0.0-dev.1.tgz`; 209 files; release-only files absent. |
+| `npm audit --omit=dev --audit-level=high` | passed | `found 0 vulnerabilities`. |
+| `git diff --check` | passed | No whitespace errors. |
+| `git status --short` | passed | Clean before this handoff update. |
 
 ### External-state confirmation
 
-- [ ] No hosted workflow was dispatched.
-- [ ] No npm or GitHub authentication was requested or used.
-- [ ] No trusted publisher, environment, repository variable, registry,
+- [x] No hosted workflow was dispatched.
+- [x] No npm or GitHub authentication was requested or used.
+- [x] No trusted publisher, environment, repository variable, registry,
       stage, approval, publication, tag, release, or dist-tag state changed.
 
 ### Public contract and documentation impact
 
-- `<impact, or None>`
+- No installed-package public contract changed. Repository-only maintainer
+  guidance and offline release-boundary tests were added.
 
 ### Deviations from assignment
 
@@ -332,7 +356,10 @@ command is allowed.
 
 ### Known limitations and risks
 
-- None.
+- The successful local helper invocation used the available local npm `11.3.0`;
+  the future hosted workflow explicitly installs and verifies npm `11.16.0`.
+- A local `--dry-run` cannot establish OIDC, trusted-publisher, protected
+  environment, stage, approval, registry availability, or release success.
 
 ### Decisions or questions for coordinator
 
@@ -340,10 +367,10 @@ command is allowed.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No dependency, lockfile, package surface, version, tag, publish, or
+- [x] Coordinator-only files were not modified.
+- [x] No dependency, lockfile, package surface, version, tag, publish, or
       release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
