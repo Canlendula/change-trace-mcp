@@ -156,7 +156,9 @@ The technical spike may revise this choice if Host compatibility or package star
   fixes M6-003 relationship, unavailable-provenance, bundle-identity, and
   final-report behavior. M6-003 is accepted: its strict runtime bundle/report
   paths pass 332 tests while preserving all nine frozen M3 replay digests and
-  the M1 fixture.
+  the M1 fixture. Decision 30 fixes M6-004 as pinned offline mapping fixtures
+  and a complete stdio exit proof; general converters and live staging remain
+  outside the milestone claim.
 
 ## 6. M0 — Project foundation
 
@@ -633,7 +635,7 @@ Implementation order:
 2. confined explicit-manifest collection and MCP integration;
 3. review-bundle relationships/identity and final-report provenance;
 4. JUnit, Playwright, API-smoke, and staging fixtures with end-to-end exit
-   evidence.
+   evidence, using the pinned offline mapping profiles in Decision 30.
 
 The format evidence supporting this boundary is in
 [`docs/evaluation/M6_RUNTIME_FORMAT_LANDSCAPE.md`](evaluation/M6_RUNTIME_FORMAT_LANDSCAPE.md).

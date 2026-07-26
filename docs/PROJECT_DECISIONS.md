@@ -880,3 +880,71 @@ content. Runtime missing entries preserve their unavailable provenance.
 Markdown labels observed outcomes separately from unavailable/not-observed
 records. Report Schema refinements prevent external and runtime provenance
 from coexisting.
+
+## 30. M6 exits through pinned offline mapping fixtures
+
+M6-004 proves the normalized boundary with deterministic, checked-in,
+format-shaped fixtures. It does not add a general JUnit XML parser, a complete
+Playwright report model, live API/staging access, or converter execution to the
+MCP server.
+
+Conversion remains a Host/CI preprocessing responsibility. The proof covers
+four pinned mapping profiles:
+
+- a JUnit-style profile with suite/case identity and explicit passed, failed,
+  errored, and skipped cases;
+- a Playwright JSON reporter profile with nested suite/spec/test/result
+  identity, final attempt status, timing, and path-only attachment references;
+- a project-owned API-smoke profile containing already-produced request-check
+  outcomes without request/response bodies;
+- staging environment metadata with one available record and one inaccessible
+  observation.
+
+Each fixture producer is a local deterministic test process. It accepts only a
+fixture ID plus coordinator-supplied change and document evidence IDs, then
+returns one strict `RuntimeEvidenceManifest`. It has no command, URL fetch,
+credential, environment-variable, browser, deployment, discovery, or
+arbitrary content input. The process reads no subject artifact and launches no
+child process.
+
+The profiles intentionally map a bounded subset:
+
+- JUnit `failure`, `error`, `skipped`, and an otherwise successful case map to
+  `failed`, `errored`, `skipped`, and `passed`;
+- the Playwright profile supports ordinary final attempts with `passed`,
+  `failed`, `timedOut`, `skipped`, or `interrupted`, mapped respectively to
+  `passed`, `failed`, `timed_out`, `skipped`, or `cancelled`;
+- retries, flaky/expected-failure semantics, unknown JUnit dialect extensions,
+  malformed upstream reports, embedded attachment bodies, stdout/stderr,
+  stacks, raw logs, and HTTP bodies are outside these profiles;
+- unsupported input becomes an unavailable `unsupported` or `malformed`
+  manifest record in a real converter; it cannot be guessed into an observed
+  outcome.
+
+Artifact handling remains reference-only. The Playwright fixture may preserve
+bounded trace or screenshot paths/URIs, while attachment bodies are absent.
+The API fixture preserves the check source and outcome but omits headers,
+cookies, request bodies, response bodies, and credentials. The staging fixture
+describes an already-produced environment observation and never contacts its
+URL.
+
+The fixture pipeline must use the built stdio MCP surface:
+
+1. resolve one deterministic Git change and local requirement document;
+2. produce strict normalized manifests from all four fixture profiles;
+3. collect each manifest through `collect_runtime_evidence`;
+4. build one relationship-valid review bundle;
+5. validate a deterministic empty finding submission;
+6. write JSON and Markdown reports twice from identical input.
+
+The proof must show observed outcomes and unavailable/not-observed staging
+evidence separately, preserve requirement/change links and artifact
+references, reject an unsupported profile, redact secret-shaped fixture text,
+and produce byte-identical report pairs. The fixture and normalized artifact
+sizes remain beneath the accepted core bounds.
+
+M6 documentation packages strict normalized manifest examples and a mapping
+guide. Compatibility claims are limited to the checked-in fixture profiles and
+recorded shape snapshot. General JUnit/Playwright/API vendor compatibility,
+converter SDKs, live staging pilots, and active browser/API probing remain M7
+or extension work.
