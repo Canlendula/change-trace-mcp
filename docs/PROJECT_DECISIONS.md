@@ -1517,3 +1517,85 @@ Primary references:
 - Decision 13, quality-gate vocabulary;
 - Decision 31, no first-party telemetry and operator-owned retention;
 - `https://json-schema.org/draft/2020-12/`.
+
+## 39. The GitLab.com reference starts credential-free and remains separate from the real pilot
+
+The project owner approved a dedicated public GitLab.com subject project named
+`change-trace-gitlab-reference` under the existing trial top-level group. The
+exact group path and current GitLab entitlement remain external facts to verify
+after an authenticated client is available. The project contains only
+synthetic code, requirements, tests, and reports. It must contain no customer,
+organization, credential, browser-storage, or incident-log data.
+
+The reference is engineering and integration evidence. One synthetic project,
+its merge request, and its pipelines cannot count as an independent pilot
+team, a pilot week, or evidence that the M7 multi-team gate has passed. M7
+therefore remains in progress, and M8 does not start.
+
+Execution is phased:
+
+1. M7-010 prepares a copyable minimal subject project and runs the accepted
+   deterministic fixture through the provider-neutral advisory runner. This
+   mechanics phase uses no model, GitLab API token, GitLab MCP, Lark
+   credential, or other secret.
+2. After hosted mechanics pass, a separately assigned protected phase may run
+   one real semantic Agent path. The canonical path remains a caller-supplied,
+   provider-neutral Host. A GitLab-managed Codex or Claude External Agent may
+   be evaluated only as a trial-specific compatibility experiment.
+3. A later explicit-reference external-document phase may read one synthetic
+   Feishu/Lark product-update document. Search or organization-wide discovery
+   is out of scope.
+
+The reference product change is a small service-status iteration. The baseline
+supports the operational state. A feature commit adds a planned-maintenance
+state and tests while the repository-local behavior document remains stale.
+The external document `CTGR-001` records the approved maintenance behavior. A
+follow-up commit synchronizes the local behavior document. This creates a
+bounded finding/no-finding sequence without using a real product repository.
+
+The credential-free GitLab pipeline uses a GitLab-hosted Linux runner, runs
+ordinary subject tests first, and then executes the deterministic Change Trace
+mechanics fixture from the immutable accepted tooling commit
+`aa52a1795a587cb32704018bdd60b1d33649309d`. The advisory job has a finite
+fifteen-minute timeout, zero retries, `allow_failure: true`, and exactly these
+three short-retention artifacts:
+
+- `release-review.md`;
+- `release-review.json`;
+- `release-review-status.json`.
+
+No merge gate, schedule, daemon, retry loop, npm publication, package-version
+change, tag, release, or dist-tag belongs to this reference.
+
+The later semantic phase may receive one model credential only in a protected,
+manual default-branch pipeline. The project owner enters it through a GitLab
+masked, hidden where available, and protected CI variable. The pipeline maps it
+to the selected Host only for the bounded Agent invocation. Untrusted or fork
+merge-request jobs receive no model credential and no repository write
+credential. The Host must remove the model credential before starting the
+Change Trace MCP child.
+
+The external document is a dedicated synthetic Feishu/Lark document titled
+`Change Trace GitLab Reference — Maintenance Status Update`, with stable ID
+`CTGR-001`. Until a read-only authenticated Lark client is available, the
+project owner may create the document manually from the tracked template.
+Future automation requires explicit read-only scopes and separate
+masked/protected `LARK_APP_ID` and `LARK_APP_SECRET` variables. Those values
+must not enter prompts, MCP configuration, logs, reports, or artifacts.
+
+The Codex Desktop GitLab-webview incident changes the access path, not the
+reference claim. Until the upstream issue is resolved or the project owner
+decides otherwise, the coordinator must not reopen the affected historical
+task, use Codex in-app Browser for GitLab, reinstall GitLab MCP for incident
+reproduction, or inspect browser storage. GitLab object creation and pipeline
+execution require a separately available authenticated CLI or a user-performed
+browser action.
+
+Primary references accessed 2026-07-27 through 2026-07-30:
+
+- `https://docs.gitlab.com/ci/variables/`;
+- `https://docs.gitlab.com/ci/jobs/job_artifacts/`;
+- `https://docs.gitlab.com/ci/runners/`;
+- `https://docs.gitlab.com/user/duo_agent_platform/agents/external/`;
+- `https://learn.chatgpt.com/docs/non-interactive-mode`;
+- `https://github.com/openai/codex/issues/35637`.
