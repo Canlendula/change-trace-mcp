@@ -75,6 +75,7 @@ const REQUIRED_PUBLIC_DOCUMENTATION_LINKS = [
 ];
 const CI_ARTIFACT_NAMES = ["release-review.md", "release-review.json", "release-review-status.json"];
 const MAX_CI_ARTIFACT_BYTES = 10 * 1024 * 1024;
+const PERMITTED_REFERENCE_LOCKFILE = "docs/ci/gitlab-reference/baseline/package-lock.json";
 
 class SmokeError extends Error {
   constructor(code) {
@@ -187,7 +188,10 @@ export function validatePackedFiles(files) {
     if (!packed.has(required)) throw smokeError("packed_file_missing");
   }
   const forbidden = /^(?:AGENTS\.md|docs\/CONTRIBUTING_WORKFLOW\.md|src|tests|node_modules|\.git|\.github|docs\/work-items)(?:\/|$)|(?:^|\/)(?:\.env(?:\.[^/]+)?|\.npmrc|npmrc|\.yarnrc|\.pnpmrc|\.pypirc|\.netrc|\.gitconfig|package-lock\.json|\.gitignore|auth(?:entication)?(?:\.[^/]+)?|tokens?(?:\.[^/]+)?|secrets?(?:\.[^/]+)?|credentials?(?:\.[^/]+)?)(?:$|\/)/iu;
-  if (files.some((file) => forbidden.test(normalizedPath(file)))) throw smokeError("packed_file_forbidden");
+  if (files.some((file) => {
+    const path = normalizedPath(file);
+    return path !== PERMITTED_REFERENCE_LOCKFILE && forbidden.test(path);
+  })) throw smokeError("packed_file_forbidden");
   const permittedCiScripts = new Set(["scripts/ci/advisory-runner.mjs", "scripts/ci/summarize-advisory-status.mjs"]);
   if (files.some((file) => normalizedPath(file).startsWith("scripts/ci/") && !permittedCiScripts.has(normalizedPath(file)))) {
     throw smokeError("packed_ci_script_forbidden");

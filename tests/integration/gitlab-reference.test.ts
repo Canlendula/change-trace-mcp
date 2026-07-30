@@ -17,9 +17,21 @@ const reference = join(root, "docs", "ci", "gitlab-reference");
 const runner = join(root, "scripts", "ci", "advisory-runner.mjs");
 const fixtureHost = join(root, "docs", "ci", "fixtures", "deterministic-advisory-host.mjs");
 const managedNames = ["release-review.md", "release-review.json", "release-review-status.json"];
+const inheritedRuntimeKeys = ["PATH", "SYSTEMROOT", "COMSPEC", "PATHEXT", "WINDIR", "TEMP", "TMP", "TERM", "LANG", "LC_ALL"];
 
 async function readLf(path: string): Promise<string> {
   return (await readFile(path, "utf8")).replace(/\r\n?/g, "\n");
+}
+
+function minimalRuntimeEnvironment(): NodeJS.ProcessEnv {
+  const environment: NodeJS.ProcessEnv = {};
+  for (const key of inheritedRuntimeKeys) {
+    const sourceKey = Object.keys(process.env).find((candidate) => candidate.toUpperCase() === key);
+    if (sourceKey === undefined) continue;
+    const value = process.env[sourceKey];
+    if (value !== undefined) environment[key === "PATH" ? "PATH" : sourceKey] = value;
+  }
+  return environment;
 }
 
 describe("GitLab hosted reference preparation", () => {
@@ -96,7 +108,7 @@ describe("GitLab hosted reference preparation", () => {
       const result = await execFileAsync(process.execPath, [runner], {
         cwd: root,
         env: {
-          ...process.env,
+          ...minimalRuntimeEnvironment(),
           CHANGE_TRACE_CI_COMMAND: JSON.stringify([process.execPath, fixtureHost]),
           CHANGE_TRACE_CI_REPOSITORY_ROOT: subject,
           CHANGE_TRACE_CI_OUTPUT_DIRECTORY: "artifacts/advisory",

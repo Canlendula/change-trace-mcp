@@ -164,6 +164,15 @@ describe("clean package installation smoke helpers", () => {
       "scripts/ci/summarize-advisory-status.mjs",
     ];
     expect(() => validatePackedFiles(required)).not.toThrow();
+    expect(() => validatePackedFiles([...required, "docs/ci/gitlab-reference/baseline/package-lock.json"])).not.toThrow();
+    for (const forbiddenLockfile of [
+      "package-lock.json",
+      "docs/ci/gitlab-reference/package-lock.json",
+      "docs/ci/gitlab-reference/feature/package-lock.json",
+      "nested/package-lock.json",
+    ]) {
+      expect(() => validatePackedFiles([...required, forbiddenLockfile])).toThrow("packed_file_forbidden");
+    }
     expect(() => validatePackedFiles([...required, "src/cli.ts"])).toThrow("packed_file_forbidden");
     expect(() => validatePackedFiles([...required, "AGENTS.md"])).toThrow("packed_file_forbidden");
     expect(() => validatePackedFiles([...required, "docs/CONTRIBUTING_WORKFLOW.md"])).toThrow("packed_file_forbidden");
