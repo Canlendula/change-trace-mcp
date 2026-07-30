@@ -272,53 +272,82 @@ Vitest or TypeScript binaries as a product failure.
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress`
+- Status: `ready_for_review`
 - Handoff branch: `codex/M7-010-gitlab-hosted-reference`
-- Implementation commits:
+- Implementation commits: `53ac01a5d91962e76cdb3fd0da4e53f3f3838c76`
 - Worktree: `D:\projects\change-trace-worktrees\M7-010-gitlab-reference`
 
 ### Implementation summary
 
-- Pending.
+- Added the frozen, copyable, synthetic GitLab reference tree with baseline,
+  feature, and documentation follow-up overlays.
+- Added the credential-free GitLab mechanics YAML. It pins the assigned trusted
+  Change Trace commit, runs the public deterministic fixture through the
+  accepted runner, keeps the job advisory and finite, and publishes the exact
+  three managed artifacts.
+- Added offline scenario coverage and npm tarball coverage; the existing CI
+  README now labels the reference as preparation only.
 
 ### Changed areas
 
-- Pending.
+- `docs/ci/gitlab-reference/**`
+- `docs/ci/README.md`
+- `tests/integration/gitlab-reference.test.ts`
+- `tests/integration/packaged-ci-surface.test.ts`
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| Pending | Pending | Pending |
+| `npm ci --ignore-scripts --no-audit --no-fund` | passed | Fresh worktree dependency installation; 219 packages added. |
+| `npm run check` | passed | TypeScript no-emit check. |
+| `npx vitest run tests/integration/gitlab-reference.test.ts tests/integration/packaged-ci-surface.test.ts tests/integration/provider-neutral-ci.test.ts` | passed | 3 files; 12 passed; 0 skipped. |
+| `npm test` (complete run 1) | passed | 44 files; 411 passed; 2 skipped. |
+| `npm test` (complete run 2 retry) | passed | 44 files; 411 passed; 2 skipped. The first attempt of this required second run had 410 passed, 1 failed, and 2 skipped because npm reported an unexpected EOF while `release-dry-run.test.ts` packed an unchanged `dist/schemas/review-bundle.d.ts`; the immediate clean retry passed. |
+| `npm run smoke:ci` | passed | Deterministic runner reported `completed_no_findings`. |
+| `node scripts/smoke-clean-install.mjs` | passed | Expected clean-install negative probe emitted `packed_file_forbidden`; command exit was zero. |
+| `npm run pack:check` | passed | Dry-run tarball includes the frozen `docs/ci/gitlab-reference/` tree. |
+| `npm audit --omit=dev --audit-level=high` | passed | `found 0 vulnerabilities`. |
+| `git diff --check` | passed | No whitespace errors. |
+| `git status --short` | pending final commit | Rechecked after this handoff commit below. |
 
 ### External-state confirmation
 
-- [ ] No GitLab/Feishu object, hosted run, authentication, model, credential,
+- [x] No GitLab/Feishu object, hosted run, authentication, model, credential,
       browser, GitLab MCP, package publication, tag, release, pilot, or
       milestone action occurred.
 
 ### Public contract and documentation impact
 
-- Pending.
+- Added packageable documentation-only reference assets beneath the already
+  included `docs/ci/` package surface. No package allowlist, public MCP tool,
+  Schema, source, version, dependency, workflow, release, compatibility, or
+  milestone contract changed.
 
 ### Deviations from assignment
 
-- Pending.
+- None. The transient npm pack EOF is retained above as validation evidence;
+  the clean retry passed without implementation changes.
 
 ### Known limitations and risks
 
-- Pending.
+- The reference has no GitLab object, hosted pipeline, semantic Host/model
+  execution, live Feishu document, or model/Lark credential. It supplies only
+  offline mechanics preparation and must not be treated as pilot evidence.
+- Future GitLab materialization still depends on coordinator/user confirmation
+  of group path, entitlement, and authentication.
 
 ### Decisions or questions for coordinator
 
-- Pending.
+- No decision request. Review the YAML's future GitLab shell behavior and the
+  immutable tooling pin before external materialization.
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No source/Schema/tool/package/version/dependency/lockfile/workflow/
+- [x] Coordinator-only files were not modified.
+- [x] No source/Schema/tool/package/version/dependency/lockfile/workflow/
       release/pilot/compatibility/setting change was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
