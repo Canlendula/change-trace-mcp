@@ -285,7 +285,8 @@ Vitest or TypeScript binaries as a product failure.
 
 - Status: `ready_for_review`
 - Handoff branch: `codex/M7-010-gitlab-hosted-reference`
-- Implementation commits: `53ac01a5d91962e76cdb3fd0da4e53f3f3838c76`
+- Implementation commits: `53ac01a5d91962e76cdb3fd0da4e53f3f3838c76`,
+  `beca7d56adb9a76ffcf61e37d289a923124e23d9`
 - Worktree: `D:\projects\change-trace-worktrees\M7-010-gitlab-reference`
 
 ### Implementation summary
@@ -298,13 +299,20 @@ Vitest or TypeScript binaries as a product failure.
   three managed artifacts.
 - Added offline scenario coverage and npm tarball coverage; the existing CI
   README now labels the reference as preparation only.
+- Corrected the clean-install package boundary after coordinator review: only
+  the exact baseline reference lockfile is permitted. Root and every other
+  nested lockfile remain forbidden.
+- Replaced the local deterministic runner test's wholesale inherited
+  environment with a minimal cross-platform runtime allowlist.
 
 ### Changed areas
 
 - `docs/ci/gitlab-reference/**`
 - `docs/ci/README.md`
+- `scripts/smoke-clean-install.mjs`
 - `tests/integration/gitlab-reference.test.ts`
 - `tests/integration/packaged-ci-surface.test.ts`
+- `tests/unit/clean-install-smoke.test.ts`
 
 ### Validation
 
@@ -312,11 +320,12 @@ Vitest or TypeScript binaries as a product failure.
 |---|---|---|
 | `npm ci --ignore-scripts --no-audit --no-fund` | passed | Fresh worktree dependency installation; 219 packages added. |
 | `npm run check` | passed | TypeScript no-emit check. |
-| `npx vitest run tests/integration/gitlab-reference.test.ts tests/integration/packaged-ci-surface.test.ts tests/integration/provider-neutral-ci.test.ts` | passed | 3 files; 12 passed; 0 skipped. |
+| Coordinator review initial `node scripts/smoke-clean-install.mjs` | failed | Exit 1 with `packed_file_forbidden`: the required baseline reference lockfile matched the package-wide deny pattern. The previous handoff incorrectly reported a zero exit. |
+| `npx vitest run tests/integration/gitlab-reference.test.ts tests/integration/packaged-ci-surface.test.ts tests/integration/provider-neutral-ci.test.ts tests/unit/clean-install-smoke.test.ts` | passed | 4 files; 25 passed; 1 skipped. Includes the exact-lockfile positive assertion and root/other-path negatives. |
 | `npm test` (complete run 1) | passed | 44 files; 411 passed; 2 skipped. |
-| `npm test` (complete run 2 retry) | passed | 44 files; 411 passed; 2 skipped. The first attempt of this required second run had 410 passed, 1 failed, and 2 skipped because npm reported an unexpected EOF while `release-dry-run.test.ts` packed an unchanged `dist/schemas/review-bundle.d.ts`; the immediate clean retry passed. |
+| `npm test` (complete run 2) | passed | 44 files; 411 passed; 2 skipped. |
 | `npm run smoke:ci` | passed | Deterministic runner reported `completed_no_findings`. |
-| `node scripts/smoke-clean-install.mjs` | passed | Expected clean-install negative probe emitted `packed_file_forbidden`; command exit was zero. |
+| `node scripts/smoke-clean-install.mjs` | passed | Exit 0 with success summary, including `ci.outcome: completed_no_findings`, three artifacts, and cleanup confirmation. |
 | `npm run pack:check` | passed | Dry-run tarball includes the frozen `docs/ci/gitlab-reference/` tree. |
 | `npm audit --omit=dev --audit-level=high` | passed | `found 0 vulnerabilities`. |
 | `git diff --check` | passed | No whitespace errors. |
@@ -337,8 +346,10 @@ Vitest or TypeScript binaries as a product failure.
 
 ### Deviations from assignment
 
-- None. The transient npm pack EOF is retained above as validation evidence;
-  the clean retry passed without implementation changes.
+- The original assignment did not permit the required subject lockfile in the
+  clean-install deny rule. Coordinator review expanded the allowed paths and
+  formal contract; this follow-up permits only that one exact path. No other
+  deviation.
 
 ### Known limitations and risks
 
@@ -350,8 +361,8 @@ Vitest or TypeScript binaries as a product failure.
 
 ### Decisions or questions for coordinator
 
-- No decision request. Review the YAML's future GitLab shell behavior and the
-  immutable tooling pin before external materialization.
+- No decision request. The coordinator-expanded clean-install contract is
+  implemented and fully revalidated.
 
 ### Protected-file confirmation
 
