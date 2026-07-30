@@ -172,6 +172,14 @@ does not remove variables from a child environment. The caller-supplied Host
 must sanitize the MCP child environment and keep the credential out of
 arguments, logs, prompts, reports, and artifacts.
 
+## Credential-free GitLab reference preparation
+
+[`gitlab-reference/README.md`](gitlab-reference/README.md) contains a
+copyable, synthetic subject project and its deterministic GitLab mechanics
+pipeline. It is preparation for a future hosted run, not hosted-pipeline,
+semantic-Host, Feishu, pilot, or compatibility evidence. The example keeps its
+mechanics path credential-free and runs only the public deterministic fixture.
+
 ## Portable CI mapping
 
 [`portable-advisory.sh.example`](portable-advisory.sh.example) gives a POSIX

@@ -1,0 +1,56 @@
+# Copy this file to the future subject project's .gitlab-ci.yml.
+# This mechanics-only path uses no model, GitLab, or Feishu credential.
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+
+stages: [test, advisory]
+
+subject_test:
+  stage: test
+  image: node:22-bookworm
+  script:
+    - npm ci --ignore-scripts --no-audit --no-fund
+    - npm test
+
+change_trace_mechanics:
+  stage: advisory
+  image: node:22-bookworm
+  needs: [subject_test]
+  timeout: 15m
+  retry: 0
+  allow_failure: true
+  variables:
+    CHANGE_TRACE_TOOLING_ROOT: "$CI_PROJECT_DIR/.change-trace-trusted"
+    CHANGE_TRACE_OUTPUT_DIRECTORY: "artifacts/advisory"
+  script:
+    - test ! -e "$CHANGE_TRACE_TOOLING_ROOT"
+    - git clone --no-checkout https://github.com/Canlendula/change-trace-mcp.git "$CHANGE_TRACE_TOOLING_ROOT"
+    - test ! -L "$CHANGE_TRACE_TOOLING_ROOT"
+    - git -C "$CHANGE_TRACE_TOOLING_ROOT" fetch --depth 1 origin aa52a1795a587cb32704018bdd60b1d33649309d
+    - git -C "$CHANGE_TRACE_TOOLING_ROOT" checkout --detach aa52a1795a587cb32704018bdd60b1d33649309d
+    - test "$(git -C "$CHANGE_TRACE_TOOLING_ROOT" rev-parse HEAD)" = "aa52a1795a587cb32704018bdd60b1d33649309d"
+    - cd "$CHANGE_TRACE_TOOLING_ROOT"
+    - npm ci --ignore-scripts --no-audit --no-fund
+    - npm run build
+    - >-
+      CHANGE_TRACE_CI_COMMAND="$(node -e 'process.stdout.write(JSON.stringify([process.execPath, process.env.CHANGE_TRACE_TOOLING_ROOT + "/docs/ci/fixtures/deterministic-advisory-host.mjs"]))')"
+      CHANGE_TRACE_CI_REPOSITORY_ROOT="$CI_PROJECT_DIR"
+      CHANGE_TRACE_CI_OUTPUT_DIRECTORY="$CHANGE_TRACE_OUTPUT_DIRECTORY"
+      CHANGE_TRACE_CI_BASE_REVISION="${CI_MERGE_REQUEST_DIFF_BASE_SHA:-$CI_COMMIT_SHA}"
+      CHANGE_TRACE_CI_HEAD_REVISION="$CI_COMMIT_SHA"
+      CHANGE_TRACE_CI_RUN_ATTEMPT="$CI_JOB_ID"
+      CHANGE_TRACE_CI_TIMEOUT_MS=840000
+      node scripts/ci/advisory-runner.mjs
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - artifacts/advisory/release-review.md
+      - artifacts/advisory/release-review.json
+      - artifacts/advisory/release-review-status.json
