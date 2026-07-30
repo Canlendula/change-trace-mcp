@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-009 accepted; M7-010 assigned; real multi-team pilot evidence remains
+> Status: M7 in progress; M7-001 through M7-010 accepted; real multi-team pilot evidence remains
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -247,11 +247,18 @@ The technical spike may revise this choice if Host compatibility or package star
   skips. No workflow, `.gitattributes`, Git setting, product, package,
   dependency, public contract, external state, pilot, or release behavior
   changed.
-- M7-010 was assigned on 2026-07-30. It prepares the credential-free,
-  copyable `change-trace-gitlab-reference` subject and deterministic GitLab CI
-  mechanics contract under Decision 39. It does not create a GitLab or Feishu
-  object, run a hosted pipeline or model, access a credential, count as pilot
-  activity, or change release state.
+- M7-010 was accepted on 2026-07-30. The packageable
+  `change-trace-gitlab-reference` tree now provides a dependency-free
+  operational baseline, planned-maintenance feature and documentation
+  follow-up overlays, a synthetic `CTGR-001` Feishu template, and a
+  credential-free deterministic GitLab CI mechanics path. Coordinator
+  validation passes 44 files at 411 tests with the two existing
+  Windows-inapplicable POSIX skips, a 220-file clean-install/package boundary,
+  exact three-artifact CI smoke, and zero production vulnerabilities. The
+  clean-install boundary permits only the reference baseline lockfile while
+  retaining every other lockfile denial. No GitLab or Feishu object,
+  authentication, hosted pipeline, model, credential, pilot, compatibility,
+  package version, release, or publication state changed.
 
 ## 6. M0 — Project foundation
 
@@ -742,8 +749,7 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M7-001 through M7-009 are accepted and M7-010 is
-> assigned. The
+> Current state: in progress. M7-001 through M7-010 are accepted. The
 > repository construction and local verification slices are complete; real
 > multi-team, multi-week pilot evidence remains. The two
 > medium security findings are mitigated, clean package installation is
@@ -947,7 +953,7 @@ Progress as of 2026-07-26:
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
-| M7 public beta hardening | In progress; M7-001 through M7-009 are accepted, M7-010 is assigned, and the real multi-team, multi-week pilot remains |
+| M7 public beta hardening | In progress; M7-001 through M7-010 are accepted and the real multi-team, multi-week pilot remains |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
@@ -959,4 +965,4 @@ packaged provider-neutral CI examples, public extension/contribution/version
 guidance, stage-only publishing workflow preparation/dry-run, pilot kit, and
 baseline metric mechanics are accepted. Release-contract tests are
 line-ending independent. The credential-free GitLab reference preparation is
-assigned. The real multi-team pilot remains.
+accepted. The real multi-team pilot remains.

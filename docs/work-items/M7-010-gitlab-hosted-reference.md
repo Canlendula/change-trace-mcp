@@ -373,33 +373,41 @@ Vitest or TypeScript binaries as a product failure.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `changes_requested`
+- Outcome: `accepted`
 - Reviewed branch head:
-  `e4ded9b011276197360b43570867b16d5142ff82`
+  `593b6783c7a434fdf9125385e252542390d29449`
 - Integration commit:
+  `593b6783c7a434fdf9125385e252542390d29449` (fast-forward)
 
 ### Review findings
 
-- The implementation and handoff stay within the originally allowed paths, and
-  the focused tests plus two complete coordinator suites pass.
-- Independent `node scripts/smoke-clean-install.mjs` fails with exit code 1
-  and `packed_file_forbidden`. The new, required
-  `docs/ci/gitlab-reference/baseline/package-lock.json` matches the existing
-  package-wide lockfile deny pattern.
-- The Worker handoff incorrectly records that command as passed with exit zero.
-  The output is a real acceptance failure, not an expected negative probe.
+- The first review found a real `packed_file_forbidden` clean-install failure
+  because the required reference baseline lockfile matched the package-wide
+  deny pattern. The Worker corrected its initial exit-code record, and the
+  coordinator expanded the contract for one exact-path exception.
+- The accepted implementation permits only
+  `docs/ci/gitlab-reference/baseline/package-lock.json`; root and every other
+  tested lockfile path remain forbidden. The local fixture test now inherits
+  only a bounded cross-platform runtime environment.
+- The reference tree is complete and packageable, the subject scenario is
+  synthetic and dependency-free, and the GitLab template pins the accepted
+  tooling commit, rejects schedules, uses zero retries and a fifteen-minute
+  advisory job, and retains exactly three seven-day artifacts.
+- Independent coordinator validation passed type checking, the 25-test focused
+  set, two complete 44-file suites at 411 passed with the two existing
+  Windows-inapplicable POSIX skips, deterministic CI smoke, the 220-file clean
+  install, package dry-run, production audit, and diff/status checks.
 
 ### Required follow-up
 
-- Permit only the exact reference baseline lockfile in
-  `scripts/smoke-clean-install.mjs`; keep every other lockfile and existing
-  sensitive/configuration path forbidden.
-- Add a focused unit assertion for the exact exception and retain the existing
-  negative assertions.
-- Rerun the revised focused command and every required validation, then update
-  the Worker handoff with the initial failure and final exact results.
+- Create the future public GitLab project only after an authenticated client or
+  user-performed creation supplies the exact group path.
+- Run the credential-free hosted mechanics pipeline before assigning any
+  protected semantic Host/model or live Feishu step.
 
 ### Roadmap and release impact
 
-- M7 remains in progress. M7-010 cannot satisfy the real-team, real-duration
-  pilot gate and does not authorize M8 or a release.
+- M7-010 repository preparation is accepted. It supplies engineering and
+  integration fixtures only. M7 remains in progress because the real
+  3-to-5-team, at-least-three-week pilot gate is unsatisfied; M8 and release
+  actions remain unauthorized.
