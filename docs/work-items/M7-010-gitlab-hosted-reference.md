@@ -181,6 +181,13 @@ Update `tests/integration/packaged-ci-surface.test.ts` so the npm tarball must
 contain the complete frozen GitLab reference tree. Keep the existing exclusion
 of workflows, tests, and provider-specific Host helpers.
 
+The clean-install package boundary must admit exactly
+`docs/ci/gitlab-reference/baseline/package-lock.json` as the reference
+subject's dependency-free lockfile. Every root-level or differently located
+`package-lock.json` remains forbidden. Add a focused positive assertion for the
+one exact path and retain the existing negative assertions for root and other
+credential/configuration-like package files.
+
 Tests must use no network, Docker, authentication, model, browser, external
 document, hosted runner, GitLab API, GitLab MCP, timer-based retry, package
 publication, or external write.
@@ -206,8 +213,10 @@ publication, or external write.
 
 - `docs/ci/gitlab-reference/**`
 - `docs/ci/README.md`
+- `scripts/smoke-clean-install.mjs`
 - `tests/integration/gitlab-reference.test.ts`
 - `tests/integration/packaged-ci-surface.test.ts`
+- `tests/unit/clean-install-smoke.test.ts`
 - the Worker handoff section of this file
 
 ## Coordinator-only paths
@@ -227,6 +236,8 @@ publication, or external write.
 
 - [ ] The exact frozen reference tree is complete, copyable, synthetic, and
       present in the npm tarball without changing its allowlist.
+- [ ] The clean-install package check accepts only the exact reference
+      subject lockfile and continues rejecting root or other lockfiles.
 - [ ] Baseline, feature, and documentation follow-up states pass the focused
       offline scenario tests.
 - [ ] The local deterministic mechanics run produces
@@ -243,7 +254,7 @@ publication, or external write.
 
 ```text
 npm run check
-npx vitest run tests/integration/gitlab-reference.test.ts tests/integration/packaged-ci-surface.test.ts tests/integration/provider-neutral-ci.test.ts
+npx vitest run tests/integration/gitlab-reference.test.ts tests/integration/packaged-ci-surface.test.ts tests/integration/provider-neutral-ci.test.ts tests/unit/clean-install-smoke.test.ts
 npm test
 npm test
 npm run smoke:ci
@@ -322,17 +333,31 @@ Vitest or TypeScript binaries as a product failure.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
+- Outcome: `changes_requested`
 - Reviewed branch head:
+  `e4ded9b011276197360b43570867b16d5142ff82`
 - Integration commit:
 
 ### Review findings
 
-- Pending.
+- The implementation and handoff stay within the originally allowed paths, and
+  the focused tests plus two complete coordinator suites pass.
+- Independent `node scripts/smoke-clean-install.mjs` fails with exit code 1
+  and `packed_file_forbidden`. The new, required
+  `docs/ci/gitlab-reference/baseline/package-lock.json` matches the existing
+  package-wide lockfile deny pattern.
+- The Worker handoff incorrectly records that command as passed with exit zero.
+  The output is a real acceptance failure, not an expected negative probe.
 
 ### Required follow-up
 
-- Pending.
+- Permit only the exact reference baseline lockfile in
+  `scripts/smoke-clean-install.mjs`; keep every other lockfile and existing
+  sensitive/configuration path forbidden.
+- Add a focused unit assertion for the exact exception and retain the existing
+  negative assertions.
+- Rerun the revised focused command and every required validation, then update
+  the Worker handoff with the initial failure and final exact results.
 
 ### Roadmap and release impact
 
