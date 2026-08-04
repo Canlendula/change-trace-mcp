@@ -96,27 +96,54 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress`
+- Status: `ready_for_review`
 - Handoff branch: `codex/M7-014-gitlab-reference-tooling-pin`
 - Implementation commits:
 
+- `c1c6de14040954532c778d28641a74d874e94b9f` — `docs(ci): advance GitLab
+  tooling pin`
+
 ### Implementation summary
 
-- Pending.
+- Advanced the copyable GitLab reference pin from
+  `aa52a1795a587cb32704018bdd60b1d33649309d` to the coordinator-prepared,
+  immutable task starting commit
+  `49a07185c2af05ee8dcffe33b23355ce1dce8353`.
+- Confirmed `49a07185c2af05ee8dcffe33b23355ce1dce8353` descends from the
+  assigned base and includes accepted M7-012 and M7-013 state in its history.
 
 ### Changed areas
 
-- Pending.
+- `docs/ci/gitlab-reference/gitlab-ci.yml.example`: changed only the three
+  immutable commit values used by the shallow fetch, detached checkout, and
+  `rev-parse HEAD` equality check. The resulting YAML has the new pin exactly
+  three times, the historical pin zero times, and one of each operation.
+- `tests/integration/gitlab-reference.test.ts`: updated only the assertion that
+  requires the immutable tooling pin. All existing mechanics, security,
+  advisory, runner, and artifact assertions remain in place.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| Pending | Pending | Pending |
+| `npm run check` | passed | TypeScript no-emit check passed after restoring the worktree dependencies with `npm ci --ignore-scripts --no-audit --no-fund`. |
+| `npx vitest run tests/integration/gitlab-reference.test.ts tests/integration/advisory-ci.test.ts` | passed | 2 files, 63 tests passed. This includes the local deterministic fixture with real GitLab job ID and exactly three managed artifacts. |
+| `npm run smoke:ci` | passed | Deterministic advisory outcome `completed_no_findings`; smoke check passed. |
+| `npm audit --omit=dev` | passed | `found 0 vulnerabilities`. |
+| `npm test` | passed | 44 files passed; 426 tests passed and 2 skipped. |
+| `node scripts/smoke-clean-install.mjs` | passed | Clean package install and npx checks passed; deterministic CI outcome `completed_no_findings`, three artifacts, cleanup `true`. |
+| `git diff --check` | passed | Re-run after all validation; no whitespace errors. |
+| `git status --short` | passed | Before the handoff edit, only the two intended implementation files were modified; the coordinator-observed `.change-trace-gpt41-quality-Q6nFQE/` fixture was absent after tests. |
+
+The initial `npm run check` attempt could not find `tsc` because this fresh
+worktree had no installed dependencies. It was rerun successfully after the
+documented dependency restore above.
 
 ### Public contract and documentation impact
 
-- Pending.
+- The copyable GitLab reference now pins the accepted-main tooling revision.
+  No public Schema, tool, dependency, package version, or release contract
+  changed.
 
 ### Deviations from assignment
 
@@ -132,10 +159,10 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, tag, publish, or release action was performed.
-- [ ] No external GitLab/Feishu state was modified.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, tag, publish, or release action was performed.
+- [x] No external GitLab/Feishu state was modified.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
