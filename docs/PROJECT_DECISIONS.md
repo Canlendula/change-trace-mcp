@@ -1687,3 +1687,73 @@ and HEAD equality check use that same commit. Regression tests require exactly
 three new-pin occurrences and zero historical-pin occurrences. M7-011 may copy
 that exact YAML into one new subject commit and observe the single resulting
 default-branch pipeline; old pipelines remain preserved and unretried.
+
+## 41. M7 accepts credential-free GitLab.com mechanics without broadening the pilot or credential boundary
+
+M7-011 is accepted on 2026-08-04. The coordinator materialized only M7-014's
+three-location tooling-pin change in the public synthetic subject. Subject
+commit `3b0461da6f18b82f1360d9b929d0ac34b630f67d` is byte-equivalent to the
+accepted YAML after Git normalization and is the sole commit associated with
+push pipeline `2730344241` (IID `3`). Remote `main` resolves to that exact
+commit.
+
+Pipeline `2730344241` passed in 69 seconds with no YAML error. Dependency-free
+`subject_test` job `15698742078` passed first. Advisory job `15698742079` then
+passed on a GitLab-hosted Linux Runner using `node:22-bookworm` while remaining
+`allow_failure: true`, retry-free, and bounded by the existing fifteen-minute
+timeout. The trace proves exact fetch, detached checkout, and HEAD verification
+of audited tooling commit `49a07185c2af05ee8dcffe33b23355ce1dce8353`,
+successful install/build, and unchanged forwarding of the real GitLab job ID
+as a positive safe-integer run attempt.
+
+The advisory outcome is `completed_no_findings`. Its base and head revisions
+both equal the accepted subject commit; all finding and missing-evidence counts
+are zero and the bundle is not truncated. GitLab retained one 1,694-byte
+archive until `2026-08-11T12:07:39.930Z`. The archive contains exactly:
+
+- `release-review.md`: 83 bytes, SHA-256
+  `f7690fccdc185acdb296f6d0147cfcbb63147ed68e7a95439d13ac8d81ec1a41`;
+- `release-review.json`: 880 bytes, SHA-256
+  `a487f8a07224101da363dbf36e69d74558f5e4cdba865b8606eea8213d6b4c09`;
+- `release-review-status.json`: 1,071 bytes, SHA-256
+  `aa78e7eeb0ee28ea7470a97c955071f4bd8093c300560876ece1c131805dd2cf`.
+
+The archive SHA-256 is
+`4af60f5a2b8c6cf51da260bad4009ce90fdabb2bdf17641886a8b49c06f175da`.
+The JSON report passes the repository `reportSchema`; the sidecar's schema,
+run identity, revisions, counts, sizes, and embedded hashes agree with the
+downloaded files. The three files contain no credential-pattern match. The
+bounded download remains under ignored `artifacts/` and is not project source
+or a committed handoff.
+
+The project now has exactly three preserved pipelines. Exactly one belongs to
+the accepted subject commit, none is active or schedule-sourced, and pipeline
+`2730344241` has exactly two non-retried jobs. No model, GitLab API token,
+GitLab MCP, Lark credential, Cookie, browser storage, project variable,
+schedule, runner registration, merge gate, MR, retry, cancel, package version,
+npm publication, tag, release, or dist-tag was introduced. The temporary SSH
+known-hosts file contained only GitLab's published ED25519 key, was used with
+strict host-key checking, and was removed after remote verification.
+
+This acceptance supersedes Decision 39's historical hosted-mechanics pin with
+the audited pin selected by Decisions 40 and 41. It proves deterministic
+GitLab orchestration, immutable trusted-tooling execution, run-attempt
+portability, and artifact handling for one synthetic project. It creates no
+semantic Agent/Host compatibility claim, no authenticated Feishu retrieval
+claim, and no pilot team or observation week. M7 remains in progress until the
+real three-to-five-team, at-least-three-week pilot and all remaining exit gates
+pass; M8 and release state do not change.
+
+The project owner reports manually pasting the accepted `CTGR-001` Markdown
+into the Feishu Wiki document. Installing `lark-cli` is unnecessary for this
+mechanics acceptance. Any future live document read is a separate
+explicit-reference phase with least-privilege read-only authentication; any
+CI secret must be entered manually as a masked and protected variable and must
+remain unavailable to fork or untrusted merge-request pipelines.
+
+Hosted evidence accessed 2026-08-04:
+
+- `https://gitlab.com/api/v4/projects/85104200/pipelines/2730344241`;
+- `https://gitlab.com/api/v4/projects/85104200/pipelines/2730344241/jobs?include_retried=true&per_page=100`;
+- `https://gitlab.com/infinty081/change-trace-gitlab-reference/-/jobs/15698742079/raw`;
+- `https://gitlab.com/api/v4/projects/85104200/jobs/15698742079/artifacts`.

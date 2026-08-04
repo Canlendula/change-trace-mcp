@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `ready_for_fresh_pipeline`
+- Status: `accepted`
 - Milestone: `M7 — Public beta hardening`
 - Base commit: `f88fbeadacac23ffbd759908444500b40cb1113f`
 - Execution owner: coordinator; this is an external hosted acceptance task,
@@ -101,7 +101,8 @@ remain unchanged.
 
 ## Hosted acceptance contract
 
-The first pipeline must be attributable to the exact pushed baseline commit.
+The accepted post-fix pipeline must be attributable to the exact pushed
+subject commit.
 Acceptance requires:
 
 - GitLab-hosted `node:22-bookworm` jobs;
@@ -112,7 +113,7 @@ Acceptance requires:
 - no scheduled, manually retried, duplicate, waiting, or continuously running
   pipeline remains;
 - the immutable tooling checkout resolves to
-  `aa52a1795a587cb32704018bdd60b1d33649309d`;
+  `49a07185c2af05ee8dcffe33b23355ce1dce8353`;
 - the advisory status outcome is `completed_no_findings`;
 - exactly these artifacts are retained for seven days:
   - `artifacts/advisory/release-review.md`;
@@ -133,10 +134,12 @@ The Feishu document URL is recorded as the future explicit-reference source.
 M7-011 does not require or authorize Lark application credentials, live adapter
 retrieval, search, organization-wide discovery, or semantic use. If an already
 authenticated safe document client is available, the coordinator may populate
-the currently empty body from the accepted
+the document body from the accepted
 `docs/ci/gitlab-reference/feishu-product-update-template.md` after resolving
-the Wiki token to its real document token. Otherwise the exact manual paste
-remains a user action and does not block GitLab mechanics acceptance.
+the Wiki token to its real document token. The project owner has since
+reported completing that exact manual paste. No authenticated body retrieval
+was performed, and this reported external state does not block GitLab
+mechanics acceptance.
 
 ## Repository records
 
@@ -190,7 +193,7 @@ git status --short
 
 ## Coordinator execution record
 
-- Status: `blocked_pending_user_verification`
+- Status: `accepted`
 - Baseline commit:
   `b3f4b9ab2e7a5bf5fcab4557cff30b85597878bc`
 - Pipeline URL/ID:
@@ -236,21 +239,66 @@ git status --short
   template. No authenticated body retrieval occurred. `lark-cli` remains
   uninstalled and is not required for this mechanics phase; Codex in-app
   Browser was not used.
+- Accepted subject commit:
+  `3b0461da6f18b82f1360d9b929d0ac34b630f67d`
+  (`ci: advance Change Trace tooling pin`). The commit changes only the three
+  immutable pin locations in `.gitlab-ci.yml`; its staged Git object matched
+  the accepted template object `a78634422a9132b3ac1a5b05f3dec76b914556f8`.
+- Third pipeline URL/ID:
+  `https://gitlab.com/infinty081/change-trace-gitlab-reference/-/pipelines/2730344241`
+  (`2730344241`, pipeline IID `3`, source `push`, exact accepted subject
+  commit).
+- Third pipeline result: `success`, no YAML error, 69-second duration.
+- `subject_test`: job `15698742078` passed on a GitLab-hosted Linux Runner in
+  31.16 seconds.
+- `change_trace_mechanics`: job `15698742079` passed on a GitLab-hosted
+  `saas-linux-small-amd64` Runner using `node:22-bookworm` in 38.26 seconds;
+  it retained `allow_failure: true`, zero retry, and the fifteen-minute
+  timeout.
+- Trusted tooling: the trace fetched, detached, and verified exact commit
+  `49a07185c2af05ee8dcffe33b23355ce1dce8353`, then installed and built it
+  before forwarding `CI_JOB_ID=15698742079` unchanged as the run attempt.
+- Advisory result: `completed_no_findings`, with base/head revision both equal
+  to the accepted subject commit, zero findings/missing evidence, and no
+  truncation.
+- Managed artifact archive: 1,694 bytes,
+  SHA-256 `4af60f5a2b8c6cf51da260bad4009ce90fdabb2bdf17641886a8b49c06f175da`.
+  It contains exactly the three authorized paths and expires at
+  `2026-08-11T12:07:39.930Z`:
+  - `release-review.md`: 83 bytes,
+    SHA-256 `f7690fccdc185acdb296f6d0147cfcbb63147ed68e7a95439d13ac8d81ec1a41`;
+  - `release-review.json`: 880 bytes,
+    SHA-256 `a487f8a07224101da363dbf36e69d74558f5e4cdba865b8606eea8213d6b4c09`;
+  - `release-review-status.json`: 1,071 bytes,
+    SHA-256 `aa78e7eeb0ee28ea7470a97c955071f4bd8093c300560876ece1c131805dd2cf`.
+- Artifact validation: the report passed the repository `reportSchema`; the
+  sidecar schema, run identity, revisions, counts, file sizes, and embedded
+  hashes are internally consistent. A bounded credential-pattern scan of the
+  three files found no match. The downloaded evidence remains under ignored
+  `artifacts/M7-011-gitlab-pipeline-2730344241/` and is not committed.
+- Final external-state check: the project lists exactly three preserved
+  pipelines, exactly one for the accepted subject commit, no active pipeline,
+  no schedule-source pipeline, and exactly two jobs in pipeline `2730344241`
+  even when retried jobs are included. No extra pipeline, retry, variable,
+  project setting, runner,
+  schedule, merge gate, MR, package, version, tag, release, or publication was
+  created.
 
 ## Coordinator review
 
-- Outcome: `ready_for_fresh_pipeline`
-- Validation summary: the subject materialized byte-for-byte from the accepted
-  six-file baseline, local dependency-free installation and its one test
-  passed, SSH push succeeded, and remote `main` matches the baseline commit.
-  GitLab account verification, hosted Runner scheduling, and subject tests are
-  now proven. The real GitLab job ID exposed the runner's undocumented
-  `1_000_000` ceiling, which accepted M7-012 resolves. Accepted M7-013 restores
-  a zero-vulnerability production audit, and accepted M7-014 advances the
-  governed reference pin. Hosted advisory and artifact acceptance now require
-  the one authorized subject commit and fresh pipeline.
-- Required follow-up: materialize M7-014's exact accepted `.gitlab-ci.yml` into
-  one new subject commit and allow one new default-branch pipeline. Do not
-  retry or rewrite pipeline `2730157298`.
+- Outcome: `accepted`
+- Validation summary: the subject's only post-defect diff was the accepted
+  three-location tooling pin, local dependency-free installation and its one
+  test passed, strict SSH host-key verification and push succeeded, and remote
+  `main` matches `3b0461da6f18b82f1360d9b929d0ac34b630f67d`. The single
+  resulting push pipeline passed both hosted jobs, immutable audited-tooling
+  checkout/build, safe-integer run-attempt forwarding, deterministic advisory
+  execution, schema validation, exact three-file artifact retention, and final
+  no-active/no-retry checks. Final repository validation passed `git diff
+  --check`, `npm run check`, all 44 test files at 426 passed / 2 intentional
+  POSIX skips, and a production audit with zero vulnerabilities.
+- Required follow-up: any semantic Agent path or authenticated Feishu read is a
+  separately assigned protected phase requiring an explicit Host/credential
+  decision. Preserve all three pipelines and do not retry or rewrite them.
 - Roadmap impact: M7 remains in progress; this single synthetic project cannot
   satisfy the real multi-team, multi-week pilot gate or authorize M8/release.

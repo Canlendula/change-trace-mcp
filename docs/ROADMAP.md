@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-010 and M7-012 through M7-014 accepted; M7-011 ready for one fresh hosted mechanics pipeline; real multi-team pilot evidence remains
+> Status: M7 in progress; M7-001 through M7-014 accepted; real multi-team, multi-week pilot evidence remains
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -274,9 +274,8 @@ The technical spike may revise this choice if Host compatibility or package star
   tooling commit, then failed with `invalid_run_attempt` because the real
   `CI_JOB_ID` (`15697682696`) exceeded the runner's undocumented `1_000_000`
   ceiling. No advisory artifact was produced. This failure led to the scoped
-  M7-012 portability fix; a later deliberate fresh-baseline pipeline is still
-  required. The observation remains mechanics evidence, not a semantic or
-  pilot result.
+  M7-012 portability fix and remains preserved as diagnostic evidence. The
+  observation is mechanics evidence, not a semantic or pilot result.
 - M7-012 was accepted on 2026-08-04. The advisory runner now accepts strict
   decimal run-attempt values through `Number.MAX_SAFE_INTEGER`; the real GitLab
   job ID `15697682696` round-trips through the Host and status sidecar. Type
@@ -286,7 +285,7 @@ The technical spike may revise this choice if Host compatibility or package star
   in the unchanged lockfile: high-severity `fast-uri`, moderate-severity
   `hono`, and high-severity `ip-address` findings. M7-013 is assigned to perform
   a lockfile-only patch refresh within the existing direct dependency ranges.
-  M7-011 will not materialize or run the new tooling commit until that audit is
+  M7-011 did not materialize or run the new tooling commit until that audit was
   clean.
 - M7-013 was accepted on 2026-08-04 with an exact lock-only delta:
   `fast-uri 3.1.4 -> 3.1.5`, `hono 4.12.31 -> 4.12.34`, and `ip-address
@@ -304,9 +303,23 @@ The technical spike may revise this choice if Host compatibility or package star
   exactly three times, the historical pin zero times, and the exact same pin in
   all three commands. Coordinator validation passes 63 focused tests, CI smoke,
   production audit with zero vulnerabilities, all 426 tests with two existing
-  POSIX skips, and the 220-file clean-install boundary. M7-011 may now
-  materialize only this accepted YAML into one new subject commit and observe
+  POSIX skips, and the 220-file clean-install boundary. This authorized M7-011
+  to materialize only the accepted YAML into one new subject commit and observe
   the resulting default-branch pipeline.
+- M7-011 was accepted on 2026-08-04 after the exact M7-014 YAML became the sole
+  subject change in commit `3b0461da6f18b82f1360d9b929d0ac34b630f67d`.
+  Its single resulting push pipeline `2730344241` passed `subject_test` and
+  advisory job `15698742079` on GitLab-hosted Linux Runners. The trace verified
+  audited tooling commit `49a07185c2af05ee8dcffe33b23355ce1dce8353`,
+  forwarded the real safe-integer job ID, and reported
+  `completed_no_findings`. The downloaded archive contained exactly the three
+  configured, seven-day artifacts; report schema, run/revision/count
+  consistency, recorded sizes, and hashes all passed. The project retains
+  exactly three pipelines, with no active or schedule-sourced pipeline, no
+  duplicate for the accepted commit, and no retried job. This proves
+  credential-free GitLab mechanics only;
+  semantic Agent, authenticated Feishu retrieval, real pilot, release, and M8
+  claims remain outside the acceptance.
 
 ## 6. M0 — Project foundation
 
@@ -797,11 +810,11 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M7-001 through M7-010 and M7-012 through M7-014
-> are accepted; M7-011 is ready for one fresh hosted mechanics pipeline. The
-> repository construction and local verification slices are complete; real
-> multi-team, multi-week pilot evidence remains. The two
-> original two medium security findings and the three newly published
+> Current state: in progress. M7-001 through M7-014 are accepted. The
+> repository construction, local verification, and credential-free GitLab
+> hosted mechanics slices are complete; real
+> multi-team, multi-week pilot evidence remains. The original two medium
+> security findings and the three newly published
 > transitive advisories are mitigated. Clean package installation is
 > reproducible, and the three priority local Hosts pass the exact installed
 > fixture contract with Host-specific lifecycle evidence. The provider-neutral
@@ -1003,7 +1016,7 @@ Progress as of 2026-07-26:
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
-| M7 public beta hardening | In progress; M7-001 through M7-010 and M7-012 through M7-014 are accepted, M7-011 is ready for one fresh hosted mechanics pipeline, and the real multi-team, multi-week pilot remains |
+| M7 public beta hardening | In progress; M7-001 through M7-014 are accepted, credential-free GitLab hosted mechanics passes, and the real multi-team, multi-week pilot remains |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
