@@ -176,6 +176,19 @@ The harness installed a copied package, passed the pinned local-tarball `npx`
 path, and removed its temporary state. No tarball, cache, credential, or
 consumer project was retained in the repository.
 
+After M7-014 and its packaged acceptance records were integrated, coordinator
+commit `f1b99c167150cab9bfb87a865b4798438635f620` received the same final
+clean-install recheck. It retained 220 files, the frozen nine-tool surface,
+byte-identical M1 fixture, `completed_no_findings`, exactly three CI artifacts,
+successful copied-package and `npx` paths, cleanup `true`, and a zero-finding
+production audit. Its final tarball evidence is:
+
+- SHA-256: `6dad912effbd6d72509fcc40ab3889e146137ae176550d71467da0483a46dabf`;
+- npm shasum: `10f9a5057fc0552668d8b65e6d5801d40d19cb80`;
+- npm integrity:
+  `sha512-Scrif5nkMCuREqaqBurv1tVSGGOPkDEsImFN/Cy1ybS8kAehlQjfMgIBKKqbbL1wDJgPy7CMsHtXGcr6SHZGcQ==`;
+- packed/unpacked bytes: `187805` / `896277`.
+
 ## Security and external-state confirmation
 
 - No model, Host, GitLab API token, GitLab MCP, Lark credential, CI variable,
