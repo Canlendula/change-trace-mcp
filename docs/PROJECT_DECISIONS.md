@@ -1678,3 +1678,12 @@ vulnerabilities, type checking, CI smoke, the full test suite, and clean-package
 installation all pass. M7-014 must move the separately copyable GitLab
 reference template from the historical `aa52a17` tooling commit to the final
 accepted main commit containing M7-012 and M7-013 before another hosted run.
+
+M7-014 is accepted at
+`9bdc91fbf1ce58401a7c37ff92107b459ef6343a`. The governed reference YAML now
+pins `49a07185c2af05ee8dcffe33b23355ce1dce8353`, which contains the accepted
+safe-integer runner and audited transitive locks. Its fetch, detached checkout,
+and HEAD equality check use that same commit. Regression tests require exactly
+three new-pin occurrences and zero historical-pin occurrences. M7-011 may copy
+that exact YAML into one new subject commit and observe the single resulting
+default-branch pipeline; old pipelines remain preserved and unretried.

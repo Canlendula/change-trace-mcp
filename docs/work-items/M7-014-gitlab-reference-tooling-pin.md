@@ -177,20 +177,33 @@ documented dependency restore above.
 
 ## Coordinator review — coordinator owned
 
-- Outcome: `pending`
+- Outcome: `accepted`
 - Reviewed branch head:
+  `9bdc91fbf1ce58401a7c37ff92107b459ef6343a`
 - Integration commit:
+  `9bdc91fbf1ce58401a7c37ff92107b459ef6343a` (fast-forward)
 
 ### Review findings
 
-- Pending.
+- The first review found that the YAML was correct but the test asserted only
+  that the new pin appeared at least once. That did not durably enforce the
+  assignment's exact three-copy/zero-historical-copy invariant, so the
+  coordinator requested a focused test follow-up.
+- The accepted test defines the new and historical pins once, requires exact
+  occurrence counts of three and zero, and checks the full fetch, detached
+  checkout, and HEAD equality command lines. The YAML remained unchanged in
+  the follow-up.
+- Independent coordinator validation passed type checking, the 63-test focused
+  suite, deterministic CI smoke, production audit with zero vulnerabilities,
+  all 426 tests with two existing Windows-inapplicable POSIX skips, the
+  220-file clean-install smoke, exact pin counts, and diff/status checks.
 
 ### Required follow-up
 
-- After acceptance, the coordinator may materialize the exact YAML into one
-  subject commit and allow one new default-branch mechanics pipeline.
+- Materialize the exact accepted YAML into one subject commit and allow one new
+  default-branch mechanics pipeline under M7-011.
 
 ### Roadmap and release impact
 
-- M7 remains in progress. M7-011, the real multi-team pilot, M8, and all
-  release actions remain incomplete or unauthorized.
+- M7-014 is accepted. M7 remains in progress; M7-011 and the real multi-team
+  pilot remain incomplete. M8 and all release actions remain unauthorized.

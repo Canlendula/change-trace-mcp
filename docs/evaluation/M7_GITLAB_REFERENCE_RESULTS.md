@@ -140,10 +140,13 @@ required production audit also detected three newly published transitive
 advisories in the unchanged lockfile. M7-013 is accepted at
 `8e82ee4a64e8f8ed027db8278f646cdbe9b6b5d0` with only the three minimum patched
 transitive resolutions and a zero-vulnerability production audit. M7-014 must
-advance the governed reference template to the final accepted main state
-before that exact YAML is materialized into a fresh subject commit and one
-deliberate pipeline is created. Preserve both existing pipelines and do not
-retry, cancel, delete, or rewrite them.
+advance the governed reference template to the final accepted main state.
+M7-014 is accepted at `9bdc91fbf1ce58401a7c37ff92107b459ef6343a`;
+its YAML pins audited tooling commit
+`49a07185c2af05ee8dcffe33b23355ce1dce8353`. That exact YAML may now be
+materialized into a fresh subject commit and one deliberate default-branch
+pipeline. Preserve both existing pipelines and do not retry, cancel, delete,
+or rewrite them.
 
 ## Accepted-main package recheck after M7-013
 

@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `blocked_pending_m7_014`
+- Status: `ready_for_fresh_pipeline`
 - Milestone: `M7 — Public beta hardening`
 - Base commit: `f88fbeadacac23ffbd759908444500b40cb1113f`
 - Execution owner: coordinator; this is an external hosted acceptance task,
@@ -67,6 +67,15 @@ merge gate, MR, feature overlay, retry, cancel, manual rerun, or semantic job is
 authorized by this task. A failed pipeline is evidence to inspect; do not retry
 until its first failure and logs are preserved and the cause is understood.
 
+After accepted M7-012 through M7-014, the coordinator is additionally
+authorized to copy the accepted
+`docs/ci/gitlab-reference/gitlab-ci.yml.example` byte-for-byte over the subject
+`.gitlab-ci.yml`, verify that this is the only subject diff, commit it once with
+message `ci: advance Change Trace tooling pin`, and push subject `main` through
+the already configured SSH remote. The resulting default-branch push pipeline
+is the one fresh pipeline authorized for hosted acceptance. No manual retry,
+extra pipeline, variable, setting, or other subject file change is authorized.
+
 ## Frozen subject content
 
 The baseline commit contains exactly the materialized M7-010 subject files:
@@ -83,6 +92,12 @@ It contains no feature/follow-up overlay, Feishu template, credential, local
 path, coordinator log, MCP configuration, browser state, incident data, or
 generated artifact. The baseline commit message is
 `feat: add operational service status baseline`.
+
+The authorized post-defect subject commit changes only `.gitlab-ci.yml` from
+historical tooling pin `aa52a1795a587cb32704018bdd60b1d33649309d` to accepted,
+audited tooling pin `49a07185c2af05ee8dcffe33b23355ce1dce8353` in the exact
+three fetch/checkout/verification locations. All other YAML and subject bytes
+remain unchanged.
 
 ## Hosted acceptance contract
 
@@ -224,18 +239,18 @@ git status --short
 
 ## Coordinator review
 
-- Outcome: `blocked_pending_m7_014`
+- Outcome: `ready_for_fresh_pipeline`
 - Validation summary: the subject materialized byte-for-byte from the accepted
   six-file baseline, local dependency-free installation and its one test
   passed, SSH push succeeded, and remote `main` matches the baseline commit.
   GitLab account verification, hosted Runner scheduling, and subject tests are
   now proven. The real GitLab job ID exposed the runner's undocumented
-  `1_000_000` ceiling, which accepted M7-012 resolves. Accepted M7-013 also
-  restores a zero-vulnerability production audit. Hosted advisory and artifact
-  acceptance still require M7-014's governed reference-pin update and a fresh
-  pipeline.
-- Required follow-up: accept M7-014, then materialize its exact accepted
-  `.gitlab-ci.yml` into one new subject commit and allow one new default-branch
-  pipeline. Do not retry or rewrite pipeline `2730157298`.
+  `1_000_000` ceiling, which accepted M7-012 resolves. Accepted M7-013 restores
+  a zero-vulnerability production audit, and accepted M7-014 advances the
+  governed reference pin. Hosted advisory and artifact acceptance now require
+  the one authorized subject commit and fresh pipeline.
+- Required follow-up: materialize M7-014's exact accepted `.gitlab-ci.yml` into
+  one new subject commit and allow one new default-branch pipeline. Do not
+  retry or rewrite pipeline `2730157298`.
 - Roadmap impact: M7 remains in progress; this single synthetic project cannot
   satisfy the real multi-team, multi-week pilot gate or authorize M8/release.

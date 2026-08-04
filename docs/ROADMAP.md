@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-010 and M7-012 through M7-013 accepted; M7-011 blocked on the assigned M7-014 reference-pin update; real multi-team pilot evidence remains
+> Status: M7 in progress; M7-001 through M7-010 and M7-012 through M7-014 accepted; M7-011 ready for one fresh hosted mechanics pipeline; real multi-team pilot evidence remains
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -297,6 +297,16 @@ The technical spike may revise this choice if Host compatibility or package star
   contracts, versions, releases, and external state did not change. M7-014 is
   assigned to advance only the governed GitLab reference tooling pin and its
   contract assertion to this accepted, audited main state.
+- M7-014 was accepted on 2026-08-04. The copyable GitLab reference now uses
+  immutable tooling commit `49a07185c2af05ee8dcffe33b23355ce1dce8353`
+  for its one fetch, detached checkout, and HEAD equality check. A first review
+  requested stronger regression guards; the accepted test requires the new pin
+  exactly three times, the historical pin zero times, and the exact same pin in
+  all three commands. Coordinator validation passes 63 focused tests, CI smoke,
+  production audit with zero vulnerabilities, all 426 tests with two existing
+  POSIX skips, and the 220-file clean-install boundary. M7-011 may now
+  materialize only this accepted YAML into one new subject commit and observe
+  the resulting default-branch pipeline.
 
 ## 6. M0 — Project foundation
 
@@ -787,8 +797,8 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M7-001 through M7-010 and M7-012 through M7-013
-> are accepted; M7-011 is blocked on the assigned M7-014 reference-pin update. The
+> Current state: in progress. M7-001 through M7-010 and M7-012 through M7-014
+> are accepted; M7-011 is ready for one fresh hosted mechanics pipeline. The
 > repository construction and local verification slices are complete; real
 > multi-team, multi-week pilot evidence remains. The two
 > original two medium security findings and the three newly published
@@ -993,7 +1003,7 @@ Progress as of 2026-07-26:
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
-| M7 public beta hardening | In progress; M7-001 through M7-010 and M7-012 through M7-013 are accepted, M7-011 hosted mechanics is blocked on the assigned M7-014 reference-pin update, and the real multi-team, multi-week pilot remains |
+| M7 public beta hardening | In progress; M7-001 through M7-010 and M7-012 through M7-014 are accepted, M7-011 is ready for one fresh hosted mechanics pipeline, and the real multi-team, multi-week pilot remains |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
