@@ -145,6 +145,34 @@ before that exact YAML is materialized into a fresh subject commit and one
 deliberate pipeline is created. Preserve both existing pipelines and do not
 retry, cancel, delete, or rewrite them.
 
+## Accepted-main package recheck after M7-013
+
+After the packaged Roadmap, Decision, and work-item acceptance records were
+committed, coordinator commit
+`84c24180955f46ca892fd7c8b9e237956e0f7406` was rechecked through the
+credential-free clean-install harness. The result is the final package evidence
+for the audited state before M7-014:
+
+| Field | Evidence |
+|---|---|
+| Source version | `0.0.0-dev.1` |
+| Tarball | `change-trace-mcp-0.0.0-dev.1.tgz` |
+| SHA-256 | `d66cdbcf03170834577f81b7cb07949869ece333ce131909a550649ec169333d` |
+| npm shasum | `e8b26b9b1ef4e859428bb725270de45c59ed3f35` |
+| npm integrity | `sha512-IxQ/oA4aWvwnlAHW9hwfWUuYIZ9SphLMyozUMe1CxSm/IV5MdOTzIyX51fk5Ee9YMZNpVtjRNw3vtb1lE2lv7w==` |
+| Packed / unpacked bytes | `187332` / `895017` |
+| File count | `220` |
+| Runtime | Node `v24.0.0`, npm `11.3.0`, Windows x64 |
+| Installed tools | exact frozen nine-tool surface |
+| Fixture | byte-identical M1 compatibility fixture |
+| CI smoke | `completed_no_findings`, exactly three artifacts |
+| Cleanup | `true` |
+| Production audit | zero vulnerabilities |
+
+The harness installed a copied package, passed the pinned local-tarball `npx`
+path, and removed its temporary state. No tarball, cache, credential, or
+consumer project was retained in the repository.
+
 ## Security and external-state confirmation
 
 - No model, Host, GitLab API token, GitLab MCP, Lark credential, CI variable,
