@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-010 accepted; M7-011 blocked on the M7-012 GitLab run-attempt portability fix; real multi-team pilot evidence remains
+> Status: M7 in progress; M7-001 through M7-010 and M7-012 accepted; M7-011 blocked on the assigned M7-013 production-audit refresh; real multi-team pilot evidence remains
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -273,9 +273,21 @@ The technical spike may revise this choice if Host compatibility or package star
   Linux Runner; `change_trace_mechanics` checked out and built the immutable
   tooling commit, then failed with `invalid_run_attempt` because the real
   `CI_JOB_ID` (`15697682696`) exceeded the runner's undocumented `1_000_000`
-  ceiling. No advisory artifact was produced. M7-011 is blocked on the scoped
-  M7-012 portability fix and a later deliberate fresh-baseline pipeline; this
-  remains mechanics evidence, not a semantic or pilot result.
+  ceiling. No advisory artifact was produced. This failure led to the scoped
+  M7-012 portability fix; a later deliberate fresh-baseline pipeline is still
+  required. The observation remains mechanics evidence, not a semantic or
+  pilot result.
+- M7-012 was accepted on 2026-08-04. The advisory runner now accepts strict
+  decimal run-attempt values through `Number.MAX_SAFE_INTEGER`; the real GitLab
+  job ID `15697682696` round-trips through the Host and status sidecar. Type
+  checking, 63 focused tests, deterministic CI smoke, and the full 426-test
+  suite passed with the two existing POSIX skips. The required production
+  audit independently discovered three newly published transitive advisories
+  in the unchanged lockfile: high-severity `fast-uri`, moderate-severity
+  `hono`, and high-severity `ip-address` findings. M7-013 is assigned to perform
+  a lockfile-only patch refresh within the existing direct dependency ranges.
+  M7-011 will not materialize or run the new tooling commit until that audit is
+  clean.
 
 ## 6. M0 — Project foundation
 
@@ -766,11 +778,12 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M7-001 through M7-010 are accepted, M7-011 is
-> blocked on the assigned M7-012 GitLab run-attempt portability fix. The
+> Current state: in progress. M7-001 through M7-010 and M7-012 are accepted;
+> M7-011 is blocked on the assigned M7-013 production-audit refresh. The
 > repository construction and local verification slices are complete; real
 > multi-team, multi-week pilot evidence remains. The two
-> medium security findings are mitigated, clean package installation is
+> original two medium security findings are mitigated, and the three newly
+> published transitive advisories are assigned to M7-013. Clean package installation is
 > reproducible, and the three priority local Hosts pass the exact installed
 > fixture contract with Host-specific lifecycle evidence. The provider-neutral
 > runner, bounded summarizer, GitHub/GitLab/portable examples, and
@@ -971,7 +984,7 @@ Progress as of 2026-07-26:
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
-| M7 public beta hardening | In progress; M7-001 through M7-010 are accepted, M7-011 hosted mechanics is blocked on the assigned M7-012 GitLab run-attempt portability fix, and the real multi-team, multi-week pilot remains |
+| M7 public beta hardening | In progress; M7-001 through M7-010 and M7-012 are accepted, M7-011 hosted mechanics is blocked on the assigned M7-013 production-audit refresh, and the real multi-team, multi-week pilot remains |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is

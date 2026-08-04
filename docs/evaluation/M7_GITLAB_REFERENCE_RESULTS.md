@@ -132,12 +132,15 @@ runner currently rejects values greater than `1_000_000` despite documenting
 only a positive-integer requirement. The real value `15697682696` therefore
 exposed a repository portability defect.
 
-M7-012 must retain strict decimal/safe-integer validation while accepting the
-full positive JavaScript safe-integer range and proving that the observed
-GitLab job ID is forwarded and recorded unchanged. After coordinator review
-and acceptance, materialize the accepted fix into a fresh subject baseline and
-create one deliberate pipeline. Preserve both existing pipelines and do not
-retry, cancel, delete, or rewrite them.
+M7-012 is accepted at commit
+`42f7df162bf3c2e8426cb88fdf10efda9b96ce32`. It retains strict decimal
+validation, accepts the full positive JavaScript safe-integer range, and proves
+that the observed GitLab job ID is forwarded and recorded unchanged. Its
+required production audit also detected three newly published transitive
+advisories in the unchanged lockfile. M7-013 must restore a zero-vulnerability
+production audit before the accepted tooling commit is materialized into a
+fresh subject baseline and one deliberate pipeline is created. Preserve both
+existing pipelines and do not retry, cancel, delete, or rewrite them.
 
 ## Security and external-state confirmation
 

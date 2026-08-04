@@ -1631,3 +1631,40 @@ Additional hosted-execution reference accessed 2026-08-04:
 
 - `https://docs.gitlab.com/ci/debugging/#error-identity-verification-is-required-in-order-to-run-ci-jobs`.
 - `https://docs.gitlab.com/ci/variables/predefined_variables/`.
+
+## 40. M7 refreshes newly vulnerable transitive locks before another hosted reference run
+
+M7-012 fixes the GitLab run-attempt portability defect without changing a
+dependency or package manifest. Its required 2026-08-04 production audit
+nevertheless found three advisories newly applicable to the existing
+`@modelcontextprotocol/sdk@1.29.0` dependency tree:
+
+- `fast-uri@3.1.4`, high severity, affected in the 3.x line below `3.1.5`;
+- `hono@4.12.31`, moderate severity, affected below `4.12.34`;
+- `ip-address@10.2.0`, high severity because one current advisory affects all
+  versions through `10.3.0`; the same installed version also falls within two
+  earlier classification advisory ranges.
+
+All three are transitive. The current direct SDK version already declares
+compatible ranges that admit patched releases: `ajv` permits patched
+`fast-uri`, the SDK and pinned `@hono/node-server` admit patched Hono 4.x, and
+`express-rate-limit` permits patched `ip-address`. M7-013 therefore uses a
+minimal lockfile-only patch refresh. It does not change `package.json`, the
+direct SDK/Zod versions, the existing `@hono/node-server` override, package
+version, public Schema/tool contract, or release state.
+
+Acceptance requires an exact review of the resolved lock delta, a fresh
+script-disabled `npm ci`, zero production audit findings, a valid production
+dependency tree, the full test suite, deterministic CI smoke, and the existing
+clean-install/package boundary. The audited accepted commit must precede any
+fresh GitLab reference baseline or pipeline. M7-012 remains accepted because
+its allowed diff contains no dependency state; M7-011 remains blocked while
+M7-013 is open.
+
+Primary advisory references accessed 2026-08-04:
+
+- `https://github.com/advisories/GHSA-7p8r-x3mc-p8w7`;
+- `https://github.com/advisories/GHSA-8j4g-w8fx-2239`;
+- `https://github.com/advisories/GHSA-mwp4-54f8-5fhr`;
+- `https://github.com/advisories/GHSA-4xrf-jv44-h6hh`;
+- `https://github.com/advisories/GHSA-22jq-vg5j-6vgg`.
