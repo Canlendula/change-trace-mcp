@@ -1566,6 +1566,16 @@ three short-retention artifacts:
 - `release-review.json`;
 - `release-review-status.json`.
 
+The first real pipeline, `2730064343`, was created on 2026-08-04 for baseline
+commit `b3f4b9ab2e7a5bf5fcab4557cff30b85597878bc`. GitLab stopped it before job
+creation because the project owner's user account was not verified. The
+pipeline had no YAML error, runner job, retry, log, or artifact. This is an
+external GitLab.com hosted-compute prerequisite, not evidence that the subject
+test, Change Trace runner, or artifact contract passed or failed. Hosted
+mechanics acceptance remains blocked until the project owner completes the
+GitLab-required identity verification and deliberately starts one new pipeline
+for the same baseline commit.
+
 No merge gate, schedule, daemon, retry loop, npm publication, package-version
 change, tag, release, or dist-tag belongs to this reference.
 
@@ -1603,3 +1613,7 @@ Primary references accessed 2026-07-27 through 2026-07-30:
 - `https://docs.gitlab.com/user/duo_agent_platform/agents/external/`;
 - `https://learn.chatgpt.com/docs/non-interactive-mode`;
 - `https://github.com/openai/codex/issues/35637`.
+
+Additional hosted-execution reference accessed 2026-08-04:
+
+- `https://docs.gitlab.com/ci/debugging/#error-identity-verification-is-required-in-order-to-run-ci-jobs`.

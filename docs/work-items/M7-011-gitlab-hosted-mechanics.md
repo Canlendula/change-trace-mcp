@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `in_progress`
+- Status: `blocked_pending_user_verification`
 - Milestone: `M7 — Public beta hardening`
 - Base commit: `f88fbeadacac23ffbd759908444500b40cb1113f`
 - Execution owner: coordinator; this is an external hosted acceptance task,
@@ -175,18 +175,40 @@ git status --short
 
 ## Coordinator execution record
 
-- Status: `in_progress`
+- Status: `blocked_pending_user_verification`
 - Baseline commit:
+  `b3f4b9ab2e7a5bf5fcab4557cff30b85597878bc`
 - Pipeline URL/ID:
-- `subject_test` job URL/ID/status:
-- `change_trace_mechanics` job URL/ID/status:
-- Artifact verification:
-- Active/scheduled pipeline check:
-- External-state deviations:
+  `https://gitlab.com/infinty081/change-trace-gitlab-reference/-/pipelines/2730064343`
+  (`2730064343`, pipeline IID `1`, source `push`)
+- Pipeline result: `failed` before job creation with GitLab failure reason
+  `The pipeline failed due to the user not being verified.`
+- YAML status: no YAML error reported.
+- `subject_test` job URL/ID/status: no job created.
+- `change_trace_mechanics` job URL/ID/status: no job created.
+- Artifact verification: no artifact exists because no job was created.
+- Active/scheduled pipeline check: the project lists exactly the one failed
+  pipeline; anonymous status queries returned no `running`, `pending`, or
+  `created` pipeline. The failed pipeline has no scheduled/manual action and
+  was not retried.
+- External-state deviations: GitLab.com identity verification is required
+  before hosted CI jobs can run. No project setting, variable, runner,
+  schedule, credential, retry, cancel, or additional commit was introduced.
+- Feishu body: still title-only. `lark-cli` and an external Chrome connection
+  are unavailable, and Codex in-app Browser was not used.
 
 ## Coordinator review
 
-- Outcome: `pending`
-- Validation summary: pending.
+- Outcome: `blocked_pending_user_verification`
+- Validation summary: the subject materialized byte-for-byte from the accepted
+  six-file baseline, local dependency-free installation and its one test
+  passed, SSH push succeeded, and remote `main` matches the baseline commit.
+  Hosted runner, job, and artifact acceptance remain unexecuted.
+- Required user action: sign in to GitLab.com, select the account-verification
+  banner, and complete the requested identity checks. Depending on GitLab's
+  risk decision, this can require email, phone, or payment-method verification.
+  Then start one new pipeline on `main` without variables for the existing
+  baseline commit and send the new pipeline URL, or tell the coordinator that
+  verification is complete so the next safe trigger can be coordinated.
 - Roadmap impact: M7 remains in progress; this single synthetic project cannot
   satisfy the real multi-team, multi-week pilot gate or authorize M8/release.
