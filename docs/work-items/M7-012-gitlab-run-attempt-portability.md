@@ -117,27 +117,47 @@ git status --short
 
 ## Worker handoff — worker owned
 
-- Status: `in_progress`
+- Status: `ready_for_review`
 - Handoff branch: `codex/M7-012-gitlab-run-attempt-portability`
 - Implementation commits:
+  - `10a979b fix(ci): accept safe GitLab job IDs`
 
 ### Implementation summary
 
-- Pending.
+- Replaced the arbitrary run-attempt ceiling with `Number.MAX_SAFE_INTEGER`
+  while retaining strict decimal parsing, positive-integer validation, and the
+  separate fifteen-minute timeout ceiling.
+- Added regression coverage for GitLab job `15697682696`, Host-environment
+  forwarding, the safe-integer boundary, defaulting, and rejected formats.
 
 ### Changed areas
 
-- Pending.
+- `scripts/ci/advisory-runner.mjs`: accepts positive decimal run attempts
+  through `9007199254740991`.
+- `tests/integration/advisory-ci.test.ts`: verifies Host/status round-trip,
+  accepted boundaries/defaults, and pre-Host rejections.
+- `tests/integration/gitlab-reference.test.ts`: runs the reference fixture
+  with the observed GitLab job ID and checks its status sidecar.
+- `docs/ci/README.md`: states the exact accepted range.
 
 ### Validation
 
 | Command | Result | Notes |
 |---|---|---|
-| Pending | Pending | Pending |
+| `npm run check` | Passed | TypeScript completed with no errors. |
+| `npx vitest run tests/integration/advisory-ci.test.ts tests/integration/gitlab-reference.test.ts` | Passed | 2 files, 63 tests passed. |
+| `npm run smoke:ci` | Passed | Deterministic advisory smoke completed with `completed_no_findings`. |
+| `npm test` | Passed | 44 files passed; 426 tests passed and 2 skipped. |
+| `npm audit --omit=dev` | Failed | Existing audit result: 3 production dependency vulnerabilities (2 high, 1 moderate); no dependency change is permitted in this task. |
+| `git diff --check` | Passed | No whitespace errors; Git emitted only configured LF-to-CRLF warnings. |
+| `git status --short` | Passed | Clean after the handoff commit. |
 
 ### Public contract and documentation impact
 
-- Pending.
+- `CHANGE_TRACE_CI_RUN_ATTEMPT` now documents and implements the decimal
+  positive-integer range `1` through `9007199254740991`
+  (`Number.MAX_SAFE_INTEGER`). The value remains a JSON-safe number in the
+  status sidecar and is forwarded to the Host as its canonical decimal string.
 
 ### Deviations from assignment
 
@@ -145,7 +165,9 @@ git status --short
 
 ### Known limitations and risks
 
-- None identified at assignment.
+- `npm audit --omit=dev` reports existing vulnerabilities in `fast-uri`,
+  `hono`, and `ip-address`; resolving them would require an out-of-scope
+  dependency change.
 
 ### Decisions or questions for coordinator
 
@@ -153,9 +175,9 @@ git status --short
 
 ### Protected-file confirmation
 
-- [ ] Coordinator-only files were not modified.
-- [ ] No version, tag, publish, or release action was performed.
-- [ ] All intended handoff changes are committed to the task branch.
+- [x] Coordinator-only files were not modified.
+- [x] No version, tag, publish, or release action was performed.
+- [x] All intended handoff changes are committed to the task branch.
 
 ## Coordinator review — coordinator owned
 
