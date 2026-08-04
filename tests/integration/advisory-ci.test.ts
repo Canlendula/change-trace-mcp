@@ -54,6 +54,30 @@ function readReport(output: string): Record<string, any> {
   return JSON.parse(readFileSync(join(output, "release-review.json"), "utf8"));
 }
 
+const runAttemptForwardingHost = `
+const { writeFileSync } = require("node:fs");
+const { join } = require("node:path");
+const output = process.env.CHANGE_TRACE_CI_OUTPUT_DIRECTORY;
+const report = {
+  schemaVersion: "1.0.0",
+  id: "report:run-attempt-forwarding",
+  createdAt: "2026-01-02T03:04:05.000Z",
+  bundleId: "bundle:run-attempt-forwarding",
+  reviewMeta: { reviewer: "run-attempt-forwarding-host", notes: process.env.CHANGE_TRACE_CI_RUN_ATTEMPT },
+  findings: { confirmed: [], suspected: [], inconclusive: [] },
+  rejectedFindings: [],
+  missingEvidence: [],
+  evidenceSources: [],
+  evidenceCoverage: { totalEvidenceItems: 0, referencedEvidenceIds: [], unreferencedEvidenceIds: [] },
+  validationSummary: { submitted: 0, valid: 0, rejected: 0, warnings: 0 },
+  bundleLimits: { maxEvidenceItems: 1, maxTotalExcerptCharacters: 1 },
+  bundleTruncation: { isTruncated: false, omittedEvidenceItems: 0, omittedExcerptCharacters: 0, omittedMissingEvidence: 0 },
+  warnings: [],
+};
+writeFileSync(join(output, "release-review.md"), "# Run attempt forwarding\\n");
+writeFileSync(join(output, "release-review.json"), JSON.stringify(report));
+`;
+
 describe("advisory CI runner", () => {
   it("emits a clean fixture report accepted by the public Report schema", async () => {
     const repositoryRoot = await tempRepository();
@@ -262,6 +286,56 @@ describe("advisory CI runner", () => {
       await rm(repositoryRoot, { recursive: true, force: true });
     }
   });
+
+  it("forwards a real GitLab job ID to the Host and status sidecar unchanged", async () => {
+    const repositoryRoot = await tempRepository();
+    const runAttempt = "15697682696";
+    try {
+      const output = join(repositoryRoot, "artifacts/review");
+      await run(repositoryRoot, "artifacts/review", "clean", {
+        CHANGE_TRACE_CI_COMMAND: JSON.stringify([process.execPath, "-e", runAttemptForwardingHost]),
+        CHANGE_TRACE_CI_RUN_ATTEMPT: runAttempt,
+      });
+      expect(readReport(output).reviewMeta.notes).toBe(runAttempt);
+      expect(readStatus(output).run.runAttempt).toBe(Number(runAttempt));
+    } finally {
+      await rm(repositoryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    [undefined, 1],
+    ["", 1],
+    ["1", 1],
+    ["15697682696", 15_697_682_696],
+    ["9007199254740991", Number.MAX_SAFE_INTEGER],
+  ])("accepts decimal run attempt %s", async (runAttempt, expected) => {
+    const repositoryRoot = await tempRepository();
+    try {
+      const output = join(repositoryRoot, "artifacts/review");
+      await run(repositoryRoot, "artifacts/review", "clean", { CHANGE_TRACE_CI_RUN_ATTEMPT: runAttempt });
+      expect(readStatus(output).run.runAttempt).toBe(expected);
+    } finally {
+      await rm(repositoryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.each(["0", "-1", "+1", "1.5", "1e3", " 1", "1 ", "one", "9007199254740992"])(
+    "rejects invalid run attempt %s before the Host runs",
+    async (runAttempt) => {
+      const repositoryRoot = await tempRepository();
+      try {
+        const output = join(repositoryRoot, "artifacts/review");
+        await expect(run(repositoryRoot, "artifacts/review", "clean", { CHANGE_TRACE_CI_RUN_ATTEMPT: runAttempt })).rejects.toMatchObject({
+          code: 1,
+          stdout: "change-trace-advisory outcome=infrastructure_failure code=invalid_run_attempt\n",
+        });
+        expect(existsSync(output)).toBe(false);
+      } finally {
+        await rm(repositoryRoot, { recursive: true, force: true });
+      }
+    },
+  );
 
   it("rejects symlink escapes and unsafe managed artifact types where supported", async () => {
     const repositoryRoot = await tempRepository();

@@ -17,7 +17,7 @@ The wrapper reads these environment variables:
 | `CHANGE_TRACE_CI_HOST_ID` | No | Stable safe Host label; defaults to `configured-host`. |
 | `CHANGE_TRACE_CI_BASE_REVISION` | No | Nullable base revision: `HEAD`, 7–64 lowercase hex characters, or a safe full `refs/heads/`, `refs/tags/`, or `refs/remotes/` name. |
 | `CHANGE_TRACE_CI_HEAD_REVISION` | No | Nullable head revision using the same bounded safe revision form. |
-| `CHANGE_TRACE_CI_RUN_ATTEMPT` | No | Positive integer, default `1`. |
+| `CHANGE_TRACE_CI_RUN_ATTEMPT` | No | Decimal positive integer from `1` through `9007199254740991` (`Number.MAX_SAFE_INTEGER`), default `1`. |
 | `CHANGE_TRACE_CI_TIMEOUT_MS` | No | Positive timeout in milliseconds, default five minutes and maximum fifteen minutes. |
 
 The command is parsed as explicit argv and launched with `shell: false`. The

@@ -114,7 +114,7 @@ describe("GitLab hosted reference preparation", () => {
           CHANGE_TRACE_CI_OUTPUT_DIRECTORY: "artifacts/advisory",
           CHANGE_TRACE_CI_BASE_REVISION: "a".repeat(40),
           CHANGE_TRACE_CI_HEAD_REVISION: "b".repeat(40),
-          CHANGE_TRACE_CI_RUN_ATTEMPT: "1",
+          CHANGE_TRACE_CI_RUN_ATTEMPT: "15697682696",
           CHANGE_TRACE_CI_TIMEOUT_MS: "2000",
         },
       });
@@ -124,6 +124,7 @@ describe("GitLab hosted reference preparation", () => {
       expect(entries.filter((entry) => entry.exists).map((entry) => entry.name)).toEqual(managedNames);
       const status = JSON.parse(await readFile(join(output, "release-review-status.json"), "utf8"));
       expect(status.outcome).toBe("completed_no_findings");
+      expect(status.run.runAttempt).toBe(15_697_682_696);
     } finally {
       await rm(subject, { recursive: true, force: true });
       expect(existsSync(subject)).toBe(false);

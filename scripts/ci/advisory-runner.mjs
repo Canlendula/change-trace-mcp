@@ -14,6 +14,7 @@ const MAX_COMMAND_BYTES = 8 * 1024;
 const MAX_COMMAND_PARTS = 64;
 const MAX_TIMEOUT_MS = 15 * 60 * 1000;
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
+const MAX_RUN_ATTEMPT = Number.MAX_SAFE_INTEGER;
 const MAX_CAPTURE_BYTES = 64 * 1024;
 const MAX_REPORT_BYTES = 10 * 1024 * 1024;
 const MAX_FAILURE_ARTIFACT_BYTES = 8 * 1024;
@@ -462,7 +463,7 @@ async function main() {
   try {
     const command = parseCommand(process.env.CHANGE_TRACE_CI_COMMAND);
     const timeoutMs = parsePositiveInteger(process.env.CHANGE_TRACE_CI_TIMEOUT_MS, DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS, "invalid_timeout");
-    const runAttempt = parsePositiveInteger(process.env.CHANGE_TRACE_CI_RUN_ATTEMPT, 1, 1_000_000, "invalid_run_attempt");
+    const runAttempt = parsePositiveInteger(process.env.CHANGE_TRACE_CI_RUN_ATTEMPT, 1, MAX_RUN_ATTEMPT, "invalid_run_attempt");
     const baseRevision = parseRevision(process.env.CHANGE_TRACE_CI_BASE_REVISION);
     const headRevision = parseRevision(process.env.CHANGE_TRACE_CI_HEAD_REVISION);
     const hostId = process.env.CHANGE_TRACE_CI_HOST_ID ?? "configured-host";
