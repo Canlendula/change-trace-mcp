@@ -1521,9 +1521,11 @@ Primary references:
 ## 39. The GitLab.com reference starts credential-free and remains separate from the real pilot
 
 The project owner approved a dedicated public GitLab.com subject project named
-`change-trace-gitlab-reference` under the existing trial top-level group. The
-exact group path and current GitLab entitlement remain external facts to verify
-after an authenticated client is available. The project contains only
+`change-trace-gitlab-reference`. On 2026-08-04 the project was created under
+the owner's personal `infinty081` namespace at
+`https://gitlab.com/infinty081/change-trace-gitlab-reference`. The initially
+considered default group was rejected for this reference because its effective
+visibility policy permitted only Private projects. The project contains only
 synthetic code, requirements, tests, and reports. It must contain no customer,
 organization, credential, browser-storage, or incident-log data.
 
@@ -1577,9 +1579,11 @@ Change Trace MCP child.
 
 The external document is a dedicated synthetic Feishu/Lark document titled
 `Change Trace GitLab Reference — Maintenance Status Update`, with stable ID
-`CTGR-001`. Until a read-only authenticated Lark client is available, the
-project owner may create the document manually from the tracked template.
-Future automation requires explicit read-only scopes and separate
+`CTGR-001`. On 2026-08-04 the project owner created its Wiki document at
+`https://rcnw05c7n18f.feishu.cn/wiki/Ecm9wM0EXiH8I4kvQIfcivtUnoe`; at creation
+time it contained the title only. Until a read-only authenticated Lark client
+is available, the project owner may populate it manually from the tracked
+template. Future automation requires explicit read-only scopes and separate
 masked/protected `LARK_APP_ID` and `LARK_APP_SECRET` variables. Those values
 must not enter prompts, MCP configuration, logs, reports, or artifacts.
 

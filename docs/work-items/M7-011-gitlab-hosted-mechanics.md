@@ -1,0 +1,192 @@
+# M7-011 — Run the credential-free GitLab.com reference mechanics
+
+## Assignment — coordinator owned
+
+- Status: `in_progress`
+- Milestone: `M7 — Public beta hardening`
+- Base commit: `f88fbeadacac23ffbd759908444500b40cb1113f`
+- Execution owner: coordinator; this is an external hosted acceptance task,
+  not a delegated implementation task.
+- Repository branch/worktree: `main` in the coordinator worktree for governed
+  records only; the subject uses a separate local clone.
+- External project:
+  `https://gitlab.com/infinty081/change-trace-gitlab-reference`
+- External SSH remote:
+  `git@gitlab.com:infinty081/change-trace-gitlab-reference.git`
+- External document:
+  `https://rcnw05c7n18f.feishu.cn/wiki/Ecm9wM0EXiH8I4kvQIfcivtUnoe`
+- Objective: materialize the accepted synthetic baseline in the public GitLab
+  project, run the first real GitLab-hosted credential-free mechanics
+  pipeline, and record bounded pipeline/job/artifact evidence without a model
+  or external-document credential.
+- Dependencies: accepted M7-010 assets and Decision 39.
+
+No worker is assigned because this task changes external coordinator-owned
+state and records acceptance evidence; it does not implement product or
+repository behavior. If hosted execution exposes a repository defect, create
+a separate complete worker assignment before changing implementation.
+
+## Confirmed starting facts
+
+As verified on 2026-08-04:
+
+- the public project page resolves and reports an empty repository;
+- the project is under the personal `infinty081` namespace because the
+  initially considered default group only allowed Private visibility;
+- the supplied SSH remote accepts the coordinator's configured SSH identity
+  when checked against the GitLab.com ED25519 host key published by GitLab;
+- the Feishu Wiki document exists but contains only its title according to the
+  project owner;
+- `glab`, GitLab MCP, and `lark-cli` are unavailable locally;
+- the affected Codex Desktop task remains unopened and Codex in-app Browser is
+  not used.
+
+The GitLab page and SSH remote establish project/repository access only. They
+do not establish pipeline success, runner availability, artifact correctness,
+trial entitlement, semantic compatibility, or pilot evidence.
+
+## Authorized external mutations
+
+The coordinator may:
+
+1. create one separate local clone of the empty subject repository;
+2. copy the accepted M7-010 `baseline/` contents into its root;
+3. copy `gitlab-ci.yml.example` to `.gitlab-ci.yml` without semantic changes;
+4. run dependency-free local tests and inspect the staged subject tree;
+5. create one baseline commit on `main` and push it to the supplied SSH remote;
+6. allow the pushed `.gitlab-ci.yml` to start its configured test and
+   credential-free advisory jobs;
+7. read public pipeline/job pages and download the three public advisory
+   artifacts for bounded acceptance checks;
+8. record URLs, IDs, commit SHA, timestamps, safe statuses, artifact names,
+   sizes, hashes, and the bounded status sidecar in governed documentation.
+
+No force-push, history rewrite, branch deletion, project/group setting change,
+variable, token, schedule, runner registration, environment, approval rule,
+merge gate, MR, feature overlay, retry, cancel, manual rerun, or semantic job is
+authorized by this task. A failed pipeline is evidence to inspect; do not retry
+until its first failure and logs are preserved and the cause is understood.
+
+## Frozen subject content
+
+The baseline commit contains exactly the materialized M7-010 subject files:
+
+- `.gitlab-ci.yml` copied byte-for-byte from
+  `docs/ci/gitlab-reference/gitlab-ci.yml.example`;
+- `package.json`;
+- `package-lock.json`;
+- `src/service-status.mjs`;
+- `test/service-status.test.mjs`;
+- `docs/product-behavior.md`.
+
+It contains no feature/follow-up overlay, Feishu template, credential, local
+path, coordinator log, MCP configuration, browser state, incident data, or
+generated artifact. The baseline commit message is
+`feat: add operational service status baseline`.
+
+## Hosted acceptance contract
+
+The first pipeline must be attributable to the exact pushed baseline commit.
+Acceptance requires:
+
+- GitLab-hosted `node:22-bookworm` jobs;
+- `subject_test` succeeds after dependency-free `npm ci` and `npm test`;
+- `change_trace_mechanics` runs after the test job and itself succeeds;
+- the advisory job remains `allow_failure: true`, `retry: 0`, and bounded by
+  fifteen minutes;
+- no scheduled, manually retried, duplicate, waiting, or continuously running
+  pipeline remains;
+- the immutable tooling checkout resolves to
+  `aa52a1795a587cb32704018bdd60b1d33649309d`;
+- the advisory status outcome is `completed_no_findings`;
+- exactly these artifacts are retained for seven days:
+  - `artifacts/advisory/release-review.md`;
+  - `artifacts/advisory/release-review.json`;
+  - `artifacts/advisory/release-review-status.json`;
+- the JSON report and status sidecar remain schema-valid and internally
+  consistent, and recorded sizes/hashes match downloaded files;
+- logs and artifacts contain no credential, raw browser data, or unexpected
+  repository mutation.
+
+The deterministic fixture proves GitLab orchestration, trusted-tooling
+checkout, runner execution, and artifact handling only. It makes no semantic
+review, Host/model, Feishu, pilot, compatibility, or release claim.
+
+## Feishu boundary
+
+The Feishu document URL is recorded as the future explicit-reference source.
+M7-011 does not require or authorize Lark application credentials, live adapter
+retrieval, search, organization-wide discovery, or semantic use. If an already
+authenticated safe document client is available, the coordinator may populate
+the currently empty body from the accepted
+`docs/ci/gitlab-reference/feishu-product-update-template.md` after resolving
+the Wiki token to its real document token. Otherwise the exact manual paste
+remains a user action and does not block GitLab mechanics acceptance.
+
+## Repository records
+
+Coordinator-owned repository changes are limited to:
+
+- `docs/PROJECT_DECISIONS.md`;
+- `docs/ROADMAP.md`;
+- `docs/evaluation/M7_GITLAB_REFERENCE_RESULTS.md`;
+- this work item.
+
+Do not change product source, tests, CI templates, dependencies, lockfile,
+package metadata/version/files, workflow files, schemas, public contracts,
+security policy, pilot observations/thresholds, or release state during this
+task.
+
+## Required validation
+
+Before push in the separate subject clone:
+
+```text
+npm ci --ignore-scripts --no-audit --no-fund
+npm test
+git diff --check --cached
+git status --short
+git ls-files
+```
+
+After the hosted run:
+
+```text
+verify remote main equals the local baseline commit
+verify pipeline and both job statuses from public GitLab evidence
+download and inspect exactly three advisory artifacts
+validate release-review.json and release-review-status.json
+calculate SHA-256 and byte size for each artifact
+verify no active or scheduled/retried pipeline remains
+git diff --check
+git status --short
+```
+
+## Escalate when
+
+- SSH authentication fails after the official GitLab host key is verified;
+- the public project is no longer empty before the baseline push;
+- the materialized subject differs from the accepted source assets;
+- a pipeline/job fails, stalls, or requires a variable, token, permission,
+  runner tag, manual retry, template change, or external setting;
+- an artifact is missing, extra, malformed, inconsistent, or unsafe;
+- any model, Feishu credential, semantic claim, package/release action, pilot
+  claim, or M8 change appears necessary.
+
+## Coordinator execution record
+
+- Status: `in_progress`
+- Baseline commit:
+- Pipeline URL/ID:
+- `subject_test` job URL/ID/status:
+- `change_trace_mechanics` job URL/ID/status:
+- Artifact verification:
+- Active/scheduled pipeline check:
+- External-state deviations:
+
+## Coordinator review
+
+- Outcome: `pending`
+- Validation summary: pending.
+- Roadmap impact: M7 remains in progress; this single synthetic project cannot
+  satisfy the real multi-team, multi-week pilot gate or authorize M8/release.
