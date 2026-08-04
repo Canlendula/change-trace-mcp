@@ -83,7 +83,7 @@ describe("GitLab hosted reference preparation", () => {
     expect(yaml).toContain("$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH");
     expect(yaml).toContain("$CI_PIPELINE_SOURCE == \"web\"");
     expect(yaml).toContain("https://github.com/Canlendula/change-trace-mcp.git");
-    expect(yaml).toContain("aa52a1795a587cb32704018bdd60b1d33649309d");
+    expect(yaml).toContain("49a07185c2af05ee8dcffe33b23355ce1dce8353");
     expect(yaml).toContain("test ! -L");
     expect(yaml).toContain("rev-parse HEAD");
     expect(yaml).toContain("CHANGE_TRACE_CI_COMMAND");

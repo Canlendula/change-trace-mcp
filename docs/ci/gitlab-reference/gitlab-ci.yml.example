@@ -32,9 +32,9 @@ change_trace_mechanics:
     - test ! -e "$CHANGE_TRACE_TOOLING_ROOT"
     - git clone --no-checkout https://github.com/Canlendula/change-trace-mcp.git "$CHANGE_TRACE_TOOLING_ROOT"
     - test ! -L "$CHANGE_TRACE_TOOLING_ROOT"
-    - git -C "$CHANGE_TRACE_TOOLING_ROOT" fetch --depth 1 origin aa52a1795a587cb32704018bdd60b1d33649309d
-    - git -C "$CHANGE_TRACE_TOOLING_ROOT" checkout --detach aa52a1795a587cb32704018bdd60b1d33649309d
-    - test "$(git -C "$CHANGE_TRACE_TOOLING_ROOT" rev-parse HEAD)" = "aa52a1795a587cb32704018bdd60b1d33649309d"
+    - git -C "$CHANGE_TRACE_TOOLING_ROOT" fetch --depth 1 origin 49a07185c2af05ee8dcffe33b23355ce1dce8353
+    - git -C "$CHANGE_TRACE_TOOLING_ROOT" checkout --detach 49a07185c2af05ee8dcffe33b23355ce1dce8353
+    - test "$(git -C "$CHANGE_TRACE_TOOLING_ROOT" rev-parse HEAD)" = "49a07185c2af05ee8dcffe33b23355ce1dce8353"
     - cd "$CHANGE_TRACE_TOOLING_ROOT"
     - npm ci --ignore-scripts --no-audit --no-fund
     - npm run build
