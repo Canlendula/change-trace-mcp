@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `blocked_pending_m7_013`
+- Status: `blocked_pending_m7_014`
 - Milestone: `M7 — Public beta hardening`
 - Base commit: `f88fbeadacac23ffbd759908444500b40cb1113f`
 - Execution owner: coordinator; this is an external hosted acceptance task,
@@ -224,19 +224,18 @@ git status --short
 
 ## Coordinator review
 
-- Outcome: `blocked_pending_m7_013`
+- Outcome: `blocked_pending_m7_014`
 - Validation summary: the subject materialized byte-for-byte from the accepted
   six-file baseline, local dependency-free installation and its one test
   passed, SSH push succeeded, and remote `main` matches the baseline commit.
   GitLab account verification, hosted Runner scheduling, and subject tests are
   now proven. The real GitLab job ID exposed the runner's undocumented
-  `1_000_000` ceiling, which accepted M7-012 resolves. Hosted advisory and
-  artifact acceptance still require the M7-013 audit refresh and a fresh
+  `1_000_000` ceiling, which accepted M7-012 resolves. Accepted M7-013 also
+  restores a zero-vulnerability production audit. Hosted advisory and artifact
+  acceptance still require M7-014's governed reference-pin update and a fresh
   pipeline.
-- Required follow-up: M7-012 is accepted, but its required production audit
-  exposed three advisories in the unchanged dependency lock. Accept M7-013
-  first, then materialize the audited tooling commit into a fresh subject
-  baseline and deliberately start one new pipeline. Do not retry or rewrite
-  pipeline `2730157298`.
+- Required follow-up: accept M7-014, then materialize its exact accepted
+  `.gitlab-ci.yml` into one new subject commit and allow one new default-branch
+  pipeline. Do not retry or rewrite pipeline `2730157298`.
 - Roadmap impact: M7 remains in progress; this single synthetic project cannot
   satisfy the real multi-team, multi-week pilot gate or authorize M8/release.

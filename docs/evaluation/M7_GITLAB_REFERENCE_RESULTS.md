@@ -137,10 +137,13 @@ M7-012 is accepted at commit
 validation, accepts the full positive JavaScript safe-integer range, and proves
 that the observed GitLab job ID is forwarded and recorded unchanged. Its
 required production audit also detected three newly published transitive
-advisories in the unchanged lockfile. M7-013 must restore a zero-vulnerability
-production audit before the accepted tooling commit is materialized into a
-fresh subject baseline and one deliberate pipeline is created. Preserve both
-existing pipelines and do not retry, cancel, delete, or rewrite them.
+advisories in the unchanged lockfile. M7-013 is accepted at
+`8e82ee4a64e8f8ed027db8278f646cdbe9b6b5d0` with only the three minimum patched
+transitive resolutions and a zero-vulnerability production audit. M7-014 must
+advance the governed reference template to the final accepted main state
+before that exact YAML is materialized into a fresh subject commit and one
+deliberate pipeline is created. Preserve both existing pipelines and do not
+retry, cancel, delete, or rewrite them.
 
 ## Security and external-state confirmation
 

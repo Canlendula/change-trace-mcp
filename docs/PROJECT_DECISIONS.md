@@ -1668,3 +1668,13 @@ Primary advisory references accessed 2026-08-04:
 - `https://github.com/advisories/GHSA-mwp4-54f8-5fhr`;
 - `https://github.com/advisories/GHSA-4xrf-jv44-h6hh`;
 - `https://github.com/advisories/GHSA-22jq-vg5j-6vgg`.
+
+M7-013 is accepted at
+`8e82ee4a64e8f8ed027db8278f646cdbe9b6b5d0`. Its lock delta updates exactly
+`fast-uri@3.1.5`, `hono@4.12.34`, and `ip-address@10.3.1`, with no direct
+dependency, manifest, source, test, public-contract, or package-version change.
+Fresh install, the production dependency tree, production audit with zero
+vulnerabilities, type checking, CI smoke, the full test suite, and clean-package
+installation all pass. M7-014 must move the separately copyable GitLab
+reference template from the historical `aa52a17` tooling commit to the final
+accepted main commit containing M7-012 and M7-013 before another hosted run.

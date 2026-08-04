@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-010 and M7-012 accepted; M7-011 blocked on the assigned M7-013 production-audit refresh; real multi-team pilot evidence remains
+> Status: M7 in progress; M7-001 through M7-010 and M7-012 through M7-013 accepted; M7-011 blocked on the assigned M7-014 reference-pin update; real multi-team pilot evidence remains
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -288,6 +288,15 @@ The technical spike may revise this choice if Host compatibility or package star
   a lockfile-only patch refresh within the existing direct dependency ranges.
   M7-011 will not materialize or run the new tooling commit until that audit is
   clean.
+- M7-013 was accepted on 2026-08-04 with an exact lock-only delta:
+  `fast-uri 3.1.4 -> 3.1.5`, `hono 4.12.31 -> 4.12.34`, and `ip-address
+  10.2.0 -> 10.3.1`. Fresh script-disabled installation, the production tree,
+  zero-vulnerability audit, type checking, deterministic CI smoke, all 426
+  tests with two existing POSIX skips, and the 220-file clean-install/package
+  boundary passed. Direct dependencies, `package.json`, source, tests, public
+  contracts, versions, releases, and external state did not change. M7-014 is
+  assigned to advance only the governed GitLab reference tooling pin and its
+  contract assertion to this accepted, audited main state.
 
 ## 6. M0 — Project foundation
 
@@ -778,12 +787,12 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M7-001 through M7-010 and M7-012 are accepted;
-> M7-011 is blocked on the assigned M7-013 production-audit refresh. The
+> Current state: in progress. M7-001 through M7-010 and M7-012 through M7-013
+> are accepted; M7-011 is blocked on the assigned M7-014 reference-pin update. The
 > repository construction and local verification slices are complete; real
 > multi-team, multi-week pilot evidence remains. The two
-> original two medium security findings are mitigated, and the three newly
-> published transitive advisories are assigned to M7-013. Clean package installation is
+> original two medium security findings and the three newly published
+> transitive advisories are mitigated. Clean package installation is
 > reproducible, and the three priority local Hosts pass the exact installed
 > fixture contract with Host-specific lifecycle evidence. The provider-neutral
 > runner, bounded summarizer, GitHub/GitLab/portable examples, and
@@ -984,7 +993,7 @@ Progress as of 2026-07-26:
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
-| M7 public beta hardening | In progress; M7-001 through M7-010 and M7-012 are accepted, M7-011 hosted mechanics is blocked on the assigned M7-013 production-audit refresh, and the real multi-team, multi-week pilot remains |
+| M7 public beta hardening | In progress; M7-001 through M7-010 and M7-012 through M7-013 are accepted, M7-011 hosted mechanics is blocked on the assigned M7-014 reference-pin update, and the real multi-team, multi-week pilot remains |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is
