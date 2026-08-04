@@ -102,6 +102,8 @@ git status --short
 
 - `c1c6de14040954532c778d28641a74d874e94b9f` — `docs(ci): advance GitLab
   tooling pin`
+- `0a8292b19d8ea7fda15d170923b94144923ded1d` — `test(ci): harden GitLab
+  tooling pin contract`
 
 ### Implementation summary
 
@@ -111,6 +113,10 @@ git status --short
   `49a07185c2af05ee8dcffe33b23355ce1dce8353`.
 - Confirmed `49a07185c2af05ee8dcffe33b23355ce1dce8353` descends from the
   assigned base and includes accepted M7-012 and M7-013 state in its history.
+- Coordinator review follow-up: replaced the weak pin-presence assertion with
+  exact new-pin and historical-pin occurrence counts plus exact fetch,
+  detached-checkout, and `rev-parse HEAD` equality-line assertions, all using
+  the same immutable pin constant.
 
 ### Changed areas
 
@@ -119,8 +125,10 @@ git status --short
   `rev-parse HEAD` equality check. The resulting YAML has the new pin exactly
   three times, the historical pin zero times, and one of each operation.
 - `tests/integration/gitlab-reference.test.ts`: updated only the assertion that
-  requires the immutable tooling pin. All existing mechanics, security,
-  advisory, runner, and artifact assertions remain in place.
+  requires the immutable tooling pin, then hardened it during coordinator
+  review to prove the exact pin counts and exact pin-bearing command lines.
+  All existing mechanics, security, advisory, runner, and artifact assertions
+  remain in place.
 
 ### Validation
 
@@ -134,6 +142,9 @@ git status --short
 | `node scripts/smoke-clean-install.mjs` | passed | Clean package install and npx checks passed; deterministic CI outcome `completed_no_findings`, three artifacts, cleanup `true`. |
 | `git diff --check` | passed | Re-run after all validation; no whitespace errors. |
 | `git status --short` | passed | Before the handoff edit, only the two intended implementation files were modified; the coordinator-observed `.change-trace-gpt41-quality-Q6nFQE/` fixture was absent after tests. |
+| `npm run check` (review follow-up) | passed | Re-run after the TypeScript assertion hardening. |
+| `npx vitest run tests/integration/gitlab-reference.test.ts tests/integration/advisory-ci.test.ts` (review follow-up) | passed | 2 files, 63 tests passed with the hardened exact-pin contract. |
+| `git diff --check` and `git status --short` (review follow-up) | passed | Re-run after the review follow-up; only the intended handoff record remained before this final commit. |
 
 The initial `npm run check` attempt could not find `tsc` because this fresh
 worktree had no installed dependencies. It was rerun successfully after the
