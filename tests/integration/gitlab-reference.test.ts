@@ -17,6 +17,8 @@ const reference = join(root, "docs", "ci", "gitlab-reference");
 const runner = join(root, "scripts", "ci", "advisory-runner.mjs");
 const fixtureHost = join(root, "docs", "ci", "fixtures", "deterministic-advisory-host.mjs");
 const managedNames = ["release-review.md", "release-review.json", "release-review-status.json"];
+const pinnedToolingCommit = "49a07185c2af05ee8dcffe33b23355ce1dce8353";
+const historicalToolingCommit = "aa52a1795a587cb32704018bdd60b1d33649309d";
 const inheritedRuntimeKeys = ["PATH", "SYSTEMROOT", "COMSPEC", "PATHEXT", "WINDIR", "TEMP", "TMP", "TERM", "LANG", "LC_ALL"];
 
 async function readLf(path: string): Promise<string> {
@@ -83,7 +85,11 @@ describe("GitLab hosted reference preparation", () => {
     expect(yaml).toContain("$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH");
     expect(yaml).toContain("$CI_PIPELINE_SOURCE == \"web\"");
     expect(yaml).toContain("https://github.com/Canlendula/change-trace-mcp.git");
-    expect(yaml).toContain("49a07185c2af05ee8dcffe33b23355ce1dce8353");
+    expect([...yaml.matchAll(new RegExp(pinnedToolingCommit, "g"))]).toHaveLength(3);
+    expect([...yaml.matchAll(new RegExp(historicalToolingCommit, "g"))]).toHaveLength(0);
+    expect(yaml).toContain(`    - git -C "$CHANGE_TRACE_TOOLING_ROOT" fetch --depth 1 origin ${pinnedToolingCommit}`);
+    expect(yaml).toContain(`    - git -C "$CHANGE_TRACE_TOOLING_ROOT" checkout --detach ${pinnedToolingCommit}`);
+    expect(yaml).toContain(`    - test "$(git -C "$CHANGE_TRACE_TOOLING_ROOT" rev-parse HEAD)" = "${pinnedToolingCommit}"`);
     expect(yaml).toContain("test ! -L");
     expect(yaml).toContain("rev-parse HEAD");
     expect(yaml).toContain("CHANGE_TRACE_CI_COMMAND");
