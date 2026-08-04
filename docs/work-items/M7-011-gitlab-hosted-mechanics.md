@@ -2,7 +2,7 @@
 
 ## Assignment — coordinator owned
 
-- Status: `blocked_pending_user_verification`
+- Status: `blocked_pending_m7_012`
 - Milestone: `M7 — Public beta hardening`
 - Base commit: `f88fbeadacac23ffbd759908444500b40cb1113f`
 - Execution owner: coordinator; this is an external hosted acceptance task,
@@ -191,24 +191,49 @@ git status --short
   pipeline; anonymous status queries returned no `running`, `pending`, or
   `created` pipeline. The failed pipeline has no scheduled/manual action and
   was not retried.
-- External-state deviations: GitLab.com identity verification is required
+- First-pipeline external-state deviation: GitLab.com identity verification was required
   before hosted CI jobs can run. No project setting, variable, runner,
   schedule, credential, retry, cancel, or additional commit was introduced.
-- Feishu body: still title-only. `lark-cli` and an external Chrome connection
-  are unavailable, and Codex in-app Browser was not used.
+- Second pipeline URL/ID:
+  `https://gitlab.com/infinty081/change-trace-gitlab-reference/-/pipelines/2730157298`
+  (`2730157298`, pipeline IID `2`, source `web`, same baseline commit).
+- Second pipeline result: `success` with warning because the advisory job is
+  intentionally `allow_failure: true`; no YAML error was reported.
+- `subject_test`: job `15697682695` passed on a GitLab-hosted
+  `saas-linux-small-amd64` Runner in 22.47 seconds.
+- `change_trace_mechanics`: job `15697682696` failed with `script_failure`
+  after checking out, installing, and building immutable tooling commit
+  `aa52a1795a587cb32704018bdd60b1d33649309d`. The runner reported
+  `infrastructure_failure code=invalid_run_attempt` for
+  `CI_JOB_ID=15697682696`.
+- Artifact verification: the failed runner produced no managed artifact; the
+  GitLab uploader reported all three configured paths missing.
+- Active/scheduled pipeline check: the project lists exactly the preserved
+  failed pipeline and the finished warning/success pipeline. Anonymous status
+  queries returned no `running`, `pending`, or `created` pipeline. Pipeline
+  `2730157298` has no manual or scheduled action and was not retried; no
+  automatic retry was configured or observed.
+- External-state deviations: the project owner completed GitLab account
+  verification and manually started pipeline `2730157298`; no variable,
+  project setting, runner registration, schedule, credential, retry, cancel,
+  or additional commit was introduced.
+- Feishu body: the project owner reports manually pasting the accepted Markdown
+  template. No authenticated body retrieval occurred. `lark-cli` remains
+  uninstalled and is not required for this mechanics phase; Codex in-app
+  Browser was not used.
 
 ## Coordinator review
 
-- Outcome: `blocked_pending_user_verification`
+- Outcome: `blocked_pending_m7_012`
 - Validation summary: the subject materialized byte-for-byte from the accepted
   six-file baseline, local dependency-free installation and its one test
   passed, SSH push succeeded, and remote `main` matches the baseline commit.
-  Hosted runner, job, and artifact acceptance remain unexecuted.
-- Required user action: sign in to GitLab.com, select the account-verification
-  banner, and complete the requested identity checks. Depending on GitLab's
-  risk decision, this can require email, phone, or payment-method verification.
-  Then start one new pipeline on `main` without variables for the existing
-  baseline commit and send the new pipeline URL, or tell the coordinator that
-  verification is complete so the next safe trigger can be coordinated.
+  GitLab account verification, hosted Runner scheduling, and subject tests are
+  now proven. Advisory execution and artifact acceptance remain blocked by the
+  runner's undocumented `1_000_000` run-attempt ceiling exposed by the real
+  GitLab job ID.
+- Required follow-up: implement and accept M7-012, materialize the accepted fix
+  into a fresh subject baseline, then deliberately start one new pipeline. Do
+  not retry or rewrite pipeline `2730157298`.
 - Roadmap impact: M7 remains in progress; this single synthetic project cannot
   satisfy the real multi-team, multi-week pilot gate or authorize M8/release.

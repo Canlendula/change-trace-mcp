@@ -1,0 +1,177 @@
+# M7-012 — Accept real GitLab job IDs as advisory run-attempt metadata
+
+## Assignment — coordinator owned
+
+- Status: `assigned`
+- Milestone: `M7 — Public beta hardening`
+- Base commit: `dd806abbc593ac203466b0960a778ace7a5c7435`
+- Branch: `codex/M7-012-gitlab-run-attempt-portability`
+- Worktree: `D:\projects\change-trace-worktrees\M7-012-gitlab-run-attempt-portability`
+- Implementation profile: `gpt-5.6-terra` with `high` reasoning.
+- Push task branch: `no`
+- Objective: make the documented positive-integer advisory run-attempt input
+  accept real GitLab instance-wide job IDs while preserving strict bounded
+  numeric validation and the existing three-artifact/security contract.
+- Dependencies: accepted M7-005 and M7-010 CI mechanics, blocked M7-011 hosted
+  execution, and Decision 39.
+
+The Base commit is the implementation review base. The coordinator creates the
+task branch from the subsequent coordinator-only assignment commit containing
+this contract and current hosted evidence. The worker must not modify the
+coordinator-owned assignment delta.
+
+### Reproduced defect
+
+GitLab pipeline `2730157298` ran the unchanged reference baseline at commit
+`b3f4b9ab2e7a5bf5fcab4557cff30b85597878bc`. `subject_test` passed. Advisory
+job `15697682696` checked out, installed, and built exact trusted tooling commit
+`aa52a1795a587cb32704018bdd60b1d33649309d`, then failed with:
+
+```text
+change-trace-advisory outcome=infrastructure_failure code=invalid_run_attempt
+```
+
+The template supplied `CI_JOB_ID=15697682696`. GitLab defines `CI_JOB_ID` as
+an integer ID unique across all jobs in the GitLab instance. The public Change
+Trace input contract says positive integer, but `advisory-runner.mjs` imposes
+an undocumented maximum of `1_000_000`.
+
+### In scope
+
+- Replace the arbitrary run-attempt ceiling with the maximum positive integer
+  that can be represented and round-tripped safely by JavaScript/JSON.
+- Preserve strict decimal-string parsing and the positive-integer default of
+  `1`.
+- Add regression coverage using the exact observed GitLab job ID
+  `15697682696` and safe-integer boundary coverage.
+- Prove the accepted value reaches the Host environment and status sidecar
+  unchanged.
+- Clarify the existing CI input documentation with the exact safe upper bound.
+
+### Out of scope
+
+- Changing the GitLab templates away from `CI_JOB_ID`.
+- Changing artifact names, status/report Schema shape, output confinement,
+  timeout, retry, advisory-only behavior, Host selection, credentials, or
+  package dependencies.
+- Modifying the GitLab subject project, starting/retrying a pipeline, or
+  installing/configuring GitLab MCP, `glab`, `lark-cli`, or any credential.
+- Semantic Agent execution, Feishu retrieval, pilot claims, M8, package
+  version, npm publication, tag, release, or dist-tag changes.
+
+### Allowed paths
+
+- `scripts/ci/advisory-runner.mjs`
+- `tests/integration/advisory-ci.test.ts`
+- `tests/integration/gitlab-reference.test.ts`
+- `docs/ci/README.md`
+- `docs/work-items/M7-012-gitlab-run-attempt-portability.md` (Worker handoff
+  section only)
+
+### Coordinator-only paths
+
+- `docs/ROADMAP.md`
+- `docs/PROJECT_DECISIONS.md`
+- `AGENTS.md`
+- `docs/CONTRIBUTING_WORKFLOW.md`
+- `docs/work-items/README.md`
+- `docs/work-items/TEMPLATE.md`
+- package version, release, tag, and publishing metadata
+
+### Acceptance criteria
+
+- [ ] `CHANGE_TRACE_CI_RUN_ATTEMPT=15697682696` completes the deterministic
+  advisory path and is recorded unchanged in the status sidecar.
+- [ ] Decimal values from `1` through `Number.MAX_SAFE_INTEGER` are accepted.
+- [ ] Empty/undefined input still defaults to `1`.
+- [ ] Zero, negative, signed, fractional, exponent, whitespace-padded,
+  non-decimal, and greater-than-safe-integer inputs still fail closed with
+  `invalid_run_attempt` before the Host runs.
+- [ ] Timeout validation retains its existing independent fifteen-minute cap.
+- [ ] Existing output confinement, managed-artifact invalidation, failure
+  normalization, and exact three-artifact behavior remain unchanged.
+- [ ] CI documentation states the exact accepted run-attempt range.
+- [ ] No dependency, package metadata/version, release, external object, or
+  credential state changes.
+
+### Required validation
+
+```text
+npm run check
+npx vitest run tests/integration/advisory-ci.test.ts tests/integration/gitlab-reference.test.ts
+npm run smoke:ci
+npm test
+npm audit --omit=dev
+git diff --check
+git status --short
+```
+
+### Escalate when
+
+- the fix requires a non-integer/string run identifier or status/report Schema
+  shape change;
+- a GitLab template change becomes necessary;
+- a dependency, credential, external mutation, or new permission is required;
+- implementation would touch a coordinator-only or non-allowed path;
+- task scope must materially expand.
+
+## Worker handoff — worker owned
+
+- Status: `in_progress`
+- Handoff branch: `codex/M7-012-gitlab-run-attempt-portability`
+- Implementation commits:
+
+### Implementation summary
+
+- Pending.
+
+### Changed areas
+
+- Pending.
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| Pending | Pending | Pending |
+
+### Public contract and documentation impact
+
+- Pending.
+
+### Deviations from assignment
+
+- None.
+
+### Known limitations and risks
+
+- None identified at assignment.
+
+### Decisions or questions for coordinator
+
+- None.
+
+### Protected-file confirmation
+
+- [ ] Coordinator-only files were not modified.
+- [ ] No version, tag, publish, or release action was performed.
+- [ ] All intended handoff changes are committed to the task branch.
+
+## Coordinator review — coordinator owned
+
+- Outcome: `pending`
+- Reviewed branch head:
+- Integration commit:
+
+### Review findings
+
+- Pending.
+
+### Required follow-up
+
+- Re-run M7-011 only after acceptance and deliberate subject-baseline update.
+
+### Roadmap and release impact
+
+- M7 remains in progress. M7-011 and the real multi-team, multi-week pilot
+  remain incomplete; M8 and all release actions stay unauthorized.

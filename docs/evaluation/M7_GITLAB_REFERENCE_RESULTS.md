@@ -1,18 +1,21 @@
 # M7 GitLab.com reference results
 
-> Status: blocked before job creation on GitLab user verification
+> Status: hosted subject test passed; mechanics blocked on run-attempt portability
 > Evidence date: 2026-08-04
 > Scope: public synthetic project and credential-free deterministic mechanics
 
 ## Claim boundary
 
-This record covers the first materialization and push of the accepted M7-010
-GitLab reference baseline. It records a real GitLab.com pipeline-creation
-failure and preserves the absence of runner/job/artifact evidence.
+This record covers the materialization and push of the accepted M7-010 GitLab
+reference baseline plus its first two real GitLab.com pipelines. It preserves
+the initial account-verification failure and the subsequent hosted-runner
+execution that exposed a bounded runner-input defect.
 
-It does not prove GitLab-hosted runner execution, subject tests, Change Trace
-mechanics, semantic review, Host/model compatibility, Feishu retrieval, a
-pilot team/week, M7 completion, M8 readiness, or a release.
+It proves GitLab-hosted Linux Runner execution, baseline subject tests, and the
+immutable tooling checkout/build. It does not prove successful Change Trace
+mechanics, the three-artifact contract, semantic review, Host/model
+compatibility, Feishu retrieval, a pilot team/week, M7 completion, M8
+readiness, or a release.
 
 ## External resources
 
@@ -23,7 +26,8 @@ pilot team/week, M7 completion, M8 readiness, or a release.
 - Default branch: `main`
 - Feishu Wiki explicit reference:
   `https://rcnw05c7n18f.feishu.cn/wiki/Ecm9wM0EXiH8I4kvQIfcivtUnoe`
-- Feishu state at this evidence point: title only; no body retrieval occurred.
+- Feishu state at this evidence point: the project owner reports manually
+  pasting the accepted Markdown template; no body retrieval occurred.
 
 The personal namespace is intentional. The project owner found that the
 initially considered default group allowed only Private projects, so it could
@@ -79,6 +83,41 @@ no stage, manual action, scheduled action, duration, or retriable build. A
 subsequent project query listed exactly this one failed pipeline and no
 `running`, `pending`, or `created` pipeline.
 
+## Second hosted pipeline
+
+After completing GitLab account verification, the project owner deliberately
+created one new web pipeline for the unchanged baseline.
+
+| Field | Evidence |
+|---|---|
+| Pipeline | `2730157298` (IID `2`) |
+| URL | `https://gitlab.com/infinty081/change-trace-gitlab-reference/-/pipelines/2730157298` |
+| Source | `web` |
+| Commit | `b3f4b9ab2e7a5bf5fcab4557cff30b85597878bc` |
+| Created | `2026-08-04T11:22:00.947Z` |
+| Finished | `2026-08-04T11:23:06.736Z` |
+| Pipeline status | `success` with warning |
+| YAML error | none reported |
+| `subject_test` | job `15697682695`, passed, 22.47 seconds |
+| `change_trace_mechanics` | job `15697682696`, failed but allowed to fail, 37.85 seconds |
+| Runner | GitLab-hosted `saas-linux-small-amd64`, Docker executor, `node:22-bookworm` |
+| Retry | `0`; no retried job |
+| Managed artifacts | none |
+
+The mechanics trace confirms that the job cloned the public trusted tooling
+repository, fetched and checked out exact commit
+`aa52a1795a587cb32704018bdd60b1d33649309d`, installed 146 packages with
+scripts/audit/funding disabled, and completed the TypeScript build. The next
+command passed `CI_JOB_ID=15697682696` as `CHANGE_TRACE_CI_RUN_ATTEMPT`; the
+runner immediately returned
+`infrastructure_failure code=invalid_run_attempt`. The artifact uploader then
+reported all three configured files missing, so no artifact archive exists.
+
+The completed pipeline has no manual or scheduled action and is not retriable
+through its current public status record. The project lists exactly these two
+preserved pipelines; dedicated anonymous queries returned no `running`,
+`pending`, or `created` pipeline.
+
 ## Diagnosis and next action
 
 GitLab documents this exact GitLab.com Free hosted-runner failure as an account
@@ -86,14 +125,19 @@ identity-verification requirement used to protect free compute. Depending on
 GitLab's risk decision, the account holder may need to verify email, phone, or
 a payment method.
 
-The project owner must complete the verification from the GitLab alert banner.
-After confirmation, start one new pipeline on `main` for the existing baseline
-commit with no variables. Preserve pipeline `2730064343`; do not retry, cancel,
-delete, or rewrite it.
+The account-verification blocker is resolved. GitLab documents `CI_JOB_ID` as
+an integer ID unique across all jobs in the GitLab instance. The accepted
+template intentionally uses it as positive run-attempt metadata, while the
+runner currently rejects values greater than `1_000_000` despite documenting
+only a positive-integer requirement. The real value `15697682696` therefore
+exposed a repository portability defect.
 
-Only the new pipeline may determine whether `subject_test`,
-`change_trace_mechanics`, the immutable tooling checkout, and the exact three
-artifacts pass on a GitLab-hosted runner.
+M7-012 must retain strict decimal/safe-integer validation while accepting the
+full positive JavaScript safe-integer range and proving that the observed
+GitLab job ID is forwarded and recorded unchanged. After coordinator review
+and acceptance, materialize the accepted fix into a fresh subject baseline and
+create one deliberate pipeline. Preserve both existing pipelines and do not
+retry, cancel, delete, or rewrite them.
 
 ## Security and external-state confirmation
 
@@ -104,7 +148,9 @@ artifacts pass on a GitLab-hosted runner.
   environment, MR, feature overlay, retry, cancel, package version, npm
   publication, tag, release, or dist-tag changed.
 - Public anonymous GitLab GET endpoints were used only to read project,
-  pipeline, and job absence after the push.
+  pipeline, job, and bounded raw-trace evidence.
+- `lark-cli` was not installed. The user-performed Feishu paste is recorded as
+  reported external state and is not treated as authenticated retrieval proof.
 
 ## Primary references
 
@@ -113,3 +159,8 @@ artifacts pass on a GitLab-hosted runner.
 - `https://gitlab.com/api/v4/projects/85104200`
 - `https://gitlab.com/api/v4/projects/85104200/pipelines/2730064343`
 - `https://gitlab.com/infinty081/change-trace-gitlab-reference/-/pipelines/2730064343.json`
+- `https://docs.gitlab.com/ci/variables/predefined_variables/`
+- `https://gitlab.com/api/v4/projects/85104200/pipelines/2730157298`
+- `https://gitlab.com/api/v4/projects/85104200/pipelines/2730157298/jobs?include_retried=true&per_page=100`
+- `https://gitlab.com/infinty081/change-trace-gitlab-reference/-/pipelines/2730157298.json`
+- `https://gitlab.com/infinty081/change-trace-gitlab-reference/-/jobs/15697682696/raw`

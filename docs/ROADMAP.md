@@ -1,7 +1,7 @@
 # Change Trace MCP Development Roadmap
 
 > Initial roadmap: 2026-07-22
-> Status: M7 in progress; M7-001 through M7-010 accepted; M7-011 blocked on GitLab user verification; real multi-team pilot evidence remains
+> Status: M7 in progress; M7-001 through M7-010 accepted; M7-011 blocked on the M7-012 GitLab run-attempt portability fix; real multi-team pilot evidence remains
 > Scope: first public, usable, model-neutral release
 
 ## 1. Outcome
@@ -267,11 +267,15 @@ The technical spike may revise this choice if Host compatibility or package star
   a model credential, semantic Agent, external-document retrieval, merge gate,
   pilot claim, package/release action, or M8.
 - M7-011's first pipeline `2730064343` was stopped by GitLab before any job was
-  created because the project owner's user account was not verified. The exact
-  baseline commit is public on `main`, the pipeline has no YAML error, and no
-  retry, runner job, log, or artifact exists. M7-011 is blocked pending the
-  owner's GitLab identity verification and one deliberate new pipeline for the
-  same commit; this is not a template, runner, semantic, or pilot result.
+  created because the project owner's user account was not verified. After the
+  owner completed verification, the deliberately created pipeline `2730157298`
+  ran on the same baseline commit. `subject_test` passed on a GitLab-hosted
+  Linux Runner; `change_trace_mechanics` checked out and built the immutable
+  tooling commit, then failed with `invalid_run_attempt` because the real
+  `CI_JOB_ID` (`15697682696`) exceeded the runner's undocumented `1_000_000`
+  ceiling. No advisory artifact was produced. M7-011 is blocked on the scoped
+  M7-012 portability fix and a later deliberate fresh-baseline pipeline; this
+  remains mechanics evidence, not a semantic or pilot result.
 
 ## 6. M0 — Project foundation
 
@@ -762,8 +766,8 @@ The format evidence supporting this boundary is in
 
 ## 13. M7 — Public beta hardening
 
-> Current state: in progress. M7-001 through M7-010 are accepted and M7-011 is
-> blocked on GitLab user verification. The
+> Current state: in progress. M7-001 through M7-010 are accepted, M7-011 is
+> blocked on the assigned M7-012 GitLab run-attempt portability fix. The
 > repository construction and local verification slices are complete; real
 > multi-team, multi-week pilot evidence remains. The two
 > medium security findings are mitigated, clean package installation is
@@ -967,7 +971,7 @@ Progress as of 2026-07-26:
 | M4 advisory CI | Complete; provider-neutral runner/examples and two-attempt deterministic GitHub evidence accepted |
 | M5 external documents | Complete; explicit-reference fixtures, final-report provenance, and replacement Ubuntu artifact audit pass |
 | M6 runtime evidence | Complete; strict manifest collection, relationship-safe bundle/report provenance, and four pinned offline source profiles pass |
-| M7 public beta hardening | In progress; M7-001 through M7-010 are accepted, M7-011 hosted mechanics is blocked on GitLab user verification, and the real multi-team, multi-week pilot remains |
+| M7 public beta hardening | In progress; M7-001 through M7-010 are accepted, M7-011 hosted mechanics is blocked on the assigned M7-012 GitLab run-attempt portability fix, and the real multi-team, multi-week pilot remains |
 | M1 compatibility record | Complete in `docs/smoke-tests/RESULTS.md` |
 
 M2 completed without external document credentials or staging access. Source is

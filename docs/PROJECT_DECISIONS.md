@@ -1569,12 +1569,23 @@ three short-retention artifacts:
 The first real pipeline, `2730064343`, was created on 2026-08-04 for baseline
 commit `b3f4b9ab2e7a5bf5fcab4557cff30b85597878bc`. GitLab stopped it before job
 creation because the project owner's user account was not verified. The
-pipeline had no YAML error, runner job, retry, log, or artifact. This is an
-external GitLab.com hosted-compute prerequisite, not evidence that the subject
-test, Change Trace runner, or artifact contract passed or failed. Hosted
-mechanics acceptance remains blocked until the project owner completes the
-GitLab-required identity verification and deliberately starts one new pipeline
-for the same baseline commit.
+pipeline had no YAML error, runner job, retry, log, or artifact.
+
+After the owner completed verification, pipeline `2730157298` deliberately ran
+the same baseline from the GitLab web UI. `subject_test` passed on a hosted
+Linux Runner. `change_trace_mechanics` cloned the trusted tooling repository,
+verified and built exact commit
+`aa52a1795a587cb32704018bdd60b1d33649309d`, then the advisory runner rejected
+the real `CI_JOB_ID` value `15697682696` as `invalid_run_attempt`. GitLab
+defines `CI_JOB_ID` as an integer ID unique across all jobs in the instance;
+the runner's accepted public input was documented only as a positive integer,
+but its implementation imposed an undocumented `1_000_000` maximum. The job
+failed before it could create the three managed artifacts. M7-012 will make
+the documented positive-integer contract accept the full JavaScript safe
+integer range while retaining strict decimal parsing and rejection of zero,
+negative, fractional, exponential, and unsafe values. Hosted mechanics remains
+blocked until that fix is accepted, materialized into a fresh subject baseline,
+and run in a new deliberate pipeline.
 
 No merge gate, schedule, daemon, retry loop, npm publication, package-version
 change, tag, release, or dist-tag belongs to this reference.
@@ -1591,10 +1602,12 @@ The external document is a dedicated synthetic Feishu/Lark document titled
 `Change Trace GitLab Reference — Maintenance Status Update`, with stable ID
 `CTGR-001`. On 2026-08-04 the project owner created its Wiki document at
 `https://rcnw05c7n18f.feishu.cn/wiki/Ecm9wM0EXiH8I4kvQIfcivtUnoe`; at creation
-time it contained the title only. Until a read-only authenticated Lark client
-is available, the project owner may populate it manually from the tracked
-template. Future automation requires explicit read-only scopes and separate
-masked/protected `LARK_APP_ID` and `LARK_APP_SECRET` variables. Those values
+time it contained the title only. The owner later reported manually pasting the
+tracked Markdown template into its body. That body has not been retrieved or
+verified through an authenticated client. Local `lark-cli` installation is not
+required for credential-free mechanics and is deferred until the separate
+explicit-reference phase. Future automation requires explicit read-only scopes
+and separate masked/protected `LARK_APP_ID` and `LARK_APP_SECRET` variables. Those values
 must not enter prompts, MCP configuration, logs, reports, or artifacts.
 
 The Codex Desktop GitLab-webview incident changes the access path, not the
@@ -1617,3 +1630,4 @@ Primary references accessed 2026-07-27 through 2026-07-30:
 Additional hosted-execution reference accessed 2026-08-04:
 
 - `https://docs.gitlab.com/ci/debugging/#error-identity-verification-is-required-in-order-to-run-ci-jobs`.
+- `https://docs.gitlab.com/ci/variables/predefined_variables/`.
